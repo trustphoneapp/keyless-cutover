@@ -8,13 +8,14 @@ The receipt is an independently checkable account of what Keyless observed, prop
 
 ## Format
 
-1. Create canonical JSON with a versioned schema.
-2. Hash it with SHA-256.
-3. Sign the digest using an asymmetric Cloud KMS key.
-4. Store the JSON, signature, public-key version, and evidence hashes.
-5. Publish the receipt ID and digest in a GitHub Check or PR comment as an external anchor.
+1. K0 produces a version-2 evidence manifest. Every claim references one or more `E###` ledger entries containing an allowlisted source kind, bounded locator, observation time, SHA-256 artifact digest, and optional HTTPS inspection URL.
+2. The K0 verifier requires the correct evidence kinds for ProofV2, WIF readback, H1–H8, key disable, fresh legacy denial, post-disable continuity, and leak scan. Every evidence entry must be referenced.
+3. After K0 passes, create canonical receipt JSON from that verified manifest plus K1 agent/PR evidence.
+4. Hash it with SHA-256 and sign the digest using an asymmetric Cloud KMS key.
+5. Store the JSON, signature, public-key version, and evidence hashes.
+6. Publish the receipt ID and digest in a GitHub Check or PR comment as an external anchor.
 
-The repository includes a verifier that reconstructs canonical JSON, verifies the KMS public-key signature, and checks evidence hashes. Changing one byte must fail verification.
+The repository currently includes the K0 v2 manifest verifier. The KMS receipt signer/verifier is intentionally not implemented until K0 passes. When implemented, changing one byte must fail verification.
 
 ## Required fields
 

@@ -1,8 +1,10 @@
 # Claims and limitations
 
-## Evidence-backed v1 claim
+## Target release claim — not yet achieved
 
-Keyless migrates one supported GitHub Actions workflow from one repository-scoped Google service-account JSON secret to a least-privilege WIF path for one existing Cloud Run service. It opens a human-reviewed PR, proves the authorized path and eight scoped hostile paths, waits for a human to disable the exact key, verifies a fresh legacy authentication failure and post-disable WIF deployment, and issues a signed scoped receipt.
+After all release gates pass, Keyless may claim that it migrated one supported GitHub Actions workflow from one repository-scoped Google service-account JSON secret to a narrowly bound WIF path with no added downstream permissions for one existing Cloud Run service. The target claim includes a human-reviewed PR, one authorized path and eight scoped hostile paths, human disable of the exact key, a fresh legacy authentication failure, post-disable WIF deployment, and a signed scoped receipt.
+
+Today this claim is unproven: there is no live GitHub/GCP K0 evidence, deployed Gemini result, PR, key disable, KMS signature, or hosted demo.
 
 ## What the claim requires
 
@@ -48,4 +50,3 @@ If any condition is absent, use a narrower claim or state that the evidence is p
 Avoid: “fully secure,” “fully keyless,” “all attacks blocked,” “safe to delete,” “key revoked,” “zero downtime,” “enterprise compliant,” “one-click rollback,” and “autonomous IAM.”
 
 Prefer scoped, observable wording from the receipt.
-
