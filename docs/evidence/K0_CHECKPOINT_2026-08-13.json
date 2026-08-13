@@ -1,7 +1,7 @@
 {
   "version": 1,
   "status": "NO_GO_INCOMPLETE",
-  "recorded_at": "2026-08-13T16:00:00-04:00",
+  "recorded_at": "2026-08-13T12:00:00-04:00",
   "repository": {
     "full_name": "trustphoneapp/keyless-cutover",
     "owner_id": "289479481",
@@ -38,6 +38,7 @@
     "client_outcome": "failure",
     "denial_signature": "unauthorized_client / attribute condition",
     "artifact_sha256": "df5742ba2c7b7bf40267db3a9b2ea0a1aa783d8f0a0079b98a00d6e9f23ef009",
+    "collector_log_sha256": "6ae62be216a075e4043506bfd04b92d32d2511357f8b945abd1a793858bbf867",
     "forbidden_revision_unchanged": true
   },
   "agent_eval": {
