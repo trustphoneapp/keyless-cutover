@@ -47,6 +47,7 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 - [ ] `npm ci --legacy-peer-deps` succeeds.
 - [ ] `npm audit --omit=dev --audit-level=high` reports zero vulnerabilities.
 - [ ] `npm test` passes with the published count.
+- [ ] GitHub App token handling passes both classic and approximately 520-character stateless-token tests; a real app test forced with `enabled` and `disabled` succeeds before the temporary header is removed.
 - [ ] `actionlint -no-color` passes.
 - [ ] Console container builds for `linux/amd64` from the pinned base image.
 - [ ] Private Taskmaster and public console image digests match the evidence record.
@@ -92,4 +93,3 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 - [ ] Do not add an extra Google model solely for bonus points. Integrate another model only if it materially improves the completed product and passes the same safety/evaluation bar.
 
 Official source: [All Things Agentic Hackathon rules](https://allthingsagentichackathon.devpost.com/rules).
-

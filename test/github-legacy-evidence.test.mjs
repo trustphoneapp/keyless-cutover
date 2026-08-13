@@ -4,6 +4,8 @@ import AdmZip from "adm-zip";
 
 import { collectFreshLegacyDenialEvidence } from "../src/github-legacy-evidence.mjs";
 
+const installationToken = `ghs_${"t".repeat(36)}`;
+
 function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
   return {
@@ -46,7 +48,7 @@ const base = {
   owner: "trustphoneapp",
   repository: "keyless-cutover",
   runId: "9001",
-  installationToken: "github-installation-token-value",
+  installationToken,
   scopeOwnerId: "1",
   scopeRepositoryId: "2",
 };

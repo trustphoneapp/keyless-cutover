@@ -4,6 +4,8 @@ import AdmZip from "adm-zip";
 
 import { collectGitHubDenialEvidence } from "../src/github-denial-evidence.mjs";
 
+const installationToken = `ghs_${"t".repeat(36)}`;
+
 function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
   return {
@@ -79,7 +81,7 @@ function h2Fixture() {
 
 const input = {
   owner: "trustphoneapp", repository: "keyless-cutover", runId: "7007", hostileId: "H7",
-  installationToken: "github-installation-token-value", scopeOwnerId: "1", scopeRepositoryId: "2",
+  installationToken, scopeOwnerId: "1", scopeRepositoryId: "2",
   forbiddenService: "keyless-forbidden",
 };
 
