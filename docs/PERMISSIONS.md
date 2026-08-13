@@ -39,6 +39,12 @@ It cannot create/update/delete WIF providers or IAM bindings; disable, enable, d
 - May use one asymmetric Cloud KMS key version to sign a canonical receipt digest.
 - Cannot read repository credentials, mutate GitHub/GCP infrastructure, or decide evidence completeness.
 
+### `keyless-console-sa`
+
+- Runs only the public read-only evidence console.
+- Receives no project IAM role and no Secret Manager, Firestore, Vertex, GitHub, deployment, key, or KMS authority.
+- Serves only the credential-free checkpoint baked into the reviewed image. A future verified manifest must be supplied through a separately reviewed immutable image or read-only evidence mechanism.
+
 ### Existing deploy service account
 
 The cutover preserves the existing narrowly scoped deploy service account. The GitHub federated principal receives only `roles/iam.workloadIdentityUser` on that service account. Existing target-resource roles are unchanged.

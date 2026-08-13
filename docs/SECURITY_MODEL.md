@@ -12,6 +12,7 @@ Keyless may help remove one permanent authentication path only when it can prove
 - GitHub protection and independent review own merge authority.
 - A human owns IAM application and key disable.
 - Google and GitHub source state outranks Keyless’s database.
+- The public evidence console is isolated from the private Taskmaster and has no cloud role, secret, mutation route, or client-side script.
 
 ## ProofV2 protocol
 

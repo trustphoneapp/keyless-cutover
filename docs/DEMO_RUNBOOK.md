@@ -17,7 +17,11 @@ Use one completed timestamped case plus one unedited live authorized/hostile pai
 
 ## Timeline
 
-### 0:00–0:25 — Hook and live launch
+### 0:00–0:20 — Honest starting state
+
+Open the public evidence console. Show `NO-GO · evidence incomplete`, the checkpoint digest, completed readiness evidence, and the exact remaining blockers. State that the page has no mutation route and cannot turn missing evidence green.
+
+### 0:20–0:45 — Hook and live launch
 
 Launch the fresh authorized WIF deployment and H4 wrong-workflow attempt in one unedited action.
 
@@ -25,15 +29,15 @@ Say:
 
 > “This deployment used a permanent Google key. Disable it blindly and releases break; leave it and one leak keeps working. Keyless proves the key, attacks the replacement, and only then asks a human to disable it—with a receipt.”
 
-### 0:25–1:05 — Served agent action
+### 0:45–1:20 — Served agent action
 
 Run Taskmaster on a supported workflow. Show Cloud Run, ADK, exact `gemini-3.5-flash` on Vertex AI, typed source citations, and a local-script interpretation or bounded recovery that the rules-only baseline missed.
 
-### 1:05–1:35 — Deterministic boundary and draft PR
+### 1:20–1:50 — Deterministic boundary and draft PR
 
 Show the no-added-downstream-privilege WIF diff and compiler-owned draft PR. Make the boundary explicit: Gemini interprets evidence; deterministic code owns policy and bytes; Keyless cannot merge or apply IAM.
 
-### 1:35–2:35 — Completed transaction
+### 1:50–2:45 — Completed transaction
 
 Walk the timestamped completed case:
 
@@ -47,7 +51,7 @@ Walk the timestamped completed case:
 
 State that disabling does not revoke tokens minted earlier and that no universal external-consumer absence is claimed.
 
-### 2:35–3:20 — Return to live proof
+### 2:45–3:20 — Return to live proof
 
 Show H4 reaching Google and failing at the provider condition. Show the authorized revision if complete. If pending, label it pending and rely only on the completed historical evidence.
 
