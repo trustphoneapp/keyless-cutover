@@ -1,44 +1,47 @@
 # Developer quickstart
 
-> This remains a planning checklist until K0 passes. Do not interpret it as reproducible live setup or proof of deployed resources.
+This quickstart validates the public source without granting cloud authority or replaying the live disposable cutover. The final live-operator setup remains gated by K0 and `REVIEWER_RUNBOOK.md`.
 
-The repository currently contains the frozen design package. Implementation begins with K0; do not scaffold the full application before the real integration transaction passes.
+## Requirements
 
-## Prerequisites
+- Node.js 22 or newer.
+- Git.
+- `gh` and `gcloud` only for authorized live operators; local tests do not need cloud credentials.
 
-- A disposable `github.com` repository under your control.
-- A disposable GCP project with billing and Cloud Run enabled.
-- `gh`, `gcloud`, Git, Node.js, and a GitHub-hosted Ubuntu runner.
-- Two humans/sessions for separation of duties: builder and independent environment/key approver.
+## Validate a clean checkout
 
-## K0 setup checklist
+```sh
+npm ci --legacy-peer-deps
+npm test
+npm audit --omit=dev --audit-level=high
+```
 
-1. Create dedicated `keyless-deploy@PROJECT_ID.iam.gserviceaccount.com` with only the Cloud Run permissions needed for the demo service.
-2. Create one user-managed key and store it as the repository-scoped `GCP_SERVICE_ACCOUNT_KEY` Actions secret.
-3. Create `keyless-demo` and `keyless-forbidden` in `us-central1`.
-4. Protect `main` and create a protected `production` GitHub Environment with required review and self-review disabled.
-5. Add the supported baseline workflow and deploy `legacy-1`.
-6. Enable IAM, STS, Service Account Credentials, Cloud Run, Logging, and required Data Access logging for the disposable project.
-7. Follow K0 in [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) and record exact identifiers in a local evidence worksheet.
+The current release candidate has 37 deterministic tests and zero known production dependency vulnerabilities at the configured audit threshold.
 
-## Stop conditions
+## Validate deterministic artifacts
 
-Do not proceed to app scaffolding if:
+The compilers consume explicit reviewed JSON and never discover or receive a private key value:
 
-- the selected service account/key cannot be proved exactly;
-- the deploy service account is shared or overprivileged;
-- a hostile case can obtain or use authority;
-- the forbidden Cloud Run target changes;
-- logs/artifacts reveal secret material;
-- post-disable WIF continuity fails.
+```sh
+npm run plan:wif -- wif-input.json wif-plan.json
+npm run cutover -- plan .github/workflows/k0-deploy.yml k0/templates/k0-deploy.wif.yml cutover-plan.json
+npm run cutover -- apply .github/workflows/k0-deploy.yml k0/templates/k0-deploy.wif.yml cutover-plan.json k0-deploy.generated.yml
+npm run verify:k0 -- evidence/k0/manifest.json
+```
 
-## After K0 passes
+`verify:k0` requires the manifest and sibling `artifacts/E###.json` files. Missing, unreferenced, noncanonical, tampered, semantically inconsistent, or credential-shaped evidence fails verification.
 
-Implement in this order:
+## Evaluate agent necessity
 
-1. K1 typed schemas and deterministic state tests.
-2. K2 minimal web/worker services and persistence.
-3. K3 preserving observer/compiler.
-4. K4 runner proof.
+```sh
+npm run run:eval -- predictions.json
+npm run score:eval -- predictions.json
+```
 
-Use the issue template in [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md). No feature enters the build without a stated invariant, evidence output, failure behavior, and refusal behavior.
+Live evaluation requires valid Vertex AI application-default credentials and the configured Gemini model. Raw model outputs are local evidence and must not be committed. Security verdicts are always deterministic; the model does not judge authorization or receipt completeness.
+
+## Live K0
+
+Do not reproduce K0 by copying credentials from another project. Use a disposable project/repository, a dedicated deployment service account, protected `main`, protected `production`, a human reviewer/key operator, and the exact support matrix. Follow [Development chunks](DEVELOPMENT_PLAN.md) and the [independent reviewer/operator runbook](REVIEWER_RUNBOOK.md).
+
+Stop on key ambiguity, shared or broad authority, source drift, missing review, hostile success, forbidden-target change, secret exposure, or failed post-disable WIF continuity.

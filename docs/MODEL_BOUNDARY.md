@@ -21,7 +21,7 @@ Evidence Agent
   → Recovery Agent when an external proof fails
 ```
 
-Both agents use `gemini-3.5-flash`, have no tools or transfer routes, and emit strict Zod outputs. The Evidence stage runs before deterministic compilation. Recovery runs only on an allowlisted failed observation. The ADK path must be served from Cloud Run and evidenced; a local container health check is not a model invocation.
+Both agents use `gemini-3.5-flash`, have no tools or transfer routes, and emit strict Zod outputs. The Evidence stage runs before deterministic compilation. Recovery runs only on an allowlisted failed observation. The ADK path is served privately from Cloud Run; a real dual-authenticated Vertex invocation and the second 72-call sealed evaluation passed. Final release still requires an independent hash-held rerun.
 
 ## Model inputs
 

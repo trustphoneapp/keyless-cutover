@@ -62,7 +62,7 @@ Stop if the exact key remains ambiguous, any replay wins twice, or private mater
 10. On another fresh run, deploy `wif-2` through OIDC/WIF.
 11. Assemble a sanitized manifest and run credential scanning.
 
-Acceptance command to implement:
+Implemented acceptance command:
 
 ```sh
 npm run verify:k0 -- .keyless/evidence/k0/manifest.json

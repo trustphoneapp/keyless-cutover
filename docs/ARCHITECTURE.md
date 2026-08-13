@@ -2,7 +2,7 @@
 
 ## Status
 
-This is the accepted Taskmaster architecture. The local code now includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, and a bearer-protected agent container that passes a local health check. Cloud deployment and live external evidence remain planned until K0/K1 prove them.
+This is the accepted Taskmaster architecture. The implementation includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, and a private dual-authenticated Cloud Run agent. A real served Vertex Gemini request and H2 WIF-condition denial exist; the protected cutover, remaining hostile matrix, key disable, post-disable continuity, KMS receipt, and evidence console remain incomplete.
 
 ## Components
 
