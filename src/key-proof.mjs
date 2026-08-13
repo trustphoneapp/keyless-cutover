@@ -2,6 +2,8 @@ import {
   createHash,
   createPrivateKey,
   createPublicKey,
+  randomBytes,
+  randomUUID,
   sign,
   verify,
 } from "node:crypto";
@@ -72,9 +74,12 @@ function fields(input) {
     head_sha: required(input.head_sha, "head_sha", GIT_SHA),
     run_id: required(input.run_id, "run_id", REPOSITORY_ID),
     run_attempt: required(input.run_attempt, "run_attempt", REPOSITORY_ID),
+    actor_id: required(input.actor_id, "actor_id", REPOSITORY_ID),
+    triggering_actor_id: required(input.triggering_actor_id, "triggering_actor_id", REPOSITORY_ID),
     event_name: required(input.event_name, "event_name"),
     ref: required(input.ref, "ref", GITHUB_REF),
     environment: required(input.environment, "environment"),
+    runner_environment: required(input.runner_environment, "runner_environment"),
     client_email: required(input.client_email, "client_email", SERVICE_ACCOUNT_EMAIL),
     private_key_id: required(input.private_key_id, "private_key_id", KEY_ID),
   };
@@ -97,9 +102,12 @@ export function canonicalMessage(input) {
     `head_sha=${value.head_sha}`,
     `run_id=${value.run_id}`,
     `run_attempt=${value.run_attempt}`,
+    `actor_id=${value.actor_id}`,
+    `triggering_actor_id=${value.triggering_actor_id}`,
     `event_name=${value.event_name}`,
     `ref=${value.ref}`,
     `environment=${value.environment}`,
+    `runner_environment=${value.runner_environment}`,
     `client_email=${value.client_email}`,
     `private_key_id=${value.private_key_id}`,
   ].join("\n");
@@ -123,6 +131,46 @@ export function createKeyProof(serviceAccountKeyJson, context) {
     message_sha256: createHash("sha256").update(message).digest("hex"),
     signature,
   };
+}
+
+export function issueKeyProofChallenge(scope, now = new Date()) {
+  const issuedAt = new Date(now);
+  const expiresAt = new Date(issuedAt.getTime() + MAX_CHALLENGE_LIFETIME_MS);
+  if (!Number.isFinite(issuedAt.getTime())) throw new Error("challenge issue time is invalid");
+  return {
+    status: "ISSUED",
+    migration_id: required(scope.migration_id, "migration_id"),
+    challenge_id: randomUUID(),
+    nonce: randomBytes(32).toString("base64url"),
+    issued_at: issuedAt.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    owner_id: required(scope.owner_id, "owner_id", REPOSITORY_ID),
+    repository_id: required(scope.repository_id, "repository_id", REPOSITORY_ID),
+    workflow_path: required(scope.workflow_path, "workflow_path", GITHUB_PATH),
+    event_name: required(scope.event_name, "event_name"),
+    ref: required(scope.ref, "ref", GITHUB_REF),
+    environment: required(scope.environment, "environment"),
+    client_email: required(scope.client_email, "client_email", SERVICE_ACCOUNT_EMAIL),
+    private_key_id: required(scope.private_key_id, "private_key_id", KEY_ID),
+  };
+}
+
+export function expectedKeyProofContext(challenge, observed) {
+  if (challenge?.status !== "ISSUED") throw new Error("challenge is not issued");
+  for (const name of ["owner_id", "repository_id", "workflow_path", "event_name", "ref", "environment"]) {
+    if (observed?.[name] !== challenge[name]) throw new Error(`${name} does not match the challenge`);
+  }
+  return fields({
+    ...challenge,
+    workflow_ref: observed.workflow_ref,
+    workflow_blob_sha: observed.workflow_blob_sha,
+    head_sha: observed.head_sha,
+    run_id: observed.run_id,
+    run_attempt: observed.run_attempt,
+    actor_id: observed.actor_id,
+    triggering_actor_id: observed.triggering_actor_id,
+    runner_environment: observed.runner_environment,
+  });
 }
 
 export function verifyKeyProof(proof, publicKeyPem, expected, now = new Date()) {
@@ -156,7 +204,7 @@ export function verifyKeyProof(proof, publicKeyPem, expected, now = new Date()) 
   }
 }
 
-export async function verifyGoogleKeyProof(proof, expected, fetchImpl = fetch) {
+export async function verifyGoogleKeyProof(proof, expected, fetchImpl = fetch, now = new Date()) {
   const clientEmail = required(proof?.client_email, "client_email", SERVICE_ACCOUNT_EMAIL);
   const keyId = required(proof?.private_key_id, "private_key_id", KEY_ID);
   const url = `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(clientEmail)}`;
@@ -170,7 +218,58 @@ export async function verifyGoogleKeyProof(proof, expected, fetchImpl = fetch) {
   const certificates = JSON.parse(body);
   const certificate = certificates[keyId];
   if (typeof certificate !== "string") return false;
-  return verifyKeyProof(proof, certificate, expected);
+  return verifyKeyProof(proof, certificate, expected, now);
+}
+
+function googleKeyMatches(googleKey, expected) {
+  if (typeof googleKey?.name !== "string") return false;
+  const match = googleKey.name.match(/^projects\/[^/]+\/serviceAccounts\/([^/]+)\/keys\/([^/]+)$/);
+  if (!match) return false;
+  let account;
+  try {
+    account = decodeURIComponent(match[1]);
+  } catch {
+    return false;
+  }
+  return (
+    account === expected.client_email &&
+    match[2] === expected.private_key_id &&
+    googleKey.keyType === "USER_MANAGED" &&
+    googleKey.keyAlgorithm === "KEY_ALG_RSA_2048" &&
+    googleKey.disabled === false
+  );
+}
+
+export async function verifyAndConsumeGoogleKeyProof({
+  proof,
+  challenge,
+  observed,
+  getGoogleKey,
+  fetchImpl = fetch,
+  consume,
+  now = new Date(),
+}) {
+  if (typeof consume !== "function") throw new Error("an atomic challenge consumer is required");
+  if (typeof getGoogleKey !== "function") throw new Error("an authenticated Google key reader is required");
+  const expected = expectedKeyProofContext(challenge, observed);
+  const googleKey = await getGoogleKey({
+    client_email: expected.client_email,
+    private_key_id: expected.private_key_id,
+  });
+  if (!googleKeyMatches(googleKey, expected)) return false;
+  if (!await verifyGoogleKeyProof(proof, expected, fetchImpl, now)) return false;
+  return (await consume({
+    challenge_id: expected.challenge_id,
+    expected_status: "ISSUED",
+    consumed_status: "CONSUMED",
+    proof_digest: expectedDigest(proof),
+  })) === true;
+}
+
+function expectedDigest(proof) {
+  return createHash("sha256")
+    .update(JSON.stringify(proof, Object.keys(proof).sort()))
+    .digest("hex");
 }
 
 async function generate(outPath) {
@@ -190,9 +289,12 @@ async function generate(outPath) {
     head_sha: process.env.GITHUB_SHA,
     run_id: process.env.GITHUB_RUN_ID,
     run_attempt: process.env.GITHUB_RUN_ATTEMPT,
+    actor_id: process.env.GITHUB_ACTOR_ID,
+    triggering_actor_id: process.env.GITHUB_TRIGGERING_ACTOR_ID,
     event_name: process.env.GITHUB_EVENT_NAME,
     ref: process.env.GITHUB_REF,
     environment: process.env.KEYLESS_ENVIRONMENT,
+    runner_environment: process.env.RUNNER_ENVIRONMENT,
   });
   const output = resolve(outPath);
   await mkdir(dirname(output), { recursive: true });

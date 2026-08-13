@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 
-import { createKeyProof, verifyKeyProof } from "../src/key-proof.mjs";
+import {
+  createKeyProof,
+  expectedKeyProofContext,
+  issueKeyProofChallenge,
+  verifyAndConsumeGoogleKeyProof,
+  verifyGoogleKeyProof,
+  verifyKeyProof,
+} from "../src/key-proof.mjs";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" });
@@ -28,9 +35,12 @@ const context = {
   head_sha: "b".repeat(40),
   run_id: "456789123",
   run_attempt: "1",
+  actor_id: "111111111",
+  triggering_actor_id: "222222222",
   event_name: "workflow_dispatch",
   ref: "refs/heads/main",
   environment: "keyless-demo",
+  runner_environment: "github-hosted",
 };
 
 test("proof binds the exact key and workflow context without exporting the private key", () => {
@@ -65,5 +75,97 @@ test("malformed input is rejected before signing", () => {
   assert.throws(
     () => createKeyProof("{}", context),
     /not a service-account key/,
+  );
+});
+
+test("Google certificate lookup is bounded and keyed by the exact key ID", async () => {
+  const proof = createKeyProof(serviceAccountKey, context);
+  const expected = { ...context, client_email: proof.client_email, private_key_id: proof.private_key_id };
+  const response = (body, ok = true) => ({ ok, status: ok ? 200 : 500, text: async () => body });
+  const validFetch = async () => response(JSON.stringify({ [privateKeyId]: publicKeyPem }));
+
+  assert.equal(
+    await verifyGoogleKeyProof(proof, expected, validFetch, new Date("2026-08-12T12:01:00Z")),
+    true,
+  );
+  assert.equal(
+    await verifyGoogleKeyProof(
+      proof,
+      expected,
+      async () => response(JSON.stringify({ ["c".repeat(40)]: publicKeyPem })),
+      new Date("2026-08-12T12:01:00Z"),
+    ),
+    false,
+  );
+  await assert.rejects(
+    verifyGoogleKeyProof(proof, expected, async () => response("{"), new Date("2026-08-12T12:01:00Z")),
+    SyntaxError,
+  );
+});
+
+test("protocol consumes one authoritative challenge exactly once", async () => {
+  const challenge = issueKeyProofChallenge({
+    migration_id: context.migration_id,
+    owner_id: context.owner_id,
+    repository_id: context.repository_id,
+    workflow_path: context.workflow_path,
+    event_name: context.event_name,
+    ref: context.ref,
+    environment: context.environment,
+    client_email: "keyless-demo@example-project.iam.gserviceaccount.com",
+    private_key_id: privateKeyId,
+  }, new Date("2026-08-12T12:00:00Z"));
+  const observed = {
+    ...context,
+    client_email: undefined,
+    private_key_id: undefined,
+  };
+  const expected = expectedKeyProofContext(challenge, observed);
+  const proof = createKeyProof(serviceAccountKey, expected);
+  const googleKey = {
+    name: `projects/-/serviceAccounts/${proof.client_email}/keys/${proof.private_key_id}`,
+    keyType: "USER_MANAGED",
+    keyAlgorithm: "KEY_ALG_RSA_2048",
+    disabled: false,
+  };
+  const getGoogleKey = async () => googleKey;
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify({ [privateKeyId]: publicKeyPem }),
+  });
+  let consumed = false;
+  const consume = async () => {
+    if (consumed) return false;
+    consumed = true;
+    return true;
+  };
+  const input = {
+    proof,
+    challenge,
+    observed,
+    getGoogleKey,
+    fetchImpl,
+    consume,
+    now: new Date("2026-08-12T12:01:00Z"),
+  };
+
+  const results = await Promise.all([
+    verifyAndConsumeGoogleKeyProof(input),
+    verifyAndConsumeGoogleKeyProof(input),
+  ]);
+  assert.deepEqual(results.sort(), [false, true]);
+  assert.equal(await verifyAndConsumeGoogleKeyProof(input), false);
+  assert.equal(
+    await verifyAndConsumeGoogleKeyProof({
+      ...input,
+      consume: async () => true,
+      getGoogleKey: async () => ({ ...googleKey, disabled: true }),
+    }),
+    false,
+  );
+  assert.throws(
+    () => expectedKeyProofContext(challenge, { ...observed, repository_id: "999" }),
+    /does not match/,
   );
 });

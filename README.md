@@ -65,13 +65,14 @@ Firestore exists for one-time ProofV2 challenge consumption and evidence-derived
 Implemented locally:
 
 - Git repository initialized.
-- Node ProofV2 payload primitive with separately expected context, a five-minute maximum challenge window, bounded Google public-certificate lookup, and tamper/expiry checks.
-- Three passing local tests.
+- Node ProofV2 protocol primitives for random challenge issuance, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
+- Deterministic K0 evidence-manifest verifier with fixed H1–H8 controls and false-safe rejection.
+- Six passing local tests, including a simultaneous replay race.
 - Google Cloud CLI installed.
 
 Not yet proven:
 
-- Server-issued challenge and atomic replay consumption.
+- Firestore-backed challenge persistence and transactional consumption; the local protocol currently injects the atomic consumer.
 - Authoritative GitHub run refetch and authenticated Google `keys.get`.
 - GCP account, billing project, WIF, Cloud Run canaries, eight denials, human key disable, Gemini/ADK deployment, KMS receipt, hosted console, or video.
 
