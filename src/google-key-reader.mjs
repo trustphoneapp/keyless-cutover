@@ -27,6 +27,10 @@ export function createGoogleKeyReader({
     if (!response.ok) throw new Error(`Google key lookup failed with HTTP ${response.status}`);
     const body = await response.text();
     if (body.length > 64_000) throw new Error("Google key lookup response is too large");
-    return JSON.parse(body);
+    const key = JSON.parse(body);
+    if (key.disabled !== undefined && typeof key.disabled !== "boolean") {
+      throw new Error("Google key disabled state is invalid");
+    }
+    return { ...key, disabled: key.disabled ?? false };
   };
 }
