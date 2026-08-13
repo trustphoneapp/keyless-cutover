@@ -40,7 +40,7 @@ If any read-back is ambiguous, stop. Never work around a missing reviewer by wea
 
 ### 1. Release candidate
 
-The reviewer checks PR #11 against `main`, runs `npm ci --legacy-peer-deps`, `npm test`, and `npm audit --omit=dev --audit-level=high`, and verifies that no workflow, log, test fixture, or document contains credential material. They then approve PR #11. No one pushes to the branch after that approval. Merge only while the required `test` check is green.
+The reviewer checks PR #11 against `main`, runs `npm ci --legacy-peer-deps --ignore-scripts`, `npm test`, and `npm audit --omit=dev --audit-level=high`, and verifies that no workflow, log, test fixture, or document contains credential material. They then approve PR #11. No one pushes to the branch after that approval. Merge only while the required `test` check is green.
 
 PR #11 includes the earlier fixes from PRs #2 and #4–#10. Close those older PRs as superseded only after PR #11 is merged. PR #1 is obsolete documentation and may also be closed then.
 

@@ -11,12 +11,12 @@ This quickstart validates the public source without granting cloud authority or 
 ## Validate a clean checkout
 
 ```sh
-npm ci --legacy-peer-deps
+npm ci --legacy-peer-deps --ignore-scripts
 npm test
 npm audit --omit=dev --audit-level=high
 ```
 
-The current release candidate has 43 deterministic tests and zero known production dependency vulnerabilities at the configured audit threshold.
+The current release candidate has 49 deterministic tests and zero known production dependency vulnerabilities at the configured audit threshold. The test suite also fails on unreviewed dependency-tree problems, unpinned workflow actions, an unpinned ProofV2 runtime, hidden proof-artifact paths, or package-manager tooling in final containers.
 
 ## Validate deterministic artifacts
 

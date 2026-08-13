@@ -127,7 +127,7 @@ Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong
 ## Development
 
 ```sh
-npm ci --legacy-peer-deps
+npm ci --legacy-peer-deps --ignore-scripts
 npm test
 npm audit --omit=dev --audit-level=high
 npm run run:eval -- predictions.json

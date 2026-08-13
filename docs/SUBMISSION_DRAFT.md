@@ -52,7 +52,7 @@ These facts are already implemented and observed; they are readiness evidence, n
 - Live ProofV2 challenge consumed once and replay rejected; authoritative status remains `HOLD` because independent environment review was absent.
 - Live H2 wrong-repository test reached Google WIF, was rejected by the attribute condition, and left the forbidden Cloud Run revision unchanged.
 - Public read-only Cloud Run evidence console from an immutable image. Its runtime service account has no project roles and the served state is honestly `NO_GO_INCOMPLETE`.
-- 43 deterministic tests, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
+- 49 deterministic tests, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
 
 ## Target release evidence — pending
 

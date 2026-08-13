@@ -1,0 +1,24 @@
+title = "Keyless Cutover secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Google IAM public RSA-2048 algorithm enum"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''^KEY_ALG_RSA_2048$''']
+paths = [
+  '''^src/key-proof\.mjs$''',
+  '''^test/google-key-reader\.test\.mjs$''',
+  '''^test/key-proof\.test\.mjs$''',
+]
+
+[[allowlists]]
+description = "Evidence prose describing absence of key-disable authority"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''^policy/mutation$''']
+paths = ['''^docs/evidence/AGENT_EVAL_2026-08-13\.md$''']
