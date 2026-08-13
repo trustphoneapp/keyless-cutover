@@ -8,6 +8,8 @@
 
 The technical K0 substrate is running. The human-gated K0 transaction starts only when independent authority exists.
 
+The exact independent-review, foreign-owner H1, merge, disable, verification, and rollback sequence is frozen in `docs/REVIEWER_RUNBOOK.md`. The cumulative non-cutover release is PR #11; after it merges, only the separately reviewed compiler-produced cutover PR #3 should alter the canonical deployment workflow.
+
 ## C0 — repository and authority baseline, 2h
 
 Deliver first clean commit, public remote, license, AI-assistance disclosure, rules snapshot, Taskmaster ADR, and environment manifest.

@@ -67,7 +67,7 @@ Implemented locally:
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance without a preselected key ID, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 v2 evidence-manifest verifier with fixed H1–H8 controls, typed/hashed GitHub and GCP evidence, unchanged-target requirements, cross-reference integrity, and false-safe rejection.
-- Thirty-five passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, authenticated Google key/audit lookup, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, and offline evidence reconstruction.
+- Thirty-seven passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, authenticated Google key/audit lookup, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, and offline evidence reconstruction.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - The WIF template now executes H3 (fixed hostile branch), H5 (manual event), H6 (staging environment), H7 (wrong audience), and H8 (valid identity mutating the forbidden service) as explicit expected-denial jobs. A frozen external-repository template drives H1/H2; H4 remains the wrong-path workflow. Each expected denial emits a small credential-free artifact with platform run identity and actual step outcome; every workflow passes `actionlint` locally.
@@ -114,6 +114,7 @@ Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong
 - [Security model](docs/SECURITY_MODEL.md)
 - [Support and hostile-test matrix](docs/SUPPORT_MATRIX.md)
 - [Evaluation gates](docs/EVALUATION.md)
+- [Independent reviewer and K0 operator runbook](docs/REVIEWER_RUNBOOK.md)
 - [Four-minute demo](docs/DEMO_RUNBOOK.md)
 - [Official source index](docs/SOURCES.md)
 - [ADR 0002: Taskmaster scope](docs/adr/0002-TASKMASTER_SCOPE.md)
