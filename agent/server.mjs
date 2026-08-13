@@ -2,9 +2,11 @@ import { createServer as createHttpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 
 const MAX_BODY_BYTES = 64 * 1024;
+const API_TOKEN_HEADER = "x-keyless-api-token";
 
 function authorized(request, apiToken) {
-  const supplied = request.headers.authorization?.replace(/^Bearer /, "") ?? "";
+  const supplied = request.headers[API_TOKEN_HEADER];
+  if (typeof supplied !== "string") return false;
   const expected = Buffer.from(apiToken);
   const actual = Buffer.from(supplied);
   return actual.length === expected.length && timingSafeEqual(actual, expected);

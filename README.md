@@ -52,7 +52,7 @@ Firestore exists for one-time ProofV2 challenge consumption and evidence-derived
 
 ## Safety contract
 
-- Keyless never receives or stores the private-key value, GitHub OIDC token, Google access token, or authorization header.
+- Keyless never receives the private-key value and never persists or sends GitHub OIDC tokens, Google access tokens, or HTTP authorization headers to Gemini. The private Cloud Run service uses Google IAM for caller identity plus a separate `X-Keyless-API-Token` application gate; neither credential is logged or model-bound.
 - Gemini never chooses authoritative repository, project, service account, key, provider, role, or target identifiers.
 - A model output can never produce `PASS`, authorize IAM, merge a PR, disable a key, or complete a receipt.
 - A human applies IAM, another protected review gates the workflow, and a human disables the key.
