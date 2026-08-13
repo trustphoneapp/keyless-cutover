@@ -1,8 +1,9 @@
+import { requireGitHubInstallationToken } from "./github-token.mjs";
+
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const RUN_ID = /^\d+$/;
 const WORKFLOW_PATH = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
-const TOKEN = /^[^\s]{20,512}$/;
 const MAX_RESPONSE_BYTES = 512_000;
 
 function exact(value, pattern, name) {
@@ -56,7 +57,7 @@ export async function fetchGitHubProofObservation({
   exact(String(runId), RUN_ID, "run_id");
   exact(workflowPath, WORKFLOW_PATH, "workflow_path");
   exact(environment, /^[A-Za-z0-9_-]{1,64}$/, "environment");
-  exact(token, TOKEN, "token");
+  requireGitHubInstallationToken(token);
   const base = `https://api.github.com/repos/${owner}/${repository}`;
   const run = await json(`${base}/actions/runs/${runId}`, token, fetchImpl);
   if (String(run?.id) !== String(runId) || run?.status !== "completed" || run?.conclusion !== "success") {

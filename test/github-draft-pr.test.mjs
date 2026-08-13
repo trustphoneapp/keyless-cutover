@@ -5,11 +5,12 @@ import { openDraftCutoverPr } from "../src/github-draft-pr.mjs";
 import { buildCutoverPlan } from "../src/workflow-cutover.mjs";
 import { readFile } from "node:fs/promises";
 
-const current = await readFile(new URL("../.github/workflows/k0-deploy.yml", import.meta.url), "utf8");
+const current = await readFile(new URL("../k0/fixtures/k0-deploy.legacy.yml", import.meta.url), "utf8");
 const replacement = await readFile(new URL("../k0/templates/k0-deploy.wif.yml", import.meta.url), "utf8");
 const plan = buildCutoverPlan(current, replacement);
 const baseSha = "a".repeat(40);
 const blobSha = "b".repeat(40);
+const installationToken = `ghs_${"t".repeat(36)}`;
 
 function response(status, value) {
   return { status, text: async () => JSON.stringify(value) };
@@ -52,7 +53,7 @@ function createFetch({ repositoryId = 2, existing = false, existingBranch = fals
 const input = {
   owner: "trustphoneapp",
   repository: "keyless-cutover",
-  installationToken: "github-installation-token-value",
+  installationToken,
   migrationId: "k0",
   approvedOwnerId: "1",
   approvedRepositoryId: "2",

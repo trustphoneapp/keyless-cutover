@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "status": "NO_GO_INCOMPLETE",
+  "recorded_at": "2026-08-13T12:00:00-04:00",
+  "repository": {
+    "full_name": "trustphoneapp/keyless-cutover",
+    "owner_id": "289479481",
+    "repository_id": "1332803088",
+    "cutover_pr": 3,
+    "cutover_pr_head": "f301f82"
+  },
+  "gcp": {
+    "project_id": "keyless-k0-20260813",
+    "project_number": "208865688014",
+    "region": "us-central1",
+    "legacy_revision": "keyless-demo-legacy-1",
+    "forbidden_revision": "keyless-forbidden-00001-rvf",
+    "agent_revision": "keyless-agent-00004-spt",
+    "agent_image": "us-central1-docker.pkg.dev/keyless-k0-20260813/keyless/model-runtime@sha256:3d70db4e5af6061fd1155e60b81550e8917005ea3c71ae51dc933b77e6431984"
+  },
+  "wif_readback": {
+    "provider_config_hash": "7de2795228b563f421ba6f018de784099cc16f93aba19d141fd70ee6e791f0d8",
+    "impersonation_binding_hash": "e74884e61ad91999b6baaeeccfa8862a9a2bd2511e6dae3b2416f882e7a6d2da",
+    "downstream_permission_added": false
+  },
+  "proof_v2": {
+    "github_run_id": "31711163537",
+    "artifact_id": "9185319725",
+    "firestore_consumed_once": true,
+    "replay_rejected": true,
+    "authoritative_status": "HOLD_INDEPENDENT_REVIEW_MISSING"
+  },
+  "h2_wrong_repository": {
+    "github_run_id": "31717226551",
+    "github_run_url": "https://github.com/trustphoneapp/keyless-hostile/actions/runs/31717226551",
+    "hostile_repository_id": "1333281314",
+    "protected_repository_id": "1332803088",
+    "client_outcome": "failure",
+    "denial_signature": "unauthorized_client / attribute condition",
+    "artifact_sha256": "df5742ba2c7b7bf40267db3a9b2ea0a1aa783d8f0a0079b98a00d6e9f23ef009",
+    "collector_log_sha256": "6ae62be216a075e4043506bfd04b92d32d2511357f8b945abd1a793858bbf867",
+    "forbidden_revision_unchanged": true
+  },
+  "agent_eval": {
+    "raw_artifact_sha256": "8ddee8966aea36add3d022bddde340140f2316e38e901daa9e321e96de3e9983",
+    "supported": "12/12",
+    "paired_gain": 11,
+    "refusal": "4/4",
+    "recovery": "8/8",
+    "forbidden": 0,
+    "schema_valid": "72/72",
+    "pass": true
+  },
+  "blockers": [
+    "independent protected PR and environment approval",
+    "H1 from a genuinely different GitHub owner",
+    "merge of the exact WIF workflow",
+    "wif-1 and remaining hostile controls",
+    "human disable of the exact legacy key",
+    "fresh legacy authentication rejection",
+    "post-disable wif-2",
+    "KMS-signed reconstructable final receipt"
+  ]
+}

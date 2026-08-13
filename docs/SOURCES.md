@@ -1,6 +1,6 @@
 # Official source index
 
-Retrieved August 12, 2026 unless noted. Primary sources govern security and rule claims. Current entrant searches are non-exhaustive because the official gallery is unpublished.
+Retrieved August 12, 2026 unless noted; the binding event rules and submission requirements were rechecked August 13, 2026. Primary sources govern security and rule claims. Current entrant searches are non-exhaustive because the official gallery is unpublished.
 
 ## Hackathon rules
 
@@ -34,6 +34,7 @@ This is a set of twenty projects from two comparable events, not twenty separate
 - [GitHub App permission selection](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app)
 - [Actions secrets API](https://docs.github.com/en/rest/actions/secrets)
 - [Immutable OIDC subjects changelog](https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/)
+- [GitHub App stateless installation-token compatibility](https://github.blog/changelog/2026-05-15-github-app-installation-tokens-per-request-override-header/)
 - [Official Google authentication action](https://github.com/google-github-actions/auth)
 
 ## Google Cloud identity and evidence

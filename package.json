@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
+    "start:console": "node console/server.mjs",
     "verify:k0": "node src/k0-manifest.mjs",
     "cutover": "node src/workflow-cutover.mjs",
     "plan:wif": "node src/wif-plan.mjs",
@@ -22,6 +23,8 @@
     "zod": "4.2.1"
   },
   "overrides": {
-    "adm-zip": "0.6.0"
+    "@opentelemetry/core": "2.10.0",
+    "adm-zip": "0.6.0",
+    "uuid": "11.1.1"
   }
 }

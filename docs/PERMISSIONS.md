@@ -29,7 +29,7 @@ The App receives no Actions-secret permission, administration permission, merge 
 - Invokes the fixed Gemini model through Vertex AI.
 - Reads/writes only the Firestore challenge and evidence-state collections.
 - Reads the selected service-account key metadata, WIF/provider configuration, IAM policy, Cloud Run service/revisions, and required audit entries.
-- Reads only the exact Secret Manager versions for the HTTP bearer token and, after C6, the selected-repository GitHub App credential.
+- Reads only the exact Secret Manager version for the `X-Keyless-API-Token` application gate and, after C6, the selected-repository GitHub App credential.
 
 It cannot create/update/delete WIF providers or IAM bindings; disable, enable, delete, or create service-account keys; deploy to Cloud Run; sign a receipt; merge a PR; retrieve an Actions secret value; or execute arbitrary repository shell commands.
 
@@ -38,6 +38,12 @@ It cannot create/update/delete WIF providers or IAM bindings; disable, enable, d
 - Invoked only by the deterministic receipt-finalization path after the complete K0 evidence bundle verifies.
 - May use one asymmetric Cloud KMS key version to sign a canonical receipt digest.
 - Cannot read repository credentials, mutate GitHub/GCP infrastructure, or decide evidence completeness.
+
+### `keyless-console-sa`
+
+- Runs only the public read-only evidence console.
+- Receives no project IAM role and no Secret Manager, Firestore, Vertex, GitHub, deployment, key, or KMS authority.
+- Serves only the credential-free checkpoint baked into the reviewed image. A future verified manifest must be supplied through a separately reviewed immutable image or read-only evidence mechanism.
 
 ### Existing deploy service account
 

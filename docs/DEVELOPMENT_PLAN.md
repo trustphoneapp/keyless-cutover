@@ -2,12 +2,13 @@
 
 ## Immediate blockers
 
-- Google Cloud CLI is installed, but no active account, ADC, project, or billing is configured.
-- The local Git history is clean and reviewable, but the current fine-grained GitHub token cannot create the public remote.
-- No independent reviewer/key operator or foreign-owner repository is established.
-- Branch/environment protection and Gemini 3.5 Flash project access are unverified.
+- The public repository, protected `main`, private `production` environment, billed GCP project, ADC, live WIF, Cloud Run services, Firestore, and Vertex Gemini access exist.
+- No independent reviewer/key operator or genuinely foreign-owner repository is established. The same-owner wrong-repository H2 probe passed; it does not satisfy H1.
+- The protected merge, key disable, and post-disable continuity actions remain intentionally unreachable without that second human.
 
-The K0 clock starts only after these prerequisites exist.
+The technical K0 substrate is running. The human-gated K0 transaction starts only when independent authority exists.
+
+The exact independent-review, foreign-owner H1, merge, disable, verification, and rollback sequence is frozen in `docs/REVIEWER_RUNBOOK.md`. The cumulative non-cutover release is PR #11; after it merges, only the separately reviewed compiler-produced cutover PR #3 should alter the canonical deployment workflow.
 
 ## C0 — repository and authority baseline, 2h
 
@@ -61,7 +62,7 @@ Stop if the exact key remains ambiguous, any replay wins twice, or private mater
 10. On another fresh run, deploy `wif-2` through OIDC/WIF.
 11. Assemble a sanitized manifest and run credential scanning.
 
-Acceptance command to implement:
+Implemented acceptance command:
 
 ```sh
 npm run verify:k0 -- .keyless/evidence/k0/manifest.json
@@ -80,7 +81,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current local progress on August 13: the deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. C2 now has local Firestore, GitHub-observer, and Google-key-reader adapters with deterministic tests, but no live integration pass. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
+Current live progress on August 13: C0 and the technical portions of C1–C2 are complete. `legacy-1`, exact WIF readback, live ProofV2/Firestore replay rejection, a private Cloud Run ADK service, a real dual-auth Vertex call, compiler-produced draft PR, H2 wrong-repository denial, and a public fail-closed Cloud Run evidence console exist. The second 72-call sealed evaluation passes every published gate. PR #3 now passes CI after freezing the legacy fixture. C3 remains incomplete because independent approval, H1, merge, the rest of H1–H8, key disable, fresh legacy rejection, and `wif-2` are still missing.
 
 ## Calendar
 

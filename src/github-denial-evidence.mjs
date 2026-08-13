@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import AdmZip from "adm-zip";
+import { requireGitHubInstallationToken } from "./github-token.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const NUMERIC = /^\d+$/;
-const TOKEN = /^[^\s]{20,512}$/;
 const SHA = /^[a-f0-9]{40}$/;
 const SERVICE = /^[a-z][a-z0-9-]{0,62}$/;
 const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/;
@@ -97,8 +97,8 @@ function validateArtifact(value, hostileId, run, expected) {
   if (!value || typeof value !== "object" || Object.keys(value).some((key) => ![...baseKeys, ...optional].includes(key))) {
     throw new Error("GitHub denial artifact fields are invalid");
   }
-  const expectedId = ["H1", "H2"].includes(hostileId) ? "external" : hostileId;
-  if (value.version !== 1 || value.id !== expectedId || value.outcome !== "failure"
+  const expectedIds = ["H1", "H2"].includes(hostileId) ? new Set(["external", hostileId]) : new Set([hostileId]);
+  if (value.version !== 1 || !expectedIds.has(value.id) || value.outcome !== "failure"
       || value.run_id !== String(run.id) || value.run_attempt !== String(run.run_attempt)
       || value.head_sha !== run.head_sha || value.event !== run.event || value.ref !== `refs/heads/${run.head_branch}`) {
     throw new Error("GitHub denial artifact does not match the run");
@@ -123,7 +123,7 @@ export async function collectGitHubDenialEvidence({
   exact(repository, REPOSITORY, "repository");
   exact(String(runId), NUMERIC, "run ID");
   if (!Object.hasOwn(JOBS, hostileId)) throw new Error("hostile ID is invalid");
-  const token = exact(installationToken, TOKEN, "GitHub installation token");
+  const token = requireGitHubInstallationToken(installationToken);
   const ownerId = exact(scopeOwnerId, NUMERIC, "scope owner ID");
   const repositoryId = exact(scopeRepositoryId, NUMERIC, "scope repository ID");
   exact(forbiddenService, SERVICE, "forbidden service");

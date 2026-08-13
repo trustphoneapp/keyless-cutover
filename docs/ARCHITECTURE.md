@@ -2,13 +2,14 @@
 
 ## Status
 
-This is the accepted Taskmaster architecture. The local code now includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, and a bearer-protected agent container that passes a local health check. Cloud deployment and live external evidence remain planned until K0/K1 prove them.
+This is the accepted Taskmaster architecture. The implementation includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, a private dual-authenticated Cloud Run agent, and a separate public read-only Cloud Run evidence console. A real served Vertex Gemini request and H2 WIF-condition denial exist; the protected cutover, remaining hostile matrix, key disable, post-disable continuity, and KMS receipt remain incomplete.
 
 ## Components
 
 ```mermaid
 flowchart TB
-    UI["Minimal evidence console"] --> APP["ADK Taskmaster on Cloud Run"]
+    UI["Public read-only evidence console on Cloud Run"] --> EVIDENCE["Credential-free checkpoint or verified K0 bundle"]
+    OP["Invoke-only operator"] --> APP["Private ADK Taskmaster on Cloud Run"]
     APP --> VX["Vertex AI / Gemini 3.5 Flash"]
     APP --> FS["Firestore challenges + evidence-derived state"]
     APP --> GH["Selected-repository GitHub App"]
@@ -31,13 +32,13 @@ flowchart TB
 |---|---|---|
 | Vertex AI / Gemini | Interpret variable workflow/script evidence and diagnose cross-system failures | Typed sourced result and ablation |
 | Google ADK | Orchestrate evidence and recovery stages in the served path | ADK trace and Cloud Run request |
-| Cloud Run | Host Taskmaster and act as allowed/forbidden deployment target | URL and revision IDs |
+| Cloud Run | Isolate the private Taskmaster, public read-only console, and allowed/forbidden deployment targets | URLs, service IAM, and revision IDs |
 | IAM / STS / WIF | Replace the permanent authentication path | Provider readback and real token exchange |
 | Firestore | Issue and atomically consume ProofV2 challenges; persist evidence-derived state | One replay accepted, second rejected |
 | Cloud KMS | Sign final canonical receipt digest after K0 | Public-key verification and tamper failure |
 | Secret Manager | Store GitHub App credential after K0 | Access policy and audit reference, never value |
 
-Cloud Tasks, Pub/Sub, Agent Engine, Registry, Memory Bank, Model Armor, Cloud Build, a second application service, and automated IAM are not required for v1.
+Cloud Tasks, Pub/Sub, Agent Engine, Registry, Memory Bank, Model Armor, Cloud Build, and automated IAM are not required for v1. The small public console is a separate service so making the demo URL public never removes Cloud Run IAM from the private model routes.
 
 ## Authentication flow
 
@@ -89,6 +90,8 @@ observe → key_proof → review → wif_validation
 ```
 
 Each phase is `running`, `ready_for_human`, `hold`, `failed_safe`, or `complete`. A UI cannot set state directly; it is derived from authoritative evidence. `not_run`, `pending`, timeout, and missing logs never satisfy a security gate.
+
+The console has no mutation route and no client-side script. With the current checkpoint it can render only `NO_GO_INCOMPLETE`. A structurally and semantically verified K0 bundle advances only to `K0_VERIFIED_RECEIPT_PENDING`; final release success remains unreachable until the later KMS signature verifier exists.
 
 ## External operation rule
 

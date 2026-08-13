@@ -1,7 +1,10 @@
 .git
 .github
 .keyless
-docs
+docs/*
+!docs/evidence/
+docs/evidence/*
+!docs/evidence/K0_CHECKPOINT_2026-08-13.json
 test
 gha-creds-*.json
 *.log
