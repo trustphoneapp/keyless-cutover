@@ -1,0 +1,58 @@
+name: K0 fresh legacy authentication check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-legacy-auth:
+    if: vars.KEYLESS_K0_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Resolve public key metadata in runner memory
+        id: key
+        shell: bash
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: |
+          key_id="$(jq -r '.private_key_id // empty' <<< "$GCP_SERVICE_ACCOUNT_KEY")"
+          [[ "$key_id" =~ ^[a-f0-9]{40}$ ]] || exit 1
+          echo "id=$key_id" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare legacy credentials on a fresh runner
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          request_reason: keyless post-disable legacy-check run=${{ github.run_id }}
+
+      - name: Force a fresh online Google request
+        id: online
+        continue-on-error: true
+        run: >-
+          gcloud run services describe "${{ vars.GCP_ALLOWED_SERVICE }}"
+          --project="${{ vars.GCP_PROJECT_ID }}"
+          --region="${{ vars.GCP_REGION }}"
+
+      - name: Require fresh legacy denial
+        env:
+          ONLINE_OUTCOME: ${{ steps.online.outcome }}
+          KEY_ID: ${{ steps.key.outputs.id }}
+        run: |
+          test "$ONLINE_OUTCOME" = failure
+          jq -n --arg id legacy-after-disable --arg outcome "$ONLINE_OUTCOME" --arg key_id "$KEY_ID" \
+            --arg run_id "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg sha "$GITHUB_SHA" \
+            --arg workflow_ref "$GITHUB_WORKFLOW_REF" --arg event "$GITHUB_EVENT_NAME" --arg ref "$GITHUB_REF" \
+            --arg environment production \
+            '{version:1,id:$id,outcome:$outcome,key_id:$key_id,run_id:$run_id,run_attempt:$attempt,head_sha:$sha,workflow_ref:$workflow_ref,event:$event,ref:$ref,environment:$environment,fresh_runner:true,fresh_online_request:true}' \
+            > k0-legacy-after-disable.json
+
+      - name: Upload fresh legacy denial evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: keyless-legacy-after-disable
+          path: k0-legacy-after-disable.json
+          if-no-files-found: error
+          retention-days: 7

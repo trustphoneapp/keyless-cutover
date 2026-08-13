@@ -173,7 +173,7 @@ test("K0 evidence ledger resolves to canonical artifact bytes", async () => {
         ? { service: manifest.scope.forbidden_service, revision: manifest.revisions.forbidden_before }
         : { service: manifest.scope.allowed_service, revision: "allowed-00001" };
     if (entry.kind === "GCP_AUDIT_ENTRY") return { method_name: "google.iam.admin.v1.DisableServiceAccountKey", resource_name: `keys/${manifest.scope.key_id}`, principal_email: manifest.disable.human_actor };
-    if (entry.kind === "GOOGLE_AUTH_RESULT") return { key_id: manifest.scope.key_id, run_id: "3001", outcome: "DENIED", fresh_runner: true, fresh_online_request: true };
+    if (entry.kind === "GOOGLE_AUTH_RESULT") return { key_id: manifest.scope.key_id, run_id: "3001", outcome: "DENIED", fresh_runner: true, fresh_online_request: true, log_sha256: "3".repeat(64) };
     if (entry.kind === "LEAK_SCAN") return { outcome: "CLEAN", scanner: "gitleaks", scope_hash: "f".repeat(64) };
     throw new Error(`unhandled kind ${entry.kind}`);
   };

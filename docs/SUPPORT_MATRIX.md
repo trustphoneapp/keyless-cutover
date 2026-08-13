@@ -58,3 +58,7 @@ The collector independently refetches the completed GitHub run and named job, do
 ## Auto-continue gate
 
 Keyless may continue only when all supported facts are independently observed, the plan digest binds their exact values, the effective downstream permission footprint is unchanged, and every required human authority is available.
+
+## Fresh legacy denial after cutover
+
+The canonical deployment workflow is replaced by WIF, so its legacy `auth-check` input cannot prove post-disable behavior. `.github/workflows/k0-legacy-auth-check.yml` is a separate protected, manual, non-deploying probe retained only through K0. On a new GitHub-hosted runner it prepares credentials from the repository secret, forces `gcloud run services describe` against the allowed service, and succeeds as a test only when that online step fails. Its artifact binds the exact key ID and run context. The collector must additionally recognize a Google disabled/invalid-key exchange signature in the job log; a missing secret, malformed JSON, setup failure, or generic network error is not proof. After final evidence, a human removes the repository secret and the probe workflow in a separate reviewed cleanup.

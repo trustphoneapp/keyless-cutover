@@ -32,7 +32,7 @@ function headers(token) {
   };
 }
 
-async function apiJson(url, token, fetchImpl) {
+export async function fetchGitHubJson(url, token, fetchImpl) {
   const response = await fetchImpl(url, { headers: headers(token), redirect: "error", signal: AbortSignal.timeout(8_000) });
   const text = await response.text();
   if (text.length > 1_000_000) throw new Error("GitHub API response is too large");
@@ -49,7 +49,7 @@ function allowedDownloadHost(location) {
   );
 }
 
-async function download(url, token, fetchImpl, limit) {
+export async function downloadGitHubBytes(url, token, fetchImpl, limit) {
   const first = await fetchImpl(url, { headers: headers(token), redirect: "manual", signal: AbortSignal.timeout(8_000) });
   let response = first;
   if ([301, 302, 303, 307, 308].includes(first.status)) {
@@ -66,7 +66,7 @@ async function download(url, token, fetchImpl, limit) {
   return bytes;
 }
 
-function extractArtifact(zipBytes, expectedName) {
+export function extractSingleJsonArtifact(zipBytes, expectedName) {
   const entries = new AdmZip(zipBytes).getEntries().filter((entry) => !entry.isDirectory);
   if (entries.length !== 1 || entries[0].entryName !== expectedName || entries[0].header.size > 64_000) {
     throw new Error("GitHub denial artifact archive is invalid");
@@ -129,9 +129,9 @@ export async function collectGitHubDenialEvidence({
   exact(forbiddenService, SERVICE, "forbidden service");
   const base = `https://api.github.com/repos/${owner}/${repository}`;
   const [run, jobsResponse, artifactsResponse] = await Promise.all([
-    apiJson(`${base}/actions/runs/${runId}`, token, fetchImpl),
-    apiJson(`${base}/actions/runs/${runId}/jobs?per_page=100`, token, fetchImpl),
-    apiJson(`${base}/actions/runs/${runId}/artifacts?per_page=100`, token, fetchImpl),
+    fetchGitHubJson(`${base}/actions/runs/${runId}`, token, fetchImpl),
+    fetchGitHubJson(`${base}/actions/runs/${runId}/jobs?per_page=100`, token, fetchImpl),
+    fetchGitHubJson(`${base}/actions/runs/${runId}/artifacts?per_page=100`, token, fetchImpl),
   ]);
   if (String(run?.id) !== String(runId) || run?.status !== "completed" || run?.conclusion !== "success"
       || run?.repository?.full_name !== `${owner}/${repository}` || !exact(run?.head_sha, SHA, "head SHA")) {
@@ -151,10 +151,10 @@ export async function collectGitHubDenialEvidence({
     throw new Error("GitHub denial artifact is missing or ambiguous");
   }
   const [zip, log] = await Promise.all([
-    download(`${base}/actions/artifacts/${artifacts[0].id}/zip`, token, fetchImpl, 512_000),
-    download(`${base}/actions/jobs/${jobs[0].id}/logs`, token, fetchImpl, 1_000_000),
+    downloadGitHubBytes(`${base}/actions/artifacts/${artifacts[0].id}/zip`, token, fetchImpl, 512_000),
+    downloadGitHubBytes(`${base}/actions/jobs/${jobs[0].id}/logs`, token, fetchImpl, 1_000_000),
   ]);
-  const value = extractArtifact(zip, ["H1", "H2"].includes(hostileId) ? "k0-external.json" : `k0-${hostileId}.json`);
+  const value = extractSingleJsonArtifact(zip, ["H1", "H2"].includes(hostileId) ? "k0-external.json" : `k0-${hostileId}.json`);
   validateArtifact(value, hostileId, run, { ownerId, repositoryId, forbiddenService });
   const category = classifyLog(log, hostileId);
   const apiOwnerId = String(run.repository.owner.id);

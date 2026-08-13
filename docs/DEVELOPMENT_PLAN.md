@@ -57,7 +57,7 @@ Stop if the exact key remains ambiguous, any replay wins twice, or private mater
 6. Verify `keyless-forbidden` is unchanged.
 7. Independent human disables the exact key.
 8. Re-read `disabled: true` through Google.
-9. On a fresh hosted runner, force a new online Google token/API request with the legacy key and observe failure.
+9. Dispatch the separate protected `k0-legacy-auth-check.yml` workflow on a fresh hosted runner, force a new online Google token/API request with the legacy key, and observe a Google key-related denial. The canonical deploy workflow has already been replaced and cannot provide this probe.
 10. On another fresh run, deploy `wif-2` through OIDC/WIF.
 11. Assemble a sanitized manifest and run credential scanning.
 

@@ -53,6 +53,7 @@ function validateArtifactData(kind, data, fail, id) {
   } else if (kind === "GOOGLE_AUTH_RESULT") {
     fail(string(data.key_id, KEY_ID) && string(data.run_id, NUMERIC), `${id} legacy-auth identity is invalid`);
     fail(data.outcome === "DENIED" && data.fresh_runner === true && data.fresh_online_request === true, `${id} legacy denial was not fresh and online`);
+    fail(string(data.log_sha256, SHA256), `${id} legacy-auth log digest is invalid`);
   } else if (kind === "LEAK_SCAN") {
     fail(data.outcome === "CLEAN" && string(data.scanner) && string(data.scope_hash, SHA256), `${id} leak scan data is invalid`);
   }
