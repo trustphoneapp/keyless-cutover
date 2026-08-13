@@ -17,37 +17,27 @@ Install only on the selected demo repository.
 | Workflows | write | Modify `.github/workflows/*.yml`. |
 | Pull requests | write | Open and update the draft migration PR. |
 | Actions | read | Observe runs, jobs, conclusions, and sanitized logs. |
-| Checks | write | Publish evidence status and the final receipt digest. |
+| Checks | write, after K0 | Publish evidence status and the final receipt digest. |
 
 The App receives no Actions-secret permission, administration permission, merge bypass, environment bypass, or organization-wide installation.
 
 ## GCP identities
 
-### `keyless-web-sa`
+### `keyless-agent-sa`
 
-- Enqueue tasks on the Keyless queue.
-- Read and write public-safe migration state in Firestore.
-- Access only the webhook secret required by the public service.
-- Cannot invoke Google IAM, service-account-key, Cloud Run mutation, or KMS-sign APIs.
+- Runs the single Taskmaster Cloud Run service.
+- Invokes the fixed Gemini model through Vertex AI.
+- Reads/writes only the Firestore challenge and evidence-state collections.
+- Reads the selected service-account key metadata, WIF/provider configuration, IAM policy, Cloud Run service/revisions, and required audit entries.
+- Reads only the exact Secret Manager versions for the HTTP bearer token and, after C6, the selected-repository GitHub App credential.
 
-### `keyless-worker-sa`
+It cannot create/update/delete WIF providers or IAM bindings; disable, enable, delete, or create service-account keys; deploy to Cloud Run; sign a receipt; merge a PR; retrieve an Actions secret value; or execute arbitrary repository shell commands.
 
-- Invoked only by the Cloud Tasks service identity.
-- Reads the selected project, service account, user-managed key metadata, IAM policy, Cloud Run service/revisions, and required audit logs.
-- Creates one Keyless-owned WIF provider with a deterministic ID in the selected pool.
-- Adds one exact `roles/iam.workloadIdentityUser` binding on the selected deploy service account.
-- Reads/writes Firestore evidence and signs canonical receipt digests using one KMS key.
-- Reads the GitHub App private key from Secret Manager and creates a short-lived installation token.
+### `keyless-receipt-sa` — after K0 only
 
-It cannot:
-
-- disable, enable, delete, or create service-account keys;
-- grant Owner, Editor, Token Creator, or project-wide IAM roles;
-- merge a PR or bypass branch/environment protection;
-- deploy to Cloud Run;
-- retrieve a GitHub Actions secret value;
-- mutate pre-existing WIF providers;
-- execute arbitrary repository shell commands.
+- Invoked only by the deterministic receipt-finalization path after the complete K0 evidence bundle verifies.
+- May use one asymmetric Cloud KMS key version to sign a canonical receipt digest.
+- Cannot read repository credentials, mutate GitHub/GCP infrastructure, or decide evidence completeness.
 
 ### Existing deploy service account
 
@@ -74,12 +64,12 @@ The deterministic compiler binds:
 
 The IAM member is the exact repository-ID principal set, not the whole pool. The provider condition supplies the remaining conjunction.
 
-## IAM write protocol
+## Human IAM write protocol
 
 1. Read policy version 3 and its `etag`.
 2. Normalize and hash the approved preimage.
-3. Add only the exact approved binding.
-4. Submit with the captured `etag`.
+3. Present the exact reviewed provider and binding command bundle to the human IAM operator.
+4. The human adds only the exact approved binding using the captured preimage/`etag` where the API supports it.
 5. Read back the policy and compare semantic output.
 6. Any unrelated drift invalidates approval. Do not silently rebase.
 
