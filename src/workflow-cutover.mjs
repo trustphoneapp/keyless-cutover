@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const WORKFLOW_PATH = ".github/workflows/k0-deploy.yml";
 const MAX_WORKFLOW_BYTES = 64 * 1024;
+const WIF_AUTH_STEP_COUNT = 6;
 
 function digest(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -12,6 +13,10 @@ function digest(value) {
 
 function count(value, needle) {
   return value.split(needle).length - 1;
+}
+
+function countIndentedKey(value, key) {
+  return [...value.matchAll(new RegExp(`^\\s+${key}:`, "gm"))].length;
 }
 
 function workflowName(value) {
@@ -42,20 +47,25 @@ function validateWorkflows(current, template) {
   }
   if (
     template.includes("credentials_json:") ||
-    count(template, "workload_identity_provider:") !== 1 ||
-    count(template, "service_account:") !== 1 ||
-    count(template, "audience:") !== 1 ||
+    countIndentedKey(template, "workload_identity_provider") !== WIF_AUTH_STEP_COUNT ||
+    countIndentedKey(template, "service_account") !== WIF_AUTH_STEP_COUNT ||
+    countIndentedKey(template, "audience") !== WIF_AUTH_STEP_COUNT ||
     count(template, "id-token: write") !== 1
   ) {
     throw new Error("template is not the exact WIF authentication shape");
   }
   for (const required of [
-    "branches: [main]",
+    "branches: [main, keyless-h3]",
     "workflow_dispatch:",
     "environment: production",
     "vars.GCP_ALLOWED_SERVICE",
     "vars.GCP_CANARY_IMAGE",
-    "github.event_name == 'push'",
+    "h3-wrong-ref:",
+    "h5-wrong-event:",
+    "h6-wrong-environment:",
+    "h7-wrong-audience:",
+    "h8-forbidden-resource:",
+    "vars.GCP_FORBIDDEN_SERVICE",
   ]) {
     if (!template.includes(required)) throw new Error(`template is missing ${required}`);
   }

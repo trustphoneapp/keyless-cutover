@@ -42,6 +42,17 @@ All third-party actions are pinned to immutable commit SHAs for live evidence.
 
 Each row records initiating run ID/attempt/SHA/workflow, intended control, sanitized response category, target revision before/after, and source identifiers. A test that fails before its intended control is `NOT RUN`, not `PASS`.
 
+## Executable mapping
+
+- H1: copy `k0/templates/k0-external-hostile.yml` to the canonical workflow path in the independent human's repository and push `demo/release.txt` on `main`.
+- H2: copy the same frozen template to a second repository owned by the intended owner and push `demo/release.txt` on `main`.
+- H3: push only `demo/release.txt` to the fixed `keyless-h3` branch. The canonical workflow's `h3-wrong-ref` job runs.
+- H4: push `demo/release.txt` on `main`; `.github/workflows/k0-hostile-wrong-workflow.yml` runs beside the authorized workflow.
+- H5: manually dispatch the canonical workflow from `main`; only `h5-wrong-event` is eligible.
+- H6/H7/H8: every canonical `main` release push runs fixed wrong-environment, wrong-audience, and forbidden-resource jobs beside the authorized deploy.
+
+Expected-denial steps use `continue-on-error` only to allow an exact subsequent assertion that the authentication or forbidden mutation step failed. A green hostile job means the expected operation was denied; its run log plus an independently read target revision are still required evidence. Missing environment approval, an unexecuted step, syntax failure, or an earlier network failure cannot satisfy the K0 manifest.
+
 ## Auto-continue gate
 
 Keyless may continue only when all supported facts are independently observed, the plan digest binds their exact values, the effective downstream permission footprint is unchanged, and every required human authority is available.

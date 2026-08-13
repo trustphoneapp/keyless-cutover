@@ -1,4 +1,4 @@
-name: K0 H4 wrong workflow
+name: K0 external identity probe
 
 on:
   push:
@@ -11,12 +11,11 @@ permissions:
   id-token: write
 
 jobs:
-  hostile:
-    if: vars.KEYLESS_K0_ENABLED == 'true'
+  external-identity:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Attempt WIF from the wrong workflow reference
+      - name: Attempt WIF from an external repository identity
         id: auth
         continue-on-error: true
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
@@ -25,9 +24,9 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
           audience: ${{ vars.GCP_WIF_AUDIENCE }}
-          request_reason: keyless hostile=H4 run=${{ github.run_id }}
+          request_reason: keyless hostile=external run=${{ github.run_id }}
 
-      - name: Require H4 denial
+      - name: Require external identity denial
         env:
           AUTH_OUTCOME: ${{ steps.auth.outcome }}
         run: test "$AUTH_OUTCOME" = failure

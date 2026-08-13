@@ -2,7 +2,7 @@ name: K0 deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, keyless-h3]
     paths:
       - demo/release.txt
   workflow_dispatch:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: vars.KEYLESS_K0_ENABLED == 'true'
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -40,12 +40,7 @@ jobs:
           audience: ${{ vars.GCP_WIF_AUDIENCE }}
           request_reason: keyless migration=k0 run=${{ github.run_id }}
 
-      - name: Fail if the forbidden event authenticated
-        if: github.event_name != 'push'
-        run: exit 1
-
       - name: Deploy through WIF
-        if: github.event_name == 'push'
         uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
         with:
           service: ${{ vars.GCP_ALLOWED_SERVICE }}
@@ -55,3 +50,116 @@ jobs:
           suffix: ${{ steps.release.outputs.value }}
           env_vars: RELEASE=${{ steps.release.outputs.value }}
           env_vars_update_strategy: merge
+
+  h3-wrong-ref:
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/keyless-h3'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Attempt WIF from the wrong ref
+        id: auth
+        continue-on-error: true
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          audience: ${{ vars.GCP_WIF_AUDIENCE }}
+          request_reason: keyless hostile=H3 run=${{ github.run_id }}
+
+      - name: Require H3 denial
+        env:
+          AUTH_OUTCOME: ${{ steps.auth.outcome }}
+        run: test "$AUTH_OUTCOME" = failure
+
+  h5-wrong-event:
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Attempt WIF from the wrong event
+        id: auth
+        continue-on-error: true
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          audience: ${{ vars.GCP_WIF_AUDIENCE }}
+          request_reason: keyless hostile=H5 run=${{ github.run_id }}
+
+      - name: Require H5 denial
+        env:
+          AUTH_OUTCOME: ${{ steps.auth.outcome }}
+        run: test "$AUTH_OUTCOME" = failure
+
+  h6-wrong-environment:
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Attempt WIF from the wrong environment
+        id: auth
+        continue-on-error: true
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          audience: ${{ vars.GCP_WIF_AUDIENCE }}
+          request_reason: keyless hostile=H6 run=${{ github.run_id }}
+
+      - name: Require H6 denial
+        env:
+          AUTH_OUTCOME: ${{ steps.auth.outcome }}
+        run: test "$AUTH_OUTCOME" = failure
+
+  h7-wrong-audience:
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Attempt WIF with the wrong audience
+        id: auth
+        continue-on-error: true
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          audience: https://iam.googleapis.com/projects/0/locations/global/workloadIdentityPools/wrong/providers/wrong
+          request_reason: keyless hostile=H7 run=${{ github.run_id }}
+
+      - name: Require H7 denial
+        env:
+          AUTH_OUTCOME: ${{ steps.auth.outcome }}
+        run: test "$AUTH_OUTCOME" = failure
+
+  h8-forbidden-resource:
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Authenticate the valid identity
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          audience: ${{ vars.GCP_WIF_AUDIENCE }}
+          request_reason: keyless hostile=H8 run=${{ github.run_id }}
+
+      - name: Attempt to mutate the forbidden service
+        id: forbidden
+        continue-on-error: true
+        run: >-
+          gcloud run services update "${{ vars.GCP_FORBIDDEN_SERVICE }}"
+          --project="${{ vars.GCP_PROJECT_ID }}"
+          --region="${{ vars.GCP_REGION }}"
+          --update-env-vars="KEYLESS_HOSTILE_ATTEMPT=${{ github.run_id }}"
+          --quiet
+
+      - name: Require H8 denial
+        env:
+          FORBIDDEN_OUTCOME: ${{ steps.forbidden.outcome }}
+        run: test "$FORBIDDEN_OUTCOME" = failure

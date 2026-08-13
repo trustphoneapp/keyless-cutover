@@ -13,6 +13,7 @@ test("cutover compiler emits only the exact approved same-path WIF bytes", () =>
   assert.equal(applyCutoverPlan(current, template, plan), template);
   assert.equal(plan.preserves_workflow_path, true);
   assert.equal(plan.removes_credentials_json, true);
+  for (const id of ["h3", "h5", "h6", "h7", "h8"]) assert.match(template, new RegExp(`${id}-`));
   assert.throws(() => applyCutoverPlan(`${current}\n# drift\n`, template, plan), /does not match/);
   assert.throws(() => buildCutoverPlan(current, template.replace("@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093", "@v3")), /unpinned/);
   assert.throws(() => buildCutoverPlan(current, `${template}\n# credentials_json:\n`), /exact WIF/);
