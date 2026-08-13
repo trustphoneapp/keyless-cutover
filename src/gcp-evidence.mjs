@@ -113,9 +113,11 @@ export function createGcpEvidenceReader({
   const request = async (method, url, body) => {
     const client = await auth.getClient();
     const authHeaders = await client.getRequestHeaders(url);
+    const headers = new Headers(authHeaders);
+    headers.set("content-type", "application/json");
     const response = await fetchImpl(url, {
       method,
-      headers: { ...authHeaders, "content-type": "application/json" },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       redirect: "error",
       signal: AbortSignal.timeout(8_000),
