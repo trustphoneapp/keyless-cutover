@@ -51,7 +51,7 @@ Each row records initiating run ID/attempt/SHA/workflow, intended control, sanit
 - H5: manually dispatch the canonical workflow from `main`; only `h5-wrong-event` is eligible.
 - H6/H7/H8: every canonical `main` release push runs fixed wrong-environment, wrong-audience, and forbidden-resource jobs beside the authorized deploy.
 
-Expected-denial steps use `continue-on-error` only to allow an exact subsequent assertion that the authentication or forbidden mutation step failed. A green hostile job means the expected operation was denied; its run log plus an independently read target revision are still required evidence. Missing environment approval, an unexecuted step, syntax failure, or an earlier network failure cannot satisfy the K0 manifest.
+Expected-denial steps use `continue-on-error` only to allow an exact subsequent assertion that the authentication or forbidden mutation step failed. That assertion emits a seven-day, credential-free artifact containing the platform run ID/attempt/SHA/workflow/ref/event/environment and failed step outcome. A green hostile job plus its artifact is still insufficient alone: the run log and independently read target revision are required. Missing environment approval, an unexecuted step, syntax failure, or an earlier network failure cannot satisfy the K0 manifest.
 
 ## Auto-continue gate
 

@@ -66,6 +66,11 @@ function validateWorkflows(current, template) {
     "h7-wrong-audience:",
     "h8-forbidden-resource:",
     "vars.GCP_FORBIDDEN_SERVICE",
+    "name: keyless-h3-denial",
+    "name: keyless-h5-denial",
+    "name: keyless-h6-denial",
+    "name: keyless-h7-denial",
+    "name: keyless-h8-denial",
   ]) {
     if (!template.includes(required)) throw new Error(`template is missing ${required}`);
   }

@@ -29,4 +29,19 @@ jobs:
       - name: Require external identity denial
         env:
           AUTH_OUTCOME: ${{ steps.auth.outcome }}
-        run: test "$AUTH_OUTCOME" = failure
+        run: |
+          test "$AUTH_OUTCOME" = failure
+          jq -n --arg id external --arg outcome "$AUTH_OUTCOME" --arg run_id "$GITHUB_RUN_ID" \
+            --arg attempt "$GITHUB_RUN_ATTEMPT" --arg sha "$GITHUB_SHA" --arg workflow_ref "$GITHUB_WORKFLOW_REF" \
+            --arg event "$GITHUB_EVENT_NAME" --arg ref "$GITHUB_REF" --arg environment production \
+            --arg owner_id "$GITHUB_REPOSITORY_OWNER_ID" --arg repository_id "$GITHUB_REPOSITORY_ID" \
+            '{version:1,id:$id,outcome:$outcome,run_id:$run_id,run_attempt:$attempt,head_sha:$sha,workflow_ref:$workflow_ref,event:$event,ref:$ref,environment:$environment,owner_id:$owner_id,repository_id:$repository_id}' \
+            > k0-external.json
+
+      - name: Upload external identity client evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: keyless-external-denial
+          path: k0-external.json
+          if-no-files-found: error
+          retention-days: 7
