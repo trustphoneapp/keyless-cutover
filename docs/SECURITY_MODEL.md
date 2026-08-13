@@ -18,7 +18,7 @@ Keyless may help remove one permanent authentication path only when it can prove
 1. Server writes an `ISSUED` Firestore challenge containing a random 256-bit nonce, issue/expiry time, immutable expected GitHub context, and selected Google key scope.
 2. A reviewed protected deployment workflow receives the challenge and signs a domain-separated canonical payload using the repository secret in memory.
 3. The runner emits only the signed proof; no private material or token is logged or uploaded.
-4. The verifier refetches the GitHub run, attempt, workflow path/ref/blob, head SHA, actor IDs, event, ref, environment, and runner environment.
+4. The verifier refetches the GitHub run, attempt, workflow path/ref/blob, head SHA, actor ID, triggering-actor login, event, ref, environment, and runner environment.
 5. It performs authenticated Google `serviceAccounts.keys.get`, requires the exact active user-managed key, fetches the matching Google X.509 certificate, and verifies signature and expected context.
 6. One Firestore transaction rereads `ISSUED` and writes `CONSUMED` plus proof digest. Only that transaction winner succeeds.
 

@@ -19,6 +19,8 @@ const REPOSITORY_ID = /^\d+$/;
 const GIT_SHA = /^[a-f0-9]{40,64}$/;
 const GITHUB_PATH = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
 const GITHUB_REF = /^refs\/[A-Za-z0-9._/-]+$/;
+const GITHUB_LOGIN = /^[A-Za-z0-9-]{1,39}$/;
+const RUNNER_ENVIRONMENT = /^(github-hosted|self-hosted)$/;
 const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 function required(value, name, pattern) {
@@ -75,11 +77,11 @@ function fields(input) {
     run_id: required(input.run_id, "run_id", REPOSITORY_ID),
     run_attempt: required(input.run_attempt, "run_attempt", REPOSITORY_ID),
     actor_id: required(input.actor_id, "actor_id", REPOSITORY_ID),
-    triggering_actor_id: required(input.triggering_actor_id, "triggering_actor_id", REPOSITORY_ID),
+    triggering_actor: required(input.triggering_actor, "triggering_actor", GITHUB_LOGIN),
     event_name: required(input.event_name, "event_name"),
     ref: required(input.ref, "ref", GITHUB_REF),
     environment: required(input.environment, "environment"),
-    runner_environment: required(input.runner_environment, "runner_environment"),
+    runner_environment: required(input.runner_environment, "runner_environment", RUNNER_ENVIRONMENT),
     client_email: required(input.client_email, "client_email", SERVICE_ACCOUNT_EMAIL),
     private_key_id: required(input.private_key_id, "private_key_id", KEY_ID),
   };
@@ -103,7 +105,7 @@ export function canonicalMessage(input) {
     `run_id=${value.run_id}`,
     `run_attempt=${value.run_attempt}`,
     `actor_id=${value.actor_id}`,
-    `triggering_actor_id=${value.triggering_actor_id}`,
+    `triggering_actor=${value.triggering_actor}`,
     `event_name=${value.event_name}`,
     `ref=${value.ref}`,
     `environment=${value.environment}`,
@@ -168,7 +170,7 @@ export function expectedKeyProofContext(challenge, observed) {
     run_id: observed.run_id,
     run_attempt: observed.run_attempt,
     actor_id: observed.actor_id,
-    triggering_actor_id: observed.triggering_actor_id,
+    triggering_actor: observed.triggering_actor,
     runner_environment: observed.runner_environment,
   });
 }
@@ -290,7 +292,7 @@ async function generate(outPath) {
     run_id: process.env.GITHUB_RUN_ID,
     run_attempt: process.env.GITHUB_RUN_ATTEMPT,
     actor_id: process.env.GITHUB_ACTOR_ID,
-    triggering_actor_id: process.env.GITHUB_TRIGGERING_ACTOR_ID,
+    triggering_actor: process.env.GITHUB_TRIGGERING_ACTOR,
     event_name: process.env.GITHUB_EVENT_NAME,
     ref: process.env.GITHUB_REF,
     environment: process.env.KEYLESS_ENVIRONMENT,

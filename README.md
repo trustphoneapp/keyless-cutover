@@ -67,14 +67,16 @@ Implemented locally:
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 evidence-manifest verifier with fixed H1–H8 controls and false-safe rejection.
-- Six passing local tests, including a simultaneous replay race.
+- Seven passing local tests, including a simultaneous replay race and the Cloud Run canary contract.
+- A locally built and exercised digest-pinned canary container.
+- One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - Google Cloud CLI installed.
 
 Not yet proven:
 
 - Firestore-backed challenge persistence and transactional consumption; the local protocol currently injects the atomic consumer.
 - Authoritative GitHub run refetch and authenticated Google `keys.get`.
-- GCP account, billing project, WIF, Cloud Run canaries, eight denials, human key disable, Gemini/ADK deployment, KMS receipt, hosted console, or video.
+- GCP account, billing project, live WIF, deployed Cloud Run canaries, eight denials, human key disable, Gemini/ADK deployment, KMS receipt, hosted console, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 

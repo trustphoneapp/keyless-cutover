@@ -38,7 +38,7 @@ Add:
 - Firestore server challenge with 256-bit nonce and five-minute expiry.
 - Atomic `ISSUED → CONSUMED` transaction.
 - GitHub API refetch of the exact run, attempt, workflow path/ref/blob and commit.
-- Actor, triggering actor, runner environment, event, ref, and environment binding.
+- Actor ID, triggering-actor login, runner environment, event, ref, and environment binding.
 - Authenticated Google `serviceAccounts.keys.get` verification of exact user-managed enabled key.
 - Live Google certificate integration test.
 - Replay/race, wrong expected context, expiry, malformed metadata, and leak tests.

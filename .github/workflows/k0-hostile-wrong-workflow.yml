@@ -1,0 +1,28 @@
+name: K0 H4 wrong workflow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - demo/release.txt
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  hostile:
+    if: vars.KEYLESS_K0_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Attempt WIF from the wrong workflow reference
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          request_reason: keyless hostile=H4 run=${{ github.run_id }}
+
+      - name: Fail closed if H4 unexpectedly authenticated
+        run: exit 1

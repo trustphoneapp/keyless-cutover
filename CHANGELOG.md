@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0-k0-fixtures — 2026-08-13
+
+- Added a digest-pinned, dependency-free Cloud Run canary and exercised it locally in Docker.
+- Added one canonical static-key deployment workflow, a non-running same-path WIF template, and the H4 wrong-workflow probe.
+- Pinned every GitHub Action to a full commit SHA and validated workflow syntax with `actionlint`/ShellCheck.
+- Corrected ProofV2 triggering-actor binding to match GitHub's documented variables.
+- Live GitHub and Google Cloud execution remains pending user-controlled authentication.
+
 ## 0.1.0-local-protocol — 2026-08-12
 
 - Replaced the self-consistent ProofV1 shape with ProofV2 protocol primitives.

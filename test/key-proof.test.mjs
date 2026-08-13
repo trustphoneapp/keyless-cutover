@@ -36,7 +36,7 @@ const context = {
   run_id: "456789123",
   run_attempt: "1",
   actor_id: "111111111",
-  triggering_actor_id: "222222222",
+  triggering_actor: "security-reviewer",
   event_name: "workflow_dispatch",
   ref: "refs/heads/main",
   environment: "keyless-demo",

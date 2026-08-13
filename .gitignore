@@ -1,4 +1,5 @@
 node_modules/
 .keyless/
+gha-creds-*.json
 *.log
 .DS_Store

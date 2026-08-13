@@ -1,0 +1,7 @@
+.git
+.github
+.keyless
+docs
+test
+gha-creds-*.json
+*.log
