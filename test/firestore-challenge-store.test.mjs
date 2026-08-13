@@ -53,7 +53,6 @@ const scope = {
   ref: "refs/heads/main",
   environment: "production",
   client_email: "keyless-demo@example-project.iam.gserviceaccount.com",
-  private_key_id: "a".repeat(40),
 };
 
 test("Firestore challenge store issues once and atomically consumes once", async () => {

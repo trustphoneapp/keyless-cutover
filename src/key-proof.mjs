@@ -153,11 +153,10 @@ export function issueKeyProofChallenge(scope, now = new Date()) {
     ref: required(scope.ref, "ref", GITHUB_REF),
     environment: required(scope.environment, "environment"),
     client_email: required(scope.client_email, "client_email", SERVICE_ACCOUNT_EMAIL),
-    private_key_id: required(scope.private_key_id, "private_key_id", KEY_ID),
   };
 }
 
-export function expectedKeyProofContext(challenge, observed) {
+export function expectedKeyProofContext(challenge, observed, claimedPrivateKeyId = challenge?.private_key_id) {
   if (challenge?.status !== "ISSUED") throw new Error("challenge is not issued");
   for (const name of ["owner_id", "repository_id", "workflow_path", "event_name", "ref", "environment"]) {
     if (observed?.[name] !== challenge[name]) throw new Error(`${name} does not match the challenge`);
@@ -172,6 +171,7 @@ export function expectedKeyProofContext(challenge, observed) {
     actor_id: observed.actor_id,
     triggering_actor: observed.triggering_actor,
     runner_environment: observed.runner_environment,
+    private_key_id: required(claimedPrivateKeyId, "private_key_id", KEY_ID),
   });
 }
 
@@ -253,7 +253,7 @@ export async function verifyAndConsumeGoogleKeyProof({
 }) {
   if (typeof consume !== "function") throw new Error("an atomic challenge consumer is required");
   if (typeof getGoogleKey !== "function") throw new Error("an authenticated Google key reader is required");
-  const expected = expectedKeyProofContext(challenge, observed);
+  const expected = expectedKeyProofContext(challenge, observed, proof?.private_key_id);
   const googleKey = await getGoogleKey({
     client_email: expected.client_email,
     private_key_id: expected.private_key_id,

@@ -114,14 +114,14 @@ test("protocol consumes one authoritative challenge exactly once", async () => {
     ref: context.ref,
     environment: context.environment,
     client_email: "keyless-demo@example-project.iam.gserviceaccount.com",
-    private_key_id: privateKeyId,
   }, new Date("2026-08-12T12:00:00Z"));
   const observed = {
     ...context,
     client_email: undefined,
     private_key_id: undefined,
   };
-  const expected = expectedKeyProofContext(challenge, observed);
+  assert.equal("private_key_id" in challenge, false);
+  const expected = expectedKeyProofContext(challenge, observed, privateKeyId);
   const proof = createKeyProof(serviceAccountKey, expected);
   const googleKey = {
     name: `projects/-/serviceAccounts/${proof.client_email}/keys/${proof.private_key_id}`,
@@ -166,7 +166,7 @@ test("protocol consumes one authoritative challenge exactly once", async () => {
     false,
   );
   assert.throws(
-    () => expectedKeyProofContext(challenge, { ...observed, repository_id: "999" }),
+    () => expectedKeyProofContext(challenge, { ...observed, repository_id: "999" }, privateKeyId),
     /does not match/,
   );
 

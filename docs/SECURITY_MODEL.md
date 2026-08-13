@@ -15,11 +15,11 @@ Keyless may help remove one permanent authentication path only when it can prove
 
 ## ProofV2 protocol
 
-1. Server writes an `ISSUED` Firestore challenge containing a random 256-bit nonce, issue/expiry time, immutable expected GitHub context, and selected Google key scope.
+1. Server writes an `ISSUED` Firestore challenge containing a random 256-bit nonce, issue/expiry time, immutable expected GitHub context, and the selected deployment service account—but not a preselected key ID.
 2. A reviewed protected deployment workflow receives the challenge and signs a domain-separated canonical payload using the repository secret in memory.
 3. The runner emits only the signed proof; no private material or token is logged or uploaded.
 4. The verifier refetches the GitHub run, attempt, workflow path/ref/blob, head SHA, actor ID, triggering-actor login, event, ref, environment, and runner environment.
-5. It performs authenticated Google `serviceAccounts.keys.get`, requires the exact active user-managed key, fetches the matching Google X.509 certificate, and verifies signature and expected context.
+5. It takes the signed key ID revealed by the protected runner, performs authenticated Google `serviceAccounts.keys.get` under the selected service account, requires that exact active user-managed key, fetches its matching Google X.509 certificate, and verifies signature and expected context.
 6. One Firestore transaction rereads `ISSUED` and writes `CONSUMED` plus proof digest. Only that transaction winner succeeds.
 
 The local implementation now includes payload creation, expected-context equality, lifetime/signature checks, public-certificate lookup, a transactional Firestore challenge store, a completed-run/workflow/review GitHub observer, and an ADC-backed Google key reader. These paths are covered with deterministic test doubles only; no live Firestore, GitHub, or Google proof has passed yet.
