@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { verifyEvidenceArtifacts } from "./evidence-artifact.mjs";
+import { verifyK0EvidenceSemantics } from "./k0-evidence-semantics.mjs";
 
 const HOSTILE_CASES = {
   H1: ["WRONG_OWNER_ID", "WIF_PROVIDER_CONDITION"],
@@ -177,7 +177,7 @@ async function main(path) {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const result = verifyK0Manifest(manifest);
   if (!result.ok) throw new Error(result.errors.join("\n"));
-  const artifacts = await verifyEvidenceArtifacts(
+  const artifacts = await verifyK0EvidenceSemantics(
     manifest,
     (id) => readFile(join(dirname(manifestPath), "artifacts", `${id}.json`)),
   );

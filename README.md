@@ -77,7 +77,7 @@ Implemented locally:
 - A 36-case corpus (12 visible development, 12 sealed supported, 4 sealed refusal, 8 sealed recovery), a frozen rules-only baseline, and a raw-count evaluator that rejects forbidden model content.
 - A Firestore challenge store with create-once issuance, transactional `ISSUED → CONSUMED` transition, expiry enforcement, and digest binding; an authoritative GitHub observer that rebuilds the proof context from a completed run, workflow blob, and independent environment review; and an ADC-backed exact Google key reader.
 - A bearer-protected, bounded Node HTTP service that runs the two tool-free ADK stages, revalidates every final output, disables OpenTelemetry export in its pinned container, and has a locally built/started health check. No live Gemini inference has run.
-- A canonical evidence-artifact format and verifier: every K0 ledger digest must resolve to matching credential-free `artifacts/E###.json` bytes, not a self-asserted hash string.
+- A canonical evidence-artifact format and semantic verifier: every K0 ledger digest must resolve to matching credential-free `artifacts/E###.json` bytes, and their contents must agree with the claimed key, WIF hashes, hostile identity/run/control, unchanged revision, human disable, legacy denial, and `wif-2` result.
 - Google Cloud CLI installed.
 
 Not yet proven:

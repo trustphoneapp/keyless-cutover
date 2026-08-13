@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createEvidenceArtifact, verifyEvidenceArtifacts } from "../src/evidence-artifact.mjs";
+import { verifyK0EvidenceSemantics } from "../src/k0-evidence-semantics.mjs";
 import { verifyK0Manifest } from "../src/k0-manifest.mjs";
 
 function validManifest() {
@@ -18,7 +19,8 @@ function validManifest() {
     });
     return id;
   };
-  const revision = source("CLOUD_RUN_REVISION", "allowed-before-hostile");
+  const allowedRevision = source("CLOUD_RUN_REVISION", "allowed-before-hostile");
+  const forbiddenRevision = source("CLOUD_RUN_REVISION", "forbidden-before-hostile");
   const hostiles = Object.entries({
     H1: ["WRONG_OWNER_ID", "WIF_PROVIDER_CONDITION"],
     H2: ["WRONG_REPOSITORY_ID", "WIF_PROVIDER_CONDITION"],
@@ -39,7 +41,7 @@ function validManifest() {
     source_ids: [
       source("GITHUB_RUN", `${id}-run`),
       source(id === "H8" ? "CLOUD_RUN_IAM_RESULT" : "STS_CLIENT_RESULT", `${id}-result`),
-      revision,
+      id === "H8" ? forbiddenRevision : allowedRevision,
     ],
   }));
   return {
@@ -131,19 +133,64 @@ test("K0 manifest resolves every security claim to typed hashed evidence", () =>
 test("K0 evidence ledger resolves to canonical artifact bytes", async () => {
   const manifest = validManifest();
   const artifacts = new Map();
+  const dataFor = (entry) => {
+    const suffix = entry.locator.split(":").at(-1);
+    if (entry.kind === "GITHUB_RUN") {
+      const hostile = suffix.match(/h[1-8]/i)?.[0].toUpperCase();
+      const number = hostile?.slice(1);
+      const value = {
+        run_id: hostile ? `200${number}` : "1001", run_attempt: "1", head_sha: "a".repeat(40),
+        workflow_path: ".github/workflows/k0-deploy.yml", workflow_ref: "owner/repo/.github/workflows/k0-deploy.yml@refs/heads/main",
+        owner_id: "1", repository_id: "2", event: "push", ref: "refs/heads/main", environment: "production", conclusion: "success",
+      };
+      if (hostile === "H1") value.owner_id = "999";
+      if (hostile === "H2") value.repository_id = "999";
+      if (hostile === "H3") {
+        value.ref = "refs/heads/keyless-h3";
+        value.workflow_ref = "owner/repo/.github/workflows/k0-deploy.yml@refs/heads/keyless-h3";
+      }
+      if (hostile === "H4") {
+        value.workflow_path = ".github/workflows/k0-hostile-wrong-workflow.yml";
+        value.workflow_ref = "owner/repo/.github/workflows/k0-hostile-wrong-workflow.yml@refs/heads/main";
+      }
+      if (hostile === "H5") value.event = "workflow_dispatch";
+      if (hostile === "H6") value.environment = "staging";
+      return value;
+    }
+    if (entry.kind === "GITHUB_ENVIRONMENT_REVIEW") return { run_id: "1001", environment: "production", actor_id: "10", reviewer_id: "11", state: "approved" };
+    if (entry.kind === "PROOFV2_ARTIFACT") return { challenge_id: manifest.proof.challenge_id, proof_digest: manifest.proof.proof_digest, key_id: manifest.scope.key_id, verified: true, consumed: true };
+    if (entry.kind === "GCP_IAM_KEY") return { name: `projects/-/serviceAccounts/${manifest.scope.service_account_email}/keys/${manifest.scope.key_id}`, key_id: manifest.scope.key_id, key_type: "USER_MANAGED", algorithm: "KEY_ALG_RSA_2048", disabled: suffix.includes("disabled") };
+    if (entry.kind === "GCP_WIF_PROVIDER") return { name: manifest.wif.provider, config_hash: manifest.wif.config_hash, state: "ACTIVE" };
+    if (entry.kind === "GCP_IAM_POLICY") return { policy_hash: "e".repeat(64), iam_diff_hash: manifest.wif.iam_diff_hash, etag: "etag-1", no_added_downstream_permissions: true };
+    if (entry.kind === "STS_CLIENT_RESULT") {
+      const hostile_id = suffix.match(/h[1-7]/i)[0].toUpperCase();
+      return { hostile_id, run_id: `200${hostile_id.slice(1)}`, outcome: "DENIED", reached_sts: true, error_category: hostile_id === "H7" ? "AUDIENCE_DENIED" : "WIF_CONDITION_DENIED" };
+    }
+    if (entry.kind === "CLOUD_RUN_IAM_RESULT") return { hostile_id: "H8", run_id: "2008", outcome: "DENIED", reached_cloud_run: true, target: manifest.scope.forbidden_service };
+    if (entry.kind === "CLOUD_RUN_REVISION") return suffix.includes("wif-2")
+      ? { service: manifest.scope.allowed_service, revision: manifest.revisions.wif_2 }
+      : suffix.includes("forbidden")
+        ? { service: manifest.scope.forbidden_service, revision: manifest.revisions.forbidden_before }
+        : { service: manifest.scope.allowed_service, revision: "allowed-00001" };
+    if (entry.kind === "GCP_AUDIT_ENTRY") return { method_name: "google.iam.admin.v1.DisableServiceAccountKey", resource_name: `keys/${manifest.scope.key_id}`, principal_email: manifest.disable.human_actor };
+    if (entry.kind === "GOOGLE_AUTH_RESULT") return { key_id: manifest.scope.key_id, run_id: "3001", outcome: "DENIED", fresh_runner: true, fresh_online_request: true };
+    if (entry.kind === "LEAK_SCAN") return { outcome: "CLEAN", scanner: "gitleaks", scope_hash: "f".repeat(64) };
+    throw new Error(`unhandled kind ${entry.kind}`);
+  };
   for (const entry of manifest.evidence) {
     const created = createEvidenceArtifact({
       id: entry.id,
       kind: entry.kind,
       locator: entry.locator,
       observed_at: entry.observed_at,
-      data: { source_locator: entry.locator },
+      data: dataFor(entry),
     });
     entry.sha256 = created.sha256;
     artifacts.set(entry.id, created.artifact);
   }
   assert.equal(verifyK0Manifest(manifest).ok, true);
   assert.deepEqual(await verifyEvidenceArtifacts(manifest, async (id) => artifacts.get(id)), { ok: true, errors: [] });
-  artifacts.set("E001", artifacts.get("E001").replace("source_locator", "changed_locator"));
+  assert.deepEqual(await verifyK0EvidenceSemantics(manifest, async (id) => artifacts.get(id)), { ok: true, errors: [] });
+  artifacts.set("E001", artifacts.get("E001").replace("allowed-00001", "changed-00001"));
   assert.equal((await verifyEvidenceArtifacts(manifest, async (id) => artifacts.get(id))).ok, false);
 });

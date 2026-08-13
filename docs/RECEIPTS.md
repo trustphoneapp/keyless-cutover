@@ -9,7 +9,7 @@ The receipt is an independently checkable account of what Keyless observed, prop
 ## Format
 
 1. K0 produces a version-2 evidence manifest. Every claim references one or more `E###` ledger entries containing an allowlisted source kind, bounded locator, observation time, SHA-256 artifact digest, and optional HTTPS inspection URL.
-2. Each ledger entry resolves to `artifacts/E###.json`. The verifier requires canonical JSON, exact envelope/manifest agreement, bounded size, a clean credential scan, and a recomputed matching digest.
+2. Each ledger entry resolves to `artifacts/E###.json`. The verifier requires canonical JSON, exact envelope/manifest agreement, bounded size, a clean credential scan, and a recomputed matching digest. It then checks semantic agreement: hostile result IDs/run IDs/identity differences/control categories and unchanged revisions, exact ProofV2 key/digest, exact WIF hashes, human disable audit identity, fresh legacy denial, and the post-disable `wif-2` revision.
 3. The K0 verifier requires the correct evidence kinds for ProofV2, WIF readback, H1–H8, key disable, fresh legacy denial, post-disable continuity, and leak scan. Every evidence entry must be referenced.
 4. After K0 passes, create canonical receipt JSON from that verified manifest plus K1 agent/PR evidence.
 5. Hash it with SHA-256 and sign the digest using an asymmetric Cloud KMS key.
