@@ -19,8 +19,8 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 
 ## Protected K0 release gate
 
-- [ ] Independent GitHub collaborator accepted write access.
-- [ ] `production` requires that reviewer and prevents self-review/bypass.
+- [x] Independent GitHub collaborator accepted write access.
+- [x] `production` requires that reviewer and prevents self-review/bypass.
 - [ ] Cumulative release PR #11 has green CI and non-last-pusher approval.
 - [ ] PR #11 is merged; superseded stacked PRs are closed.
 - [ ] Cutover PR #3 is updated onto protected `main` without hand repair.
