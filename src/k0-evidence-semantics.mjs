@@ -49,7 +49,8 @@ function validateArtifactData(kind, data, fail, id) {
   } else if (kind === "CLOUD_RUN_REVISION") {
     fail(string(data.service, REVISION) && string(data.revision, REVISION), `${id} Cloud Run revision data is invalid`);
   } else if (kind === "GCP_AUDIT_ENTRY") {
-    fail(string(data.method_name) && string(data.resource_name) && string(data.principal_email), `${id} audit entry data is invalid`);
+    fail(string(data.method_name) && string(data.resource_name) && string(data.principal_email)
+      && string(data.insert_id) && string(data.timestamp), `${id} audit entry data is invalid`);
   } else if (kind === "GOOGLE_AUTH_RESULT") {
     fail(string(data.key_id, KEY_ID) && string(data.run_id, NUMERIC), `${id} legacy-auth identity is invalid`);
     fail(data.outcome === "DENIED" && data.fresh_runner === true && data.fresh_online_request === true, `${id} legacy denial was not fresh and online`);

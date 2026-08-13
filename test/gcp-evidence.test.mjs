@@ -80,3 +80,41 @@ test("GCP evidence reader uses ADC and normalizes the latest ready revision", as
   }), { service: "keyless-demo", revision: "keyless-demo-wif-2" });
   assert.equal(requests[0].options.headers.authorization, "Bearer test");
 });
+
+test("GCP evidence reader binds key disable to one exact human Admin Activity entry", async () => {
+  const keyResource = `projects/keyless-k0-demo/serviceAccounts/${plan.service_account}/keys/${"a".repeat(40)}`;
+  const reader = createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async (url, options) => {
+      assert.equal(url, "https://logging.googleapis.com/v2/entries:list");
+      const body = JSON.parse(options.body);
+      assert.match(body.filter, /DisableServiceAccountKey/);
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ entries: [{
+          insertId: "audit-1",
+          timestamp: "2026-08-13T12:01:00Z",
+          protoPayload: {
+            methodName: "google.iam.admin.v1.DisableServiceAccountKey",
+            resourceName: keyResource,
+            authenticationInfo: { principalEmail: "operator@example.com" },
+          },
+        }] }),
+      };
+    },
+  });
+  assert.deepEqual(await reader.readDisableAuditEntry({
+    projectId: "keyless-k0-demo",
+    keyResource,
+    humanActor: "operator@example.com",
+    startTime: "2026-08-13T12:00:00Z",
+    endTime: "2026-08-13T12:05:00Z",
+  }), {
+    method_name: "google.iam.admin.v1.DisableServiceAccountKey",
+    resource_name: keyResource,
+    principal_email: "operator@example.com",
+    insert_id: "audit-1",
+    timestamp: "2026-08-13T12:01:00Z",
+  });
+});

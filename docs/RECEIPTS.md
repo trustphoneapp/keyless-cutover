@@ -52,6 +52,7 @@ The repository currently includes the K0 v2 manifest verifier. The KMS receipt s
 - pre-disable WIF run and `wif-1` revision;
 - every denial case, expected rejection point, actual conclusion, and unchanged forbidden target evidence;
 - human key-disable actor reference and observed key status;
+- exact successful `DisableServiceAccountKey` Admin Activity insert ID, resource, principal, and timestamp within the approved window;
 - fresh post-disable WIF run and `wif-2` revision;
 - fresh legacy-key authentication failure;
 - available STS, IAM Credentials, Cloud Run, IAM Admin Activity, and target API audit identifiers.
