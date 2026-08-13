@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "verify:k0": "node src/k0-manifest.mjs"
+    "verify:k0": "node src/k0-manifest.mjs",
+    "cutover": "node src/workflow-cutover.mjs"
   },
   "engines": {
     "node": ">=22"

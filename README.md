@@ -67,9 +67,10 @@ Implemented locally:
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 evidence-manifest verifier with fixed H1–H8 controls and false-safe rejection.
-- Seven passing local tests, including a simultaneous replay race and the Cloud Run canary contract.
+- Eight passing local tests, including a simultaneous replay race, the Cloud Run canary contract, and exact cutover compilation.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
+- A deterministic plan/apply compiler that refuses source drift, template drift, unpinned actions, credential retention, or workflow-path changes and emits byte-identical reviewed WIF workflow content.
 - Google Cloud CLI installed.
 
 Not yet proven:
