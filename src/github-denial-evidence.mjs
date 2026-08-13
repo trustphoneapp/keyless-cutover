@@ -97,8 +97,8 @@ function validateArtifact(value, hostileId, run, expected) {
   if (!value || typeof value !== "object" || Object.keys(value).some((key) => ![...baseKeys, ...optional].includes(key))) {
     throw new Error("GitHub denial artifact fields are invalid");
   }
-  const expectedId = ["H1", "H2"].includes(hostileId) ? "external" : hostileId;
-  if (value.version !== 1 || value.id !== expectedId || value.outcome !== "failure"
+  const expectedIds = ["H1", "H2"].includes(hostileId) ? new Set(["external", hostileId]) : new Set([hostileId]);
+  if (value.version !== 1 || !expectedIds.has(value.id) || value.outcome !== "failure"
       || value.run_id !== String(run.id) || value.run_attempt !== String(run.run_attempt)
       || value.head_sha !== run.head_sha || value.event !== run.event || value.ref !== `refs/heads/${run.head_branch}`) {
     throw new Error("GitHub denial artifact does not match the run");

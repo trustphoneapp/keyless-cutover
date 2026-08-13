@@ -47,6 +47,36 @@ function fixture(log = "google-github-actions/auth failed: audience rejected by 
   return { fetchImpl, requests };
 }
 
+function h2Fixture() {
+  const run = {
+    id: 8002, run_attempt: 1, status: "completed", conclusion: "success", head_sha: "b".repeat(40),
+    head_branch: "main", path: ".github/workflows/k0-external-hostile.yml", event: "push",
+    repository: { id: 22, full_name: "trustphoneapp/keyless-hostile", owner: { id: 1 } },
+  };
+  const denial = {
+    version: 1, id: "H2", outcome: "failure", run_id: "8002", run_attempt: "1", head_sha: "b".repeat(40),
+    workflow_ref: "trustphoneapp/keyless-hostile/.github/workflows/k0-external-hostile.yml@refs/heads/main",
+    event: "push", ref: "refs/heads/main", environment: "production", owner_id: "1", repository_id: "22",
+  };
+  const zip = new AdmZip();
+  zip.addFile("k0-external.json", Buffer.from(JSON.stringify(denial)));
+  const log = "google-github-actions/auth failed: credential is rejected by the attribute condition at STS";
+  const fetchImpl = async (url) => {
+    if (url.endsWith("/actions/runs/8002")) return response(200, run);
+    if (url.includes("/jobs?")) return response(200, { jobs: [{
+      id: 82, name: "external-identity", status: "completed", conclusion: "success",
+      steps: [{ name: "Require external identity denial", conclusion: "success" }],
+    }] });
+    if (url.includes("/artifacts?")) return response(200, { artifacts: [{ id: 92, name: "keyless-external-denial", expired: false }] });
+    if (url.endsWith("/actions/artifacts/92/zip")) return response(302, "", { location: "https://objects.githubusercontent.com/h2.zip" });
+    if (url.endsWith("/actions/jobs/82/logs")) return response(302, "", { location: "https://objects.githubusercontent.com/h2.txt" });
+    if (url.endsWith("h2.zip")) return response(200, zip.toBuffer(), { "content-length": String(zip.toBuffer().length) });
+    if (url.endsWith("h2.txt")) return response(200, log, { "content-length": String(log.length) });
+    throw new Error(`unexpected URL ${url}`);
+  };
+  return fetchImpl;
+}
+
 const input = {
   owner: "trustphoneapp", repository: "keyless-cutover", runId: "7007", hostileId: "H7",
   installationToken: "github-installation-token-value", scopeOwnerId: "1", scopeRepositoryId: "2",
@@ -69,4 +99,19 @@ test("GitHub collector proves a hostile denial from API, artifact, and allowlist
 test("GitHub collector refuses a generic failure before the intended control", async () => {
   const { fetchImpl } = fixture("network timeout before authentication");
   await assert.rejects(collectGitHubDenialEvidence({ ...input, fetchImpl }), /does not prove/);
+});
+
+test("GitHub collector proves H2 from the intended owner and a different repository ID", async () => {
+  const result = await collectGitHubDenialEvidence({
+    ...input,
+    repository: "keyless-hostile",
+    runId: "8002",
+    hostileId: "H2",
+    scopeRepositoryId: "2",
+    fetchImpl: h2Fixture(),
+  });
+  assert.equal(result.githubRun.owner_id, "1");
+  assert.equal(result.githubRun.repository_id, "22");
+  assert.equal(result.clientResult.hostile_id, "H2");
+  assert.equal(result.clientResult.error_category, "WIF_CONDITION_DENIED");
 });
