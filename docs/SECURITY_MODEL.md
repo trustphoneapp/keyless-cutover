@@ -24,6 +24,8 @@ Keyless may help remove one permanent authentication path only when it can prove
 
 The local implementation now includes payload creation, expected-context equality, lifetime/signature checks, public-certificate lookup, a transactional Firestore challenge store, a completed-run/workflow/review GitHub observer, and an ADC-backed Google key reader. These paths are covered with deterministic test doubles only; no live Firestore, GitHub, or Google proof has passed yet.
 
+The WIF readback path compares a canonical hash of the live provider issuer/audiences/mapping/condition to the approved plan, requires the service-account IAM delta to contain exactly one new `roles/iam.workloadIdentityUser` member and no removal, and requires semantic equality of both allowed and forbidden Cloud Run IAM policies across the cutover. This is a scoped “no added downstream permissions” claim, not a universal least-privilege certification.
+
 ## Mandatory identity tests
 
 H1–H7 must reach STS/provider or impersonation as specified; H8 must reach Cloud Run authorization. Client syntax failure, missing approval, network failure, cancellation, or absent logs is `NOT RUN`.

@@ -27,6 +27,8 @@ test("WIF compiler binds immutable GitHub identity and exact workflow context", 
   assert.match(plan.attribute_condition, /environment=='production'/);
   assert.match(plan.attribute_condition, /runner_environment=='github-hosted'/);
   assert.equal(plan.impersonation_binding.role, "roles/iam.workloadIdentityUser");
+  assert.match(plan.provider_config_hash, /^[a-f0-9]{64}$/);
+  assert.match(plan.impersonation_binding_hash, /^[a-f0-9]{64}$/);
   assert.equal(plan.commands.flat().some((value) => /Owner|Editor|TokenCreator|\*/.test(value)), false);
   assert.equal(verifyWifPlan({ ...input, repository_id: "223" }, plan), false);
   assert.throws(() => buildWifPlan({ ...input, repository: "bad'repo" }), /invalid/);

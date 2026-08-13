@@ -3,6 +3,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { canonicalJson } from "./evidence-artifact.mjs";
+
 const NUMBER = /^\d+$/;
 const PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const RESOURCE_ID = /^[a-z][a-z0-9-]{3,31}$/;
@@ -52,6 +54,18 @@ export function buildWifPlan(input) {
     `assertion.aud=='${audience}'`,
   ].join(" && ");
   const member = `principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${poolId}/attribute.repo_id/${repositoryId}`;
+  const providerConfig = {
+    name: provider,
+    issuer: "https://token.actions.githubusercontent.com/",
+    allowed_audiences: [],
+    attribute_mapping: attributeMapping,
+    attribute_condition: condition,
+  };
+  const impersonationBinding = {
+    resource: serviceAccount,
+    role: "roles/iam.workloadIdentityUser",
+    member,
+  };
   const body = {
     version: 1,
     project_id: projectId,
@@ -65,11 +79,9 @@ export function buildWifPlan(input) {
     workflow_ref: workflowRef,
     attribute_mapping: attributeMapping,
     attribute_condition: condition,
-    impersonation_binding: {
-      resource: serviceAccount,
-      role: "roles/iam.workloadIdentityUser",
-      member,
-    },
+    provider_config_hash: digest(canonicalJson(providerConfig)),
+    impersonation_binding: impersonationBinding,
+    impersonation_binding_hash: digest(canonicalJson(impersonationBinding)),
     commands: [
       ["gcloud", "iam", "workload-identity-pools", "create", poolId, `--project=${projectId}`, "--location=global", "--display-name=Keyless K0"],
       [
