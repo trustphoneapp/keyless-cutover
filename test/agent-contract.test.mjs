@@ -14,6 +14,10 @@ test("ADK Taskmaster has no mutation tools and strict bounded outputs", () => {
   assert.equal(taskmaster.model, "gemini-3.5-flash");
   assert.deepEqual(taskmaster.evidenceAgent.tools, []);
   assert.deepEqual(taskmaster.recoveryAgent.tools, []);
+  assert.match(taskmaster.evidenceAgent.instruction, /legacy credential is expected/);
+  assert.match(taskmaster.evidenceAgent.instruction, /CANDIDATE_LOCAL_SCRIPT/);
+  assert.match(taskmaster.recoveryAgent.instruction, /IMPERSONATION_BINDING_MISSING/);
+  assert.match(taskmaster.recoveryAgent.instruction, /observed caller's numeric repository identity/);
 
   assert.equal(evidenceCandidateSchema.safeParse({
     pattern: "CANDIDATE_DIRECT",

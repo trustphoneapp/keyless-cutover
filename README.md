@@ -46,13 +46,14 @@ flowchart LR
     SA --> CR["Allowed Cloud Run service"]
     SA -. denied .-> X["Forbidden Cloud Run service"]
     A --> K["Cloud KMS receipt signature"]
+    C["Public read-only evidence console"] --> E["Credential-free checkpoint or verified K0 bundle"]
 ```
 
 Firestore exists for one-time ProofV2 challenge consumption and evidence-derived operation state. KMS is added only after the real 48-hour transaction passes. Cloud Tasks, Pub/Sub, Agent Engine, Registry, Memory Bank, autonomous IAM mutation, and a multi-agent fleet are intentionally outside the hackathon build.
 
 ## Safety contract
 
-- Keyless never receives or stores the private-key value, GitHub OIDC token, Google access token, or authorization header.
+- Keyless never receives the private-key value and never persists or sends GitHub OIDC tokens, Google access tokens, or HTTP authorization headers to Gemini. The private Cloud Run service uses Google IAM for caller identity plus a separate `X-Keyless-API-Token` application gate; neither credential is logged or model-bound.
 - Gemini never chooses authoritative repository, project, service account, key, provider, role, or target identifiers.
 - A model output can never produce `PASS`, authorize IAM, merge a PR, disable a key, or complete a receipt.
 - A human applies IAM, another protected review gates the workflow, and a human disables the key.
@@ -67,7 +68,7 @@ Implemented locally:
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance without a preselected key ID, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 v2 evidence-manifest verifier with fixed H1–H8 controls, typed/hashed GitHub and GCP evidence, unchanged-target requirements, cross-reference integrity, and false-safe rejection.
-- Thirty-five passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, authenticated Google key/audit lookup, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, and offline evidence reconstruction.
+- Forty-three passing local tests, including a simultaneous replay race, the Cloud Run canary and evidence-console contracts, documentation-link integrity, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, authenticated Google key/audit lookup, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, and offline evidence reconstruction.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - The WIF template now executes H3 (fixed hostile branch), H5 (manual event), H6 (staging environment), H7 (wrong audience), and H8 (valid identity mutating the forbidden service) as explicit expected-denial jobs. A frozen external-repository template drives H1/H2; H4 remains the wrong-path workflow. Each expected denial emits a small credential-free artifact with platform run identity and actual step outcome; every workflow passes `actionlint` locally.
@@ -77,7 +78,8 @@ Implemented locally:
 - A 36-case corpus (12 visible development, 12 sealed supported, 4 sealed refusal, 8 sealed recovery), a frozen rules-only baseline, and a raw-count evaluator that rejects forbidden model content.
 - A sequential sealed-evaluation runner that performs exactly three isolated attempts for each of 24 sealed cases, emits only structured outputs or a fixed rejection code, and requires at least 70/72 schema-valid calls plus the documented case-majority gates.
 - A Firestore challenge store with create-once issuance, transactional `ISSUED → CONSUMED` transition, expiry enforcement, and digest binding; an authoritative GitHub observer that rebuilds the proof context from a completed run, workflow blob, and independent environment review; and an ADC-backed exact Google key reader.
-- A bearer-protected, bounded Node HTTP service that runs the two tool-free ADK stages, revalidates every final output, disables OpenTelemetry export in its pinned container, and has a locally built/started health check. No live Gemini inference has run.
+- A private, bounded Node HTTP service that runs the two tool-free ADK stages, revalidates every final output, and disables OpenTelemetry export in its pinned container. Cloud Run IAM authenticates an invoke-only operator and a separate `X-Keyless-API-Token` gates the model routes. A real served Vertex Gemini 3.5 Flash request passed both gates; IAM alone reached the app and was rejected with 401.
+- A dependency-free, read-only evidence console that renders only a validated credential-free checkpoint or a fully verified K0 manifest/artifact bundle. It contains no client script or mutation route, rejects self-asserted success, and keeps a verifier-passing but unsigned cutover in `K0_VERIFIED_RECEIPT_PENDING` rather than declaring release success.
 - A canonical evidence-artifact format and semantic verifier: every K0 ledger digest must resolve to matching credential-free `artifacts/E###.json` bytes, and their contents must agree with the claimed key, WIF hashes, hostile identity/run/control, unchanged revision, human disable, legacy denial, and `wif-2` result.
 - A selected-repository GitHub adapter that rechecks numeric owner/repository IDs, protected base SHA, live workflow bytes, and approved plan before creating compiler-owned branch bytes and a draft PR. It never merges and safely reuses only exact branch/PR residue after a retry.
 - A GitHub hostile-run collector that refetches the completed run/job, downloads the bounded platform artifact and job log through trusted redirects without forwarding authorization, correlates immutable context, and recognizes only allowlisted Google STS/audience/Cloud Run denial signatures. Generic setup/network failures remain unproven.
@@ -86,10 +88,17 @@ Implemented locally:
 - A bounded Cloud Logging query that accepts exactly one successful `DisableServiceAccountKey` Admin Activity entry for the scoped key, expected human principal, and approved 24-hour-or-shorter window; ambiguity blocks final evidence.
 - Google Cloud CLI installed.
 
+Live but incomplete:
+
+- The public [Keyless evidence console](https://keyless-evidence-208865688014.us-central1.run.app) is deployed on Cloud Run revision `keyless-evidence-00001-82l` from an immutable amd64 image. Its dedicated runtime identity has no project role; live read-back shows `NO_GO_INCOMPLETE`, eight gates, eight blockers, and the expected hardened response headers.
+- The billed project `keyless-k0-20260813`, private Cloud Run agent, `legacy-1` canary, forbidden canary, Firestore database, reviewed WIF provider/binding, and draft compiler-produced cutover PR exist. Provider/IAM readback matches the approved hashes and adds no downstream service-account permission.
+- ProofV2 ran on a fresh GitHub-hosted runner, matched the exact active user-managed key, consumed one live Firestore challenge once, and rejected replay. It remains readiness evidence because an independent protected-environment review is absent.
+- H2 ran from private repository ID `1333281314` against protected repository ID `1332803088`; Google STS rejected it at the attribute condition, the credential-free artifact matched run `31717226551`, and `keyless-forbidden-00001-rvf` remained unchanged.
+- The second full sealed Vertex evaluation passed 12/12 supported cases, 11 paired wins over rules-only, 4/4 refusals, 8/8 recoveries, 0 forbidden outputs, and 72/72 schema-valid calls. The first run failed and is retained locally as negative evidence.
+
 Not yet proven:
 
-- A live Firestore transaction and live GitHub/Google adapter calls; their interfaces and failure behavior are currently covered only by deterministic test doubles.
-- GCP account, billing project, live WIF, deployed Cloud Run canaries, eight denials, human key disable, live Gemini calls, ADK deployment, KMS receipt, hosted console, or video.
+- Independent PR/environment approval, H1 from a genuinely different GitHub owner, merge of the real WIF cutover, `wif-1`, the remaining hostile matrix, human key disable, fresh legacy rejection, post-disable `wif-2`, KMS receipt, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 
@@ -108,7 +117,10 @@ Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong
 - [Security model](docs/SECURITY_MODEL.md)
 - [Support and hostile-test matrix](docs/SUPPORT_MATRIX.md)
 - [Evaluation gates](docs/EVALUATION.md)
+- [Independent reviewer and K0 operator runbook](docs/REVIEWER_RUNBOOK.md)
 - [Four-minute demo](docs/DEMO_RUNBOOK.md)
+- [Devpost submission draft](docs/SUBMISSION_DRAFT.md)
+- [Release and submission checklist](docs/SUBMISSION_CHECKLIST.md)
 - [Official source index](docs/SOURCES.md)
 - [ADR 0002: Taskmaster scope](docs/adr/0002-TASKMASTER_SCOPE.md)
 

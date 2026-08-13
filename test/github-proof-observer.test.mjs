@@ -3,6 +3,8 @@ import test from "node:test";
 
 import { fetchGitHubProofObservation } from "../src/github-proof-observer.mjs";
 
+const installationToken = `ghs_${"t".repeat(36)}`;
+
 const workflow = `name: K0 deploy
 jobs:
   deploy:
@@ -47,7 +49,7 @@ const input = {
   runId: "456789123",
   workflowPath: ".github/workflows/k0-deploy.yml",
   environment: "production",
-  token: "github-installation-token-value",
+  token: installationToken,
 };
 
 test("GitHub observer rebuilds proof context from completed run, blob, and independent review", async () => {

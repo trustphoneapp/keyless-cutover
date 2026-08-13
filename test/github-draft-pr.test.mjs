@@ -10,6 +10,7 @@ const replacement = await readFile(new URL("../k0/templates/k0-deploy.wif.yml", 
 const plan = buildCutoverPlan(current, replacement);
 const baseSha = "a".repeat(40);
 const blobSha = "b".repeat(40);
+const installationToken = `ghs_${"t".repeat(36)}`;
 
 function response(status, value) {
   return { status, text: async () => JSON.stringify(value) };
@@ -52,7 +53,7 @@ function createFetch({ repositoryId = 2, existing = false, existingBranch = fals
 const input = {
   owner: "trustphoneapp",
   repository: "keyless-cutover",
-  installationToken: "github-installation-token-value",
+  installationToken,
   migrationId: "k0",
   approvedOwnerId: "1",
   approvedRepositoryId: "2",

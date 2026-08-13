@@ -1,0 +1,92 @@
+# Independent reviewer and K0 operator runbook
+
+This runbook is the human gate for the live Keyless K0 transaction. It does not authorize anyone to share a browser authorization code, private key, GitHub secret, access token, ID token, or application token. Keyless never needs those values in chat, a pull-request comment, or an evidence artifact.
+
+## Current stop state
+
+- `release/live-agent-v2` is the cumulative non-cutover release candidate in PR #11.
+- `keyless/k0-live` is the compiler-produced WIF cutover in draft PR #3.
+- `KEYLESS_K0_ENABLED` remains `false`.
+- The exact legacy service-account key remains enabled.
+- H2 is proven. H1 and H3–H8 are not complete.
+- No reviewer other than the repository owner currently has qualifying authority.
+
+Do not merge PR #3, enable the K0 workflows, or disable the key until the authority setup below is complete.
+
+## Required independent person
+
+Use one GitHub account whose numeric user ID differs from actor/owner ID `289479481`. The person must:
+
+1. accept write access to `trustphoneapp/keyless-cutover` so GitHub counts the review;
+2. review from their own account, not a shared session;
+3. be the required reviewer for the `production` environment with prevent-self-review enabled;
+4. own the separate H1 repository, so its numeric owner ID is genuinely different; and
+5. perform the exact key-disable action only after the pre-disable evidence gate passes.
+
+Grant only the permissions required for those duties. Do not grant project Owner, IAM Admin, service-account Token Creator, repository secrets access, or runtime-agent mutation authority. The GCP key operator needs `roles/iam.serviceAccountKeyAdmin` on the exact disposable deployment service account only.
+
+## Authority setup
+
+The project owner records the reviewer's GitHub login, numeric GitHub user ID, and GCP principal. Before continuing, independently read back:
+
+- repository collaborator permission is `write`;
+- `main` still requires CI, one approval, last-pusher approval, stale-review dismissal, and linear history;
+- `production` requires the independent reviewer, prevents self-review, and allows protected branches only; and
+- the GCP key role is scoped to the exact deployment service account.
+
+If any read-back is ambiguous, stop. Never work around a missing reviewer by weakening branch or environment protection.
+
+## Merge sequence
+
+### 1. Release candidate
+
+The reviewer checks PR #11 against `main`, runs `npm ci --legacy-peer-deps`, `npm test`, and `npm audit --omit=dev --audit-level=high`, and verifies that no workflow, log, test fixture, or document contains credential material. They then approve PR #11. No one pushes to the branch after that approval. Merge only while the required `test` check is green.
+
+PR #11 includes the earlier fixes from PRs #2 and #4–#10. Close those older PRs as superseded only after PR #11 is merged. PR #1 is obsolete documentation and may also be closed then.
+
+### 2. Cutover candidate
+
+After PR #11 reaches `main`, update draft PR #3 onto the new protected base without hand-editing the compiler-owned workflow. Re-run the compiler, actionlint, unit suite, dependency audit, WIF/provider read-back, impersonation-binding read-back, and downstream IAM no-widening comparison. A changed workflow byte, plan digest, provider hash, or IAM preimage requires a new review.
+
+Mark PR #3 ready only when those checks agree. The independent person reviews and approves the exact cutover diff; a human merges it. Keyless never auto-merges.
+
+## H1 foreign-owner probe
+
+The independent person creates a disposable repository under their own GitHub account. A repository under `trustphoneapp`, even with a different repository ID, is H2 and cannot satisfy H1.
+
+Use `k0/templates/k0-external-hostile.yml` byte-for-byte at `.github/workflows/k0-deploy.yml`. Configure only the documented non-secret repository variables for project, provider, service account, and canonical audience; add `demo/release.txt`; create a `production` environment; and push to protected `main`. Do not add a Google key or any other secret.
+
+H1 passes only when the independent collector verifies all of the following:
+
+- the run's numeric owner ID differs from `289479481`;
+- Google auth reached STS/WIF and was rejected by the provider condition;
+- the bounded client artifact and refetched GitHub run/log agree; and
+- the forbidden Cloud Run revision is unchanged.
+
+A workflow syntax error, missing environment approval, network failure, or failure before STS is `NOT RUN`, never a denial.
+
+## Live K0 order
+
+1. Keep the legacy key enabled and retain the last successful `legacy-1` evidence.
+2. Merge the reviewed WIF workflow and obtain a fresh `wif-1` deployment through GitHub OIDC/WIF.
+3. Execute H1–H8 at their documented controls and independently verify the forbidden service is unchanged.
+4. Reconstruct the pre-disable evidence ledger. Every required item must pass; one missing or unrecognized denial stops the transaction.
+5. Show the independent operator the exact service account, exact key ID, evidence digest, and rollback window. The operator disables—never deletes—the exact key.
+6. Read back `disabled: true` and one matching human `DisableServiceAccountKey` Admin Activity entry.
+7. On a new hosted runner, execute the non-deploying legacy-auth probe. It must make a fresh Google request and receive a recognized disabled/invalid-key rejection.
+8. On another new hosted runner, deploy `wif-2` through WIF and verify the allowed revision.
+9. Reconstruct and credential-scan the final manifest, then sign its canonical digest with the scoped KMS key.
+
+The immediate result may claim only: **the key is disabled, fresh key authentication is rejected, and fresh WIF authentication succeeds**. It must not claim that access tokens minted before disable were revoked.
+
+## Rollback and kill rules
+
+- Before key disable: revert the reviewed workflow or remove only the migration-owned WIF binding/provider after a new human review.
+- After key disable: Keyless cannot re-enable the key. A human may explicitly re-enable the exact key during the short rollback window and revert the workflow.
+- Never delete the key during K0.
+- Stop and preserve evidence on unexpected hostile success, privilege widening, target mutation, key ambiguity, source drift, missing independent approval, secret exposure, or failed post-disable WIF deployment.
+- A stopped or failed K0 remains `NO-GO`; do not repair the evidence manually or relabel it as a pass.
+
+## Handoff data
+
+To begin this runbook, the project owner needs only the independent person's GitHub username and the GCP identity they choose for the narrowly scoped key-operator role. Authorization codes and credentials are never handoff data.

@@ -1,73 +1,40 @@
-# Internal API and event contracts
+# Served API contract
 
-> Historical broad-control-plane design. The hackathon API is not yet implemented and must follow `MASTER_PLAN.md` plus ADR 0002; Tasks, webhooks, and autonomous IAM are out of v1.
+The hackathon service is intentionally not a broad migration control plane. It exposes two bounded model routes on one private Cloud Run service. GitHub observation, deterministic compilation, evidence collection, IAM application, merge, and key disable remain outside the model API.
 
-This is the v1 contract outline. Exact OpenAPI/JSON Schemas are implemented in K1.
+## Authentication
 
-## Public service
+Cloud Run IAM authenticates an allowlisted invoke-only operator identity. Model routes then require a separate `X-Keyless-API-Token` application header whose value is stored in Secret Manager. The application token is not accepted in `Authorization`, because Cloud Run reserves that header for its own identity token.
 
-### `POST /webhooks/github`
+Neither credential may be logged, persisted, placed in an evidence bundle, or sent to Gemini. IAM alone reaches the application but receives `401` from a model route when the application header is absent.
 
-Verifies the raw-body GitHub HMAC, records the delivery ID/body digest, enqueues reconciliation, and returns quickly. Replayed ID + same digest is idempotent; same ID + different digest is a security error.
+## Routes
 
-### `POST /migrations`
+### `GET /healthz`
 
-Creates a migration for one selected repository, workflow path, GCP project number, deploy service account, key resource, Cloud Run service, and region. Creation is rejected unless the caller is authorized for the installed repository and selected project.
+Returns the fixed service/model/tool status used by the container startup probe. The production service remains private, and this route does not establish that Gemini was invoked.
 
-### `GET /migrations/{id}`
+### `POST /v1/evidence`
 
-Returns current state, revision, evidence labels, holds, and allowed human actions. It never returns credentials or raw tokens.
+Accepts exactly one JSON object containing `evidence`: 1–20 `{id,text}` items, at most 8,000 characters each and 32,000 total. IDs must match `E###`; duplicate IDs, unknown fields, oversized input, and credential-shaped material are rejected.
 
-### `POST /migrations/{id}/approvals/apply`
+The tool-free ADK Evidence Agent returns only the strict candidate classification, known evidence references, allowlisted missing-evidence/risk codes, and a bounded explanation. The server revalidates every citation against the submitted bundle.
 
-Accepts an approval bound to the exact plan digest and expiry. The server recomputes the digest from canonical stored inputs.
+### `POST /v1/recovery`
 
-### `POST /migrations/{id}/observe-key-disable`
+Accepts the same redacted evidence envelope. The tool-free ADK Recovery Agent returns one allowlisted failure category, cited evidence, a typed expected/observed mismatch, one next observation, and a bounded explanation. It cannot retry, mutate, authorize, or declare success.
 
-Does not disable a key. It requests an authoritative re-observation after the human action.
+## Responses
 
-### `GET /receipts/{id}`
+- `200 {"output": ...}` only after strict final validation.
+- `400 {"error":"request_rejected"}` for invalid input, invalid model output, or failed invocation. Provider details are not reflected.
+- `401 {"error":"unauthorized"}` when the application token is absent or wrong.
+- `404 {"error":"not_found"}` for unsupported methods or paths.
 
-Returns canonical receipt JSON, signature, KMS public-key metadata, and verification instructions.
+Request bodies are capped at 64 KiB. Unknown output fields, invented citations, executable content outside the schemas, and credential-shaped input fail closed.
 
-## Worker task
+## Deliberate exclusions
 
-`POST /tasks/reconcile` is callable only by the Cloud Tasks identity. Payload contains migration ID, expected revision, and operation key. Payload data is a wakeup; worker loads canonical Firestore state and re-observes external systems.
+There is no public `/migrations`, webhook, approval, worker, IAM, key, merge, receipt-finalization, or arbitrary-chat endpoint. The v1 Taskmaster uses existing deterministic CLI/adapters and human gates for those responsibilities. Cloud Tasks, Pub/Sub, autonomous IAM, and generic multi-tenant APIs remain out of scope.
 
-## Typed model contracts
-
-### `EvidenceBundle`
-
-- immutable repository/owner IDs;
-- selected workflow/script AST facts;
-- secret reference metadata;
-- key-proof status;
-- normalized GCP/IAM/WIF/Cloud Run facts;
-- redacted failure evidence;
-- evidence provenance labels.
-
-### `MigrationIntent`
-
-- detected authentication mechanism;
-- selected service account/key/project/target;
-- required workflow semantic changes;
-- diagnosis/explanation;
-- uncertainties and missing evidence;
-- no raw CEL, shell command, IAM policy, or mutation tool invocation.
-
-### `DeterministicPlan`
-
-Compiled by trusted code from observed facts and allowlisted intent:
-
-- exact WIF mapping/condition/audience;
-- exact IAM member/role/resource;
-- exact preserving workflow patch;
-- normalized permission diff;
-- hostile-test matrix;
-- approval digest.
-
-## Error model
-
-Use stable classes: `UNSUPPORTED`, `MISSING_EVIDENCE`, `STALE_APPROVAL`, `DRIFT_CONFLICT`, `SECURITY_ASSERTION_FAILED`, `TRANSIENT`, `PROPAGATION_PENDING`, `AMBIGUOUS_COMMIT`, `AUTHORIZATION`, `CANCELLED`, and `ROLLBACK_REQUIRES_HUMAN`.
-
-Errors expose remediation without embedding secrets or uncontrolled log content.
+The exact implementation is in `agent/server.mjs`, `agent/contracts.mjs`, and `agent/invoke.mjs`; tests exercise dual authentication, schema rejection, and citation binding.

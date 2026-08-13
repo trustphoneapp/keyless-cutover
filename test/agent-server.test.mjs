@@ -20,9 +20,17 @@ test("agent server exposes health and protects bounded model routes", async (con
   const health = await fetch(`${origin}/healthz`);
   assert.deepEqual(await health.json(), { status: "ok", model: "gemini-3.5-flash", tools: 0 });
   assert.equal((await fetch(`${origin}/v1/evidence`, { method: "POST", body: "{}" })).status, 401);
-  const response = await fetch(`${origin}/v1/evidence`, {
+  assert.equal((await fetch(`${origin}/v1/evidence`, {
     method: "POST",
     headers: { authorization: `Bearer ${token}` },
+    body: "{}",
+  })).status, 401);
+  const response = await fetch(`${origin}/v1/evidence`, {
+    method: "POST",
+    headers: {
+      authorization: "Bearer google-cloud-run-identity-token",
+      "x-keyless-api-token": token,
+    },
     body: JSON.stringify({ evidence: [{ id: "E001", text: "safe" }] }),
   });
   assert.equal(response.status, 200);

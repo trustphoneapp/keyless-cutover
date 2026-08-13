@@ -12,6 +12,7 @@ Keyless may help remove one permanent authentication path only when it can prove
 - GitHub protection and independent review own merge authority.
 - A human owns IAM application and key disable.
 - Google and GitHub source state outranks Keyless’s database.
+- The public evidence console is isolated from the private Taskmaster and has no cloud role, secret, mutation route, or client-side script.
 
 ## ProofV2 protocol
 
@@ -22,9 +23,11 @@ Keyless may help remove one permanent authentication path only when it can prove
 5. It takes the signed key ID revealed by the protected runner, performs authenticated Google `serviceAccounts.keys.get` under the selected service account, requires that exact active user-managed key, fetches its matching Google X.509 certificate, and verifies signature and expected context.
 6. One Firestore transaction rereads `ISSUED` and writes `CONSUMED` plus proof digest. Only that transaction winner succeeds.
 
-The local implementation now includes payload creation, expected-context equality, lifetime/signature checks, public-certificate lookup, a transactional Firestore challenge store, a completed-run/workflow/review GitHub observer, and an ADC-backed Google key reader. These paths are covered with deterministic test doubles only; no live Firestore, GitHub, or Google proof has passed yet.
+The implementation includes payload creation, expected-context equality, lifetime/signature checks, public-certificate lookup, a transactional Firestore challenge store, a completed-run/workflow/review GitHub observer, and an ADC-backed Google key reader. A fresh hosted run matched the exact active user-managed key, consumed one live Firestore challenge once, and rejected replay. It remains readiness evidence rather than release proof because an independent protected-environment review was absent.
 
 The WIF readback path compares a canonical hash of the live provider issuer/audiences/mapping/condition to the approved plan, requires the service-account IAM delta to contain exactly one new `roles/iam.workloadIdentityUser` member and no removal, and requires semantic equality of both allowed and forbidden Cloud Run IAM policies across the cutover. This is a scoped “no added downstream permissions” claim, not a universal least-privilege certification.
+
+The live provider/binding read-back matches the approved hashes, and H2 reached Google WIF from a different repository ID under the intended owner and was rejected by the provider condition without changing the forbidden service. H1 and H3–H8 remain unproven.
 
 ## Mandatory identity tests
 
