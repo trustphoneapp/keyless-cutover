@@ -31,6 +31,8 @@ Use 36 compact, redacted evidence bundles—not live repositories:
 
 Supported cases vary ordering, multiline commands, one-hop environment bindings, positional local-script arguments, unrelated secrets/jobs, and inert prompt-injection text. Refusals cover reusable/composite auth, dynamic target, multiple plausible identities/targets, and unsupported trust context.
 
+The corpus, frozen rules baseline, deterministic scorer, and perfect-output oracle test are implemented in `eval/` and `test/eval-score.test.mjs`. The sealed inputs are locally visible during development, so “sealed” here means excluded from prompt/parser tuning after the evaluation freeze; a final independent reviewer must hash and hold the frozen copy before model runs.
+
 ## Arms
 
 1. Fixed template.

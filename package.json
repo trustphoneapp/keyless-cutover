@@ -7,7 +7,8 @@
     "test": "node --test",
     "verify:k0": "node src/k0-manifest.mjs",
     "cutover": "node src/workflow-cutover.mjs",
-    "plan:wif": "node src/wif-plan.mjs"
+    "plan:wif": "node src/wif-plan.mjs",
+    "score:eval": "node src/eval-score.mjs"
   },
   "engines": {
     "node": ">=22"

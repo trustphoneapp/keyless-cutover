@@ -3,7 +3,7 @@
 ## Immediate blockers
 
 - Google Cloud CLI is installed, but no active account, ADC, project, or billing is configured.
-- No GitHub remote or first commit exists yet.
+- The local Git history is clean and reviewable, but the current fine-grained GitHub token cannot create the public remote.
 - No independent reviewer/key operator or foreign-owner repository is established.
 - Branch/environment protection and Gemini 3.5 Flash project access are unverified.
 
@@ -79,6 +79,8 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C7 | Firestore evidence view, canonical receipt, asymmetric KMS sign/verify | Missing evidence blocks final; one-byte mutations fail |
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
+
+Current local progress on August 13: the deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
 
 ## Calendar
 
