@@ -64,7 +64,8 @@ Firestore exists for one-time ProofV2 challenge consumption and evidence-derived
 
 Implemented locally:
 
-- Git repository initialized.
+- Public GitHub repository created at [`trustphoneapp/keyless-cutover`](https://github.com/trustphoneapp/keyless-cutover); the first hosted CI run passed. `main` requires the `test` status, linear history, resolved conversations, one approval, and last-pusher separation. Secret scanning, push protection, and Dependabot security updates are enabled.
+- The `production` environment exists and the repository-level `KEYLESS_K0_ENABLED` variable is explicitly `false`; K0 workflows therefore remain inert until the full protected substrate is reviewed.
 - Node ProofV2 protocol primitives for random challenge issuance without a preselected key ID, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 v2 evidence-manifest verifier with fixed H1–H8 controls, typed/hashed GitHub and GCP evidence, unchanged-target requirements, cross-reference integrity, and false-safe rejection.
 - Thirty-five passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, authenticated Google key/audit lookup, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, and offline evidence reconstruction.
@@ -84,12 +85,12 @@ Implemented locally:
 - An ADC-backed Google evidence reader and WIF readback verifier that hashes the exact live provider configuration, permits only the approved repository impersonation binding as the service-account IAM delta, proves the allowed/forbidden Cloud Run IAM policies are semantically unchanged, and normalizes the latest ready revision.
 - A protected manual legacy-auth workflow and collector that remain available after the canonical workflow becomes WIF, force a fresh Google request with the exact old key on a new hosted runner, and accept only a Google key/authentication rejection signature. The workflow cannot deploy.
 - A bounded Cloud Logging query that accepts exactly one successful `DisableServiceAccountKey` Admin Activity entry for the scoped key, expected human principal, and approved 24-hour-or-shorter window; ambiguity blocks final evidence.
-- Google Cloud CLI installed.
+- Google Cloud CLI installed and authenticated to the project-owner account; no project is selected and Application Default Credentials are still pending.
 
 Not yet proven:
 
 - A live Firestore transaction and live GitHub/Google adapter calls; their interfaces and failure behavior are currently covered only by deterministic test doubles.
-- GCP account, billing project, live WIF, deployed Cloud Run canaries, eight denials, human key disable, live Gemini calls, ADK deployment, KMS receipt, hosted console, or video.
+- A selected disposable billing project, ADC, independent GitHub reviewer/foreign-owner fixture, live WIF, deployed Cloud Run canaries, eight denials, human key disable, live Gemini calls, ADK deployment, KMS receipt, hosted console, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 

@@ -2,10 +2,10 @@
 
 ## Immediate blockers
 
-- Google Cloud CLI is installed, but no active account, ADC, project, or billing is configured.
-- The local Git history is clean and reviewable, but the current fine-grained GitHub token cannot create the public remote.
+- Google Cloud CLI is authenticated as the project owner, but ADC is still waiting for its separate verification code and no disposable billed project has been selected.
+- The public repository exists at `trustphoneapp/keyless-cutover`; hosted CI passes and `main` is protected. The `production` environment exists but cannot require an independent review until that reviewer is named and added.
 - No independent reviewer/key operator or foreign-owner repository is established.
-- Branch/environment protection and Gemini 3.5 Flash project access are unverified.
+- Gemini 3.5 Flash project access remains unverified until the disposable project is selected and enabled.
 
 The K0 clock starts only after these prerequisites exist.
 
@@ -80,7 +80,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current local progress on August 13: the deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. C2 now has local Firestore, GitHub-observer, and Google-key-reader adapters with deterministic tests, but no live integration pass. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
+Current progress on August 13: the public repository is live, its first hosted CI run passed, secret scanning/push protection and Dependabot security updates are enabled, and `main` requires the `test` status, one non-last-pusher approval, linear history, and resolved conversations. The `production` environment and an explicit `KEYLESS_K0_ENABLED=false` kill switch exist. The deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. C2 has local Firestore, GitHub-observer, and Google-key-reader adapters with deterministic tests, but no live integration pass. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
 
 ## Calendar
 
