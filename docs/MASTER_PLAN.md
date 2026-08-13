@@ -6,6 +6,8 @@ This file is the authoritative current plan. [ADR 0002](adr/0002-TASKMASTER_SCOP
 
 By August 31, 2026, demonstrate one real GitHub Actions → Google Cloud WIF cutover with exact-key proof, no added downstream privilege, human separation of duties, eight hostile tests, post-disable continuity, a served ADK/Gemini Taskmaster, and reconstructable evidence.
 
+Current checkpoint on August 13: the live Google/GitHub substrate, legacy deployment, WIF readback, ProofV2 replay rejection, served private ADK/Gemini path, passing sealed agent evaluation, compiler-produced draft PR, and H2 wrong-repository denial exist. Overall status remains **NO-GO** until an independent reviewer approves the protected merge and key action, H1 and the remaining hostile controls run, and post-disable `wif-2` is independently reconstructed.
+
 ## Rules traceability
 
 | Official requirement | Planned artifact | Release evidence |

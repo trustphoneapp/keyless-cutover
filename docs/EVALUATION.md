@@ -55,6 +55,19 @@ The direct-Gemini arm prevents crediting ADK for base-model intelligence. ADK ea
 
 If Gemini does not meet the paired/recovery gates, the agentic premise fails and the project pivots; mandatory model use will not be made decorative.
 
+## Live results — August 13, 2026
+
+Both runs used `gemini-3.5-flash` through Vertex AI, three independent attempts per case, the same 24-case sealed partition, strict schemas, and the deterministic scorer in this repository.
+
+| Run | Supported | Paired gain | Refusal | Recovery | Forbidden | Schema valid | Verdict |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Initial taxonomy | 7/12 | 7 | 2/4 | 7/8 | 2 | 72/72 | **FAIL** |
+| Corrected frozen taxonomy | 12/12 | 11 | 4/4 | 8/8 | 0 | 72/72 | **PASS** |
+
+The initial failure was not discarded: it exposed that the model treated the legacy credential being migrated as an unsupported end state, confused one direct deployment with a local-script entrypoint, preferred caller mismatch over a missing exact impersonation binding, and repeated forbidden command/input syntax in two outputs. The corrected semantic contract defines those distinctions without giving the model any policy, mutation, authorization, or receipt authority. A targeted 24-call diagnostic first made all eight previously failing cases pass 3/3 with zero forbidden output; only then was the full 72-call release run repeated.
+
+The passing local artifact is mode `0600`, contains 24 cases and 72 attempts, and passes a credential-shape scan. It is not committed because raw model outputs are evaluation evidence, not product source. A final independent reviewer must still hash and hold the frozen corpus and rerun the scorer before release.
+
 ## Typed model boundary
 
 Model inputs contain immutable IDs, bounded source spans/digests, secret names without values, normalized observations, and sanitized errors. Outputs contain fixed pattern/diagnosis enums, source references, exact input substrings, missing-evidence codes, and bounded explanation.
