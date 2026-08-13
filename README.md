@@ -60,25 +60,26 @@ Firestore exists for one-time ProofV2 challenge consumption and evidence-derived
 - KMS proves receipt origin and tamper resistance, not that external events happened.
 - Disabling a key blocks fresh authentication but does not revoke access tokens minted earlier.
 
-## Current status — August 12, 2026
+## Current status — August 13, 2026
 
 Implemented locally:
 
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 evidence-manifest verifier with fixed H1–H8 controls and false-safe rejection.
-- Nine passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, and immutable WIF trust planning.
+- Eleven passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust planning, and strict ADK output/citation contracts.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - A deterministic plan/apply compiler that refuses source drift, template drift, unpinned actions, credential retention, or workflow-path changes and emits byte-identical reviewed WIF workflow content.
 - A deterministic WIF compiler that binds numeric owner/repository IDs, protected `main`, the canonical workflow, `push`, `production`, GitHub-hosted runners, provider URL audience, one impersonated service account, and only `roles/iam.workloadIdentityUser`.
+- Two tool-free ADK `LlmAgent` stages pinned to `gemini-3.5-flash`: bounded evidence classification and allowlisted failure diagnosis. Their Zod schemas reject extra fields, and deterministic post-validation requires every cited evidence ID to exist in the supplied redacted bundle.
 - Google Cloud CLI installed.
 
 Not yet proven:
 
 - Firestore-backed challenge persistence and transactional consumption; the local protocol currently injects the atomic consumer.
 - Authoritative GitHub run refetch and authenticated Google `keys.get`.
-- GCP account, billing project, live WIF, deployed Cloud Run canaries, eight denials, human key disable, Gemini/ADK deployment, KMS receipt, hosted console, or video.
+- GCP account, billing project, live WIF, deployed Cloud Run canaries, eight denials, human key disable, live Gemini calls, ADK deployment, KMS receipt, hosted console, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 
@@ -104,7 +105,9 @@ Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong
 ## Development
 
 ```sh
+npm ci --legacy-peer-deps
 npm test
+npm audit --omit=dev --audit-level=high
 ```
 
 Node 22 or newer is required. Live setup instructions will be added only after K0 is reproducible.

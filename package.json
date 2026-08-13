@@ -11,5 +11,12 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@google/adk": "1.6.0",
+    "zod": "4.2.1"
+  },
+  "overrides": {
+    "adm-zip": "0.6.0"
   }
 }

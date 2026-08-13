@@ -20,3 +20,6 @@ Only the exact v1 case in [docs/SUPPORT_MATRIX.md](docs/SUPPORT_MATRIX.md) is ev
 
 See [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
+## Dependency gate
+
+The lockfile pins `@google/adk` 1.6.0. As of August 13, 2026, `npm audit --omit=dev` reports 19 moderate transitive advisories in its Google/OpenTelemetry dependency graph and no high or critical advisories. CI fails on any high or critical advisory. Do not use `npm audit fix --force`: its proposed repair downgrades ADK across a breaking boundary. Model prompt/response logging must remain disabled; evidence content must not be exported through telemetry.
