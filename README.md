@@ -85,12 +85,12 @@ Implemented locally:
 - An ADC-backed Google evidence reader and WIF readback verifier that hashes the exact live provider configuration, permits only the approved repository impersonation binding as the service-account IAM delta, proves the allowed/forbidden Cloud Run IAM policies are semantically unchanged, and normalizes the latest ready revision.
 - A protected manual legacy-auth workflow and collector that remain available after the canonical workflow becomes WIF, force a fresh Google request with the exact old key on a new hosted runner, and accept only a Google key/authentication rejection signature. The workflow cannot deploy.
 - A bounded Cloud Logging query that accepts exactly one successful `DisableServiceAccountKey` Admin Activity entry for the scoped key, expected human principal, and approved 24-hour-or-shorter window; ambiguity blocks final evidence.
-- Google Cloud CLI installed and authenticated to the project-owner account; no project is selected and Application Default Credentials are still pending.
+- Google Cloud CLI installed and authenticated to the project-owner account. Disposable project `keyless-k0-20260813` (number `208865688014`) exists and is selected, but remains unbilled; Application Default Credentials are still pending.
 
 Not yet proven:
 
 - A live Firestore transaction and live GitHub/Google adapter calls; their interfaces and failure behavior are currently covered only by deterministic test doubles.
-- A selected disposable billing project, ADC, independent GitHub reviewer/foreign-owner fixture, live WIF, deployed Cloud Run canaries, eight denials, human key disable, live Gemini calls, ADK deployment, KMS receipt, hosted console, or video.
+- Billing linked to the selected disposable project, ADC, an independent GitHub reviewer/foreign-owner fixture, live WIF, deployed Cloud Run canaries, eight denials, human key disable, live Gemini calls, ADK deployment, KMS receipt, hosted console, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 

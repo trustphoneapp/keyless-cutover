@@ -2,7 +2,7 @@
 
 ## Immediate blockers
 
-- Google Cloud CLI is authenticated as the project owner, but ADC is still waiting for its separate verification code and no disposable billed project has been selected.
+- Google Cloud CLI is authenticated as the project owner. The disposable project `keyless-k0-20260813` (number `208865688014`) exists and is selected, but ADC is still waiting for its separate verification code and billing is deliberately disabled until an account is chosen.
 - The public repository exists at `trustphoneapp/keyless-cutover`; hosted CI passes and `main` is protected. The `production` environment exists but cannot require an independent review until that reviewer is named and added.
 - No independent reviewer/key operator or foreign-owner repository is established.
 - Gemini 3.5 Flash project access remains unverified until the disposable project is selected and enabled.
@@ -80,7 +80,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current progress on August 13: the public repository is live, its first hosted CI run passed, secret scanning/push protection and Dependabot security updates are enabled, and `main` requires the `test` status, one non-last-pusher approval, linear history, and resolved conversations. The `production` environment and an explicit `KEYLESS_K0_ENABLED=false` kill switch exist. The deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. C2 has local Firestore, GitHub-observer, and Google-key-reader adapters with deterministic tests, but no live integration pass. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
+Current progress on August 13: the public repository is live, its first hosted CI run passed, secret scanning/push protection and Dependabot security updates are enabled, and `main` requires the `test` status, one non-last-pusher approval, linear history, and resolved conversations. The `production` environment and an explicit `KEYLESS_K0_ENABLED=false` kill switch exist. The disposable project `keyless-k0-20260813` exists unbilled and is the active CLI project; no billable API or K0 resource is enabled. The deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. C2 has local Firestore, GitHub-observer, and Google-key-reader adapters with deterministic tests, but no live integration pass. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
 
 ## Calendar
 
