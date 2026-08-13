@@ -69,14 +69,21 @@ export function validateRedactedEvidenceBundle(bundle) {
   if (!bundle || typeof bundle !== "object" || !Array.isArray(bundle.evidence)) {
     throw new Error("evidence bundle is invalid");
   }
+  if (Object.keys(bundle).length !== 1) throw new Error("evidence bundle contains unknown fields");
   if (bundle.evidence.length < 1 || bundle.evidence.length > 20) throw new Error("evidence count is invalid");
   const ids = new Set();
+  let totalLength = 0;
   for (const item of bundle.evidence) {
+    if (!item || typeof item !== "object" || Object.keys(item).sort().join(",") !== "id,text") {
+      throw new Error("evidence item contains unknown fields");
+    }
     if (!evidenceId.safeParse(item?.id).success || ids.has(item.id)) throw new Error("evidence IDs are invalid");
     if (typeof item.text !== "string" || item.text.length > 8_000) throw new Error("evidence text is invalid");
     if (CREDENTIAL.test(item.text)) throw new Error("credential-shaped material is forbidden");
+    totalLength += item.text.length;
     ids.add(item.id);
   }
+  if (totalLength > 32_000) throw new Error("evidence bundle is too large");
   return bundle;
 }
 

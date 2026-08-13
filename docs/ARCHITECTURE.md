@@ -2,7 +2,7 @@
 
 ## Status
 
-This is the accepted Taskmaster architecture. Only the local ProofV2 payload primitive is implemented today; cloud components remain planned until evidenced.
+This is the accepted Taskmaster architecture. The local code now includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, and a bearer-protected agent container that passes a local health check. Cloud deployment and live external evidence remain planned until K0/K1 prove them.
 
 ## Components
 

@@ -38,6 +38,9 @@ test("ADK Taskmaster has no mutation tools and strict bounded outputs", () => {
   assert.throws(() => validateRedactedEvidenceBundle({
     evidence: [{ id: "E001", text: "-----BEGIN PRIVATE KEY-----" }],
   }), /credential/);
+  assert.throws(() => validateRedactedEvidenceBundle({
+    evidence: [{ id: "E001", text: "safe", source: "unexpected" }],
+  }), /unknown fields/);
 });
 
 test("agent citations must resolve to the authoritative evidence bundle", () => {

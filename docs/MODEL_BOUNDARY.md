@@ -17,19 +17,17 @@ The model is justified only for variable repository semantics and compound failu
 
 ```text
 Evidence Agent
-  → Plan Agent
   → Deterministic verifier/compiler
-  → State controller
   → Recovery Agent when an external proof fails
 ```
 
-The ADK graph must be on the served path and visible in traces. It is not a decorative diagram.
+Both agents use `gemini-3.5-flash`, have no tools or transfer routes, and emit strict Zod outputs. The Evidence stage runs before deterministic compilation. Recovery runs only on an allowlisted failed observation. The ADK path must be served from Cloud Run and evidenced; a local container health check is not a model invocation.
 
 ## Model inputs
 
 Allowed:
 
-- Workflow AST and bounded source spans.
+- Bounded redacted workflow evidence spans.
 - One directly referenced local script after redaction.
 - Repository numeric/display identity.
 - Secret names and scopes, never values.
@@ -51,9 +49,7 @@ Prohibited:
 The model emits a strict typed structure containing:
 
 - Candidate legacy authentication evidence with source spans.
-- Candidate deployment intent and target.
 - Supported/unsupported pattern classification.
-- Proposed identity constraints as semantic fields, not CEL strings.
 - Risk findings and missing evidence.
 - Recovery hypothesis from allowlisted categories.
 
@@ -88,8 +84,10 @@ Compare:
 
 1. Fixed canonical template.
 2. Rules-only YAML/parser engine.
-3. Full Gemini + deterministic engine.
+3. Direct one-shot Gemini.
+4. ADK Evidence plus conditional Recovery agents followed by the same deterministic compiler.
+5. ADK path with Recovery disabled.
 
-On eight held-out supported semantic cases, full Keyless must improve safe-success by at least 25 percentage points over rules-only without increasing unsafe migrations. It must also reach at least 85% top-one diagnosis accuracy on 20 injected multi-artifact failures.
+The 36-case corpus contains 12 visible development cases, 12 sealed supported cases, 4 sealed refusal cases, and 8 sealed recovery cases. Release requires at least 10/12 supported successes, at least 3/12 paired wins over rules-only, 4/4 refusals, at least 7/8 top-one recovery diagnoses, and zero forbidden output or false-safe result. Deterministic oracles—not an LLM judge—score every security gate.
 
-If these thresholds fail, remove or reposition the model; do not claim agentic necessity.
+If these thresholds fail, the agentic premise fails and the project pivots; mandatory model use will not be made decorative.

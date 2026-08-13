@@ -23,3 +23,5 @@ See [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) and [docs/THREAT_MODEL.md](
 ## Dependency gate
 
 The lockfile pins `@google/adk` 1.6.0. As of August 13, 2026, `npm audit --omit=dev` reports 19 moderate transitive advisories in its Google/OpenTelemetry dependency graph and no high or critical advisories. CI fails on any high or critical advisory. Do not use `npm audit fix --force`: its proposed repair downgrades ADK across a breaking boundary. Model prompt/response logging must remain disabled; evidence content must not be exported through telemetry.
+
+The agent HTTP routes require a bearer secret of at least 256 bits; only `/healthz` is public. Store the token in Secret Manager at deployment, never in the image or repository. The service rejects bodies over 64 KiB and the model contract further caps evidence text at 32,000 characters.
