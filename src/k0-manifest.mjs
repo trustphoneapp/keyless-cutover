@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { verifyEvidenceArtifacts } from "./evidence-artifact.mjs";
 
 const HOSTILE_CASES = {
   H1: ["WRONG_OWNER_ID", "WIF_PROVIDER_CONDITION"],
@@ -171,10 +173,16 @@ export function verifyK0Manifest(manifest) {
 
 async function main(path) {
   if (!path) throw new Error("Usage: node src/k0-manifest.mjs <manifest.json>");
-  const manifest = JSON.parse(await readFile(resolve(path), "utf8"));
+  const manifestPath = resolve(path);
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const result = verifyK0Manifest(manifest);
   if (!result.ok) throw new Error(result.errors.join("\n"));
-  process.stdout.write("K0 manifest verified\n");
+  const artifacts = await verifyEvidenceArtifacts(
+    manifest,
+    (id) => readFile(join(dirname(manifestPath), "artifacts", `${id}.json`)),
+  );
+  if (!artifacts.ok) throw new Error(artifacts.errors.join("\n"));
+  process.stdout.write("K0 manifest and evidence artifacts verified\n");
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

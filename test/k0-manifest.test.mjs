@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { createEvidenceArtifact, verifyEvidenceArtifacts } from "../src/evidence-artifact.mjs";
 import { verifyK0Manifest } from "../src/k0-manifest.mjs";
 
 function validManifest() {
@@ -125,4 +126,24 @@ test("K0 manifest resolves every security claim to typed hashed evidence", () =>
     mutate(changed);
     assert.equal(verifyK0Manifest(changed).ok, false);
   }
+});
+
+test("K0 evidence ledger resolves to canonical artifact bytes", async () => {
+  const manifest = validManifest();
+  const artifacts = new Map();
+  for (const entry of manifest.evidence) {
+    const created = createEvidenceArtifact({
+      id: entry.id,
+      kind: entry.kind,
+      locator: entry.locator,
+      observed_at: entry.observed_at,
+      data: { source_locator: entry.locator },
+    });
+    entry.sha256 = created.sha256;
+    artifacts.set(entry.id, created.artifact);
+  }
+  assert.equal(verifyK0Manifest(manifest).ok, true);
+  assert.deepEqual(await verifyEvidenceArtifacts(manifest, async (id) => artifacts.get(id)), { ok: true, errors: [] });
+  artifacts.set("E001", artifacts.get("E001").replace("source_locator", "changed_locator"));
+  assert.equal((await verifyEvidenceArtifacts(manifest, async (id) => artifacts.get(id))).ok, false);
 });

@@ -67,7 +67,7 @@ Implemented locally:
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance without a preselected key ID, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 v2 evidence-manifest verifier with fixed H1–H8 controls, typed/hashed GitHub and GCP evidence, unchanged-target requirements, cross-reference integrity, and false-safe rejection.
-- Twenty-one passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust planning, strict ADK invocation/output/citation contracts, deterministic evaluation thresholds, Firestore transitions, GitHub observation, and authenticated Google key lookup.
+- Twenty-three passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust planning, strict ADK invocation/output/citation contracts, deterministic evaluation thresholds, Firestore transitions, GitHub observation, authenticated Google key lookup, and offline evidence reconstruction.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - The WIF template now executes H3 (fixed hostile branch), H5 (manual event), H6 (staging environment), H7 (wrong audience), and H8 (valid identity mutating the forbidden service) as explicit expected-denial jobs. A frozen external-repository template drives H1/H2; H4 remains the wrong-path workflow. Every workflow passes `actionlint` locally.
@@ -77,6 +77,7 @@ Implemented locally:
 - A 36-case corpus (12 visible development, 12 sealed supported, 4 sealed refusal, 8 sealed recovery), a frozen rules-only baseline, and a raw-count evaluator that rejects forbidden model content.
 - A Firestore challenge store with create-once issuance, transactional `ISSUED → CONSUMED` transition, expiry enforcement, and digest binding; an authoritative GitHub observer that rebuilds the proof context from a completed run, workflow blob, and independent environment review; and an ADC-backed exact Google key reader.
 - A bearer-protected, bounded Node HTTP service that runs the two tool-free ADK stages, revalidates every final output, disables OpenTelemetry export in its pinned container, and has a locally built/started health check. No live Gemini inference has run.
+- A canonical evidence-artifact format and verifier: every K0 ledger digest must resolve to matching credential-free `artifacts/E###.json` bytes, not a self-asserted hash string.
 - Google Cloud CLI installed.
 
 Not yet proven:
