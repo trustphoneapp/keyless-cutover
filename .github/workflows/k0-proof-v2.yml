@@ -1,0 +1,53 @@
+name: K0 reviewed ProofV2
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_id:
+        description: Exact Keyless migration identifier
+        required: true
+      challenge_id:
+        description: One-use Firestore challenge identifier
+        required: true
+      nonce:
+        description: One-use challenge nonce
+        required: true
+      issued_at:
+        description: Challenge issue time
+        required: true
+      expires_at:
+        description: Challenge expiry time
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    if: vars.KEYLESS_K0_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create exact-key ProofV2
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          KEYLESS_MIGRATION_ID: ${{ inputs.migration_id }}
+          KEYLESS_CHALLENGE_ID: ${{ inputs.challenge_id }}
+          KEYLESS_NONCE: ${{ inputs.nonce }}
+          KEYLESS_ISSUED_AT: ${{ inputs.issued_at }}
+          KEYLESS_EXPIRES_AT: ${{ inputs.expires_at }}
+          KEYLESS_WORKFLOW_PATH: .github/workflows/k0-proof-v2.yml
+          KEYLESS_ENVIRONMENT: production
+        run: |
+          KEYLESS_WORKFLOW_BLOB_SHA="$(git hash-object .github/workflows/k0-proof-v2.yml)" \
+            node src/key-proof.mjs generate .keyless/proof.json
+
+      - name: Upload credential-free ProofV2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: keyless-proof-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .keyless/proof.json
+          if-no-files-found: error
+          retention-days: 7
