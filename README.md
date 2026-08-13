@@ -90,6 +90,7 @@ Implemented locally:
 
 Live but incomplete:
 
+- The public [Keyless evidence console](https://keyless-evidence-208865688014.us-central1.run.app) is deployed on Cloud Run revision `keyless-evidence-00001-82l` from an immutable amd64 image. Its dedicated runtime identity has no project role; live read-back shows `NO_GO_INCOMPLETE`, eight gates, eight blockers, and the expected hardened response headers.
 - The billed project `keyless-k0-20260813`, private Cloud Run agent, `legacy-1` canary, forbidden canary, Firestore database, reviewed WIF provider/binding, and draft compiler-produced cutover PR exist. Provider/IAM readback matches the approved hashes and adds no downstream service-account permission.
 - ProofV2 ran on a fresh GitHub-hosted runner, matched the exact active user-managed key, consumed one live Firestore challenge once, and rejected replay. It remains readiness evidence because an independent protected-environment review is absent.
 - H2 ran from private repository ID `1333281314` against protected repository ID `1332803088`; Google STS rejected it at the attribute condition, the credential-free artifact matched run `31717226551`, and `keyless-forbidden-00001-rvf` remained unchanged.
@@ -97,7 +98,7 @@ Live but incomplete:
 
 Not yet proven:
 
-- Independent PR/environment approval, H1 from a genuinely different GitHub owner, merge of the real WIF cutover, `wif-1`, the remaining hostile matrix, human key disable, fresh legacy rejection, post-disable `wif-2`, KMS receipt, hosted evidence console, or video.
+- Independent PR/environment approval, H1 from a genuinely different GitHub owner, merge of the real WIF cutover, `wif-1`, the remaining hostile matrix, human key disable, fresh legacy rejection, post-disable `wif-2`, KMS receipt, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 

@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "recorded_at": "2026-08-13T16:34:17Z",
+  "deployment_status": "VERIFIED_READBACK",
+  "release_status": "NO_GO_INCOMPLETE",
+  "source": {
+    "commit": "df3d83b57b18a99598f3d2ce09aa6a36acc94dde",
+    "ci_run": "https://github.com/trustphoneapp/keyless-cutover/actions/runs/31721174592"
+  },
+  "cloud_run": {
+    "project_number": "208865688014",
+    "region": "us-central1",
+    "service": "keyless-evidence",
+    "revision": "keyless-evidence-00001-82l",
+    "traffic_percent": 100,
+    "public_url": "https://keyless-evidence-208865688014.us-central1.run.app",
+    "service_url": "https://keyless-evidence-dgbiga4wtq-uc.a.run.app",
+    "image": "us-central1-docker.pkg.dev/keyless-k0-20260813/keyless/evidence-console@sha256:5cfc02609b98b3932449f654f658980d5d6a802075b44c10256ed0da4d0f0a73",
+    "runtime_service_account": "keyless-console@keyless-k0-20260813.iam.gserviceaccount.com",
+    "runtime_project_roles": [],
+    "service_iam": [
+      {
+        "role": "roles/run.invoker",
+        "member": "allUsers"
+      }
+    ]
+  },
+  "served_status": {
+    "status": "NO_GO_INCOMPLETE",
+    "release_ready": false,
+    "cutover_verified": false,
+    "gates": 8,
+    "blockers": 8,
+    "checkpoint_sha256": "6daba07fb97c7d30f2d4754e5d1bf5f205b4c27e4eef7419a4b6bf76c83a2611"
+  },
+  "verified_response_controls": [
+    "cache-control: no-store",
+    "content-security-policy: default-src none; frame-ancestors none; object-src none",
+    "strict-transport-security: max-age=31536000; includeSubDomains",
+    "x-content-type-options: nosniff",
+    "x-frame-options: DENY"
+  ],
+  "limitations": [
+    "This deployment proves only that the public read-only console serves the named credential-free checkpoint from the named immutable image.",
+    "The console deliberately reports NO_GO_INCOMPLETE and does not prove that the WIF cutover or final receipt is complete.",
+    "The public runtime has no project role, secret, Firestore, Vertex, deployment, key, or KMS authority."
+  ]
+}

@@ -81,7 +81,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current live progress on August 13: C0 and the technical portions of C1–C2 are complete. `legacy-1`, exact WIF readback, live ProofV2/Firestore replay rejection, a private Cloud Run ADK service, a real dual-auth Vertex call, compiler-produced draft PR, and H2 wrong-repository denial exist. The second 72-call sealed evaluation passes every published gate. PR #3 now passes CI after freezing the legacy fixture. C3 remains incomplete because independent approval, H1, merge, the rest of H1–H8, key disable, fresh legacy rejection, and `wif-2` are still missing.
+Current live progress on August 13: C0 and the technical portions of C1–C2 are complete. `legacy-1`, exact WIF readback, live ProofV2/Firestore replay rejection, a private Cloud Run ADK service, a real dual-auth Vertex call, compiler-produced draft PR, H2 wrong-repository denial, and a public fail-closed Cloud Run evidence console exist. The second 72-call sealed evaluation passes every published gate. PR #3 now passes CI after freezing the legacy fixture. C3 remains incomplete because independent approval, H1, merge, the rest of H1–H8, key disable, fresh legacy rejection, and `wif-2` are still missing.
 
 ## Calendar
 

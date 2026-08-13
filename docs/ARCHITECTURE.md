@@ -2,7 +2,7 @@
 
 ## Status
 
-This is the accepted Taskmaster architecture. The implementation includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, and a private dual-authenticated Cloud Run agent. A real served Vertex Gemini request and H2 WIF-condition denial exist; the protected cutover, remaining hostile matrix, key disable, post-disable continuity, KMS receipt, and evidence console remain incomplete.
+This is the accepted Taskmaster architecture. The implementation includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, a private dual-authenticated Cloud Run agent, and a separate public read-only Cloud Run evidence console. A real served Vertex Gemini request and H2 WIF-condition denial exist; the protected cutover, remaining hostile matrix, key disable, post-disable continuity, and KMS receipt remain incomplete.
 
 ## Components
 
