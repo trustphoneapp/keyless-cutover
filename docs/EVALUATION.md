@@ -68,6 +68,8 @@ The initial failure was not discarded: it exposed that the model treated the leg
 
 The passing local artifact is mode `0600`, contains 24 cases and 72 attempts, and passes a credential-shape scan. It is not committed because raw model outputs are evaluation evidence, not product source. A final independent reviewer must still hash and hold the frozen corpus and rerun the scorer before release.
 
+The hash-bound evidence summary is [Agent evaluation evidence](evidence/AGENT_EVAL_2026-08-13.md). The current non-final live transaction record is [K0 checkpoint](evidence/K0_CHECKPOINT_2026-08-13.json).
+
 ## Typed model boundary
 
 Model inputs contain immutable IDs, bounded source spans/digests, secret names without values, normalized observations, and sanitized errors. Outputs contain fixed pattern/diagnosis enums, source references, exact input substrings, missing-evidence codes, and bounded explanation.
