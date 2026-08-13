@@ -41,9 +41,11 @@ function validateArtifactData(kind, data, fail, id) {
     fail(/^H[1-7]$/.test(data.hostile_id ?? "") && string(data.run_id, NUMERIC), `${id} STS hostile identity is invalid`);
     fail(data.outcome === "DENIED" && data.reached_sts === true, `${id} did not prove an STS denial`);
     fail(["WIF_CONDITION_DENIED", "AUDIENCE_DENIED"].includes(data.error_category), `${id} STS denial category is invalid`);
+    fail(string(data.log_sha256, SHA256), `${id} STS log digest is invalid`);
   } else if (kind === "CLOUD_RUN_IAM_RESULT") {
     fail(data.hostile_id === "H8" && string(data.run_id, NUMERIC) && string(data.target, REVISION), `${id} Cloud Run hostile identity is invalid`);
     fail(data.outcome === "DENIED" && data.reached_cloud_run === true, `${id} did not prove a Cloud Run IAM denial`);
+    fail(string(data.log_sha256, SHA256), `${id} Cloud Run log digest is invalid`);
   } else if (kind === "CLOUD_RUN_REVISION") {
     fail(string(data.service, REVISION) && string(data.revision, REVISION), `${id} Cloud Run revision data is invalid`);
   } else if (kind === "GCP_AUDIT_ENTRY") {

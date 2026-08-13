@@ -53,6 +53,8 @@ Each row records initiating run ID/attempt/SHA/workflow, intended control, sanit
 
 Expected-denial steps use `continue-on-error` only to allow an exact subsequent assertion that the authentication or forbidden mutation step failed. That assertion emits a seven-day, credential-free artifact containing the platform run ID/attempt/SHA/workflow/ref/event/environment and failed step outcome. A green hostile job plus its artifact is still insufficient alone: the run log and independently read target revision are required. Missing environment approval, an unexecuted step, syntax failure, or an earlier network failure cannot satisfy the K0 manifest.
 
+The collector independently refetches the completed GitHub run and named job, downloads the exact artifact and job log through trusted redirect hosts without forwarding authorization, and binds their immutable IDs. It recognizes only bounded Google rejection signatures: WIF attribute-condition rejection for H1–H6, audience rejection at the Google auth/STS path for H7, and Cloud Run update permission denial for H8. The sanitized evidence records the raw log digest but does not retain the raw log. Unrecognized text is `NOT PROVEN`, never a denial.
+
 ## Auto-continue gate
 
 Keyless may continue only when all supported facts are independently observed, the plan digest binds their exact values, the effective downstream permission footprint is unchanged, and every required human authority is available.

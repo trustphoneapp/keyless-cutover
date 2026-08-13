@@ -164,9 +164,9 @@ test("K0 evidence ledger resolves to canonical artifact bytes", async () => {
     if (entry.kind === "GCP_IAM_POLICY") return { policy_hash: "e".repeat(64), iam_diff_hash: manifest.wif.iam_diff_hash, etag: "etag-1", no_added_downstream_permissions: true };
     if (entry.kind === "STS_CLIENT_RESULT") {
       const hostile_id = suffix.match(/h[1-7]/i)[0].toUpperCase();
-      return { hostile_id, run_id: `200${hostile_id.slice(1)}`, outcome: "DENIED", reached_sts: true, error_category: hostile_id === "H7" ? "AUDIENCE_DENIED" : "WIF_CONDITION_DENIED" };
+      return { hostile_id, run_id: `200${hostile_id.slice(1)}`, outcome: "DENIED", reached_sts: true, error_category: hostile_id === "H7" ? "AUDIENCE_DENIED" : "WIF_CONDITION_DENIED", log_sha256: "1".repeat(64) };
     }
-    if (entry.kind === "CLOUD_RUN_IAM_RESULT") return { hostile_id: "H8", run_id: "2008", outcome: "DENIED", reached_cloud_run: true, target: manifest.scope.forbidden_service };
+    if (entry.kind === "CLOUD_RUN_IAM_RESULT") return { hostile_id: "H8", run_id: "2008", outcome: "DENIED", reached_cloud_run: true, target: manifest.scope.forbidden_service, log_sha256: "2".repeat(64) };
     if (entry.kind === "CLOUD_RUN_REVISION") return suffix.includes("wif-2")
       ? { service: manifest.scope.allowed_service, revision: manifest.revisions.wif_2 }
       : suffix.includes("forbidden")
