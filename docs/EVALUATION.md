@@ -18,6 +18,16 @@ Security outcomes use deterministic or external oracles. Gemini never judges aut
 - Zero credential material in repository, logs, artifacts, Firestore, model calls, manifests, or receipt.
 - Another authorized person reconstructs every result from source identifiers.
 
+## Source and runtime release gate
+
+- Clean clone installs the exact lockfile with `npm ci --legacy-peer-deps --ignore-scripts`.
+- `npm audit --omit=dev --audit-level=high`, registry-signature verification, and all deterministic tests pass.
+- Dependency-tree preflight permits only ADK 1.6.0's five unused database-driver peers and rejects every other problem.
+- `actionlint` passes every workflow and every external action is pinned to a full verified commit SHA.
+- ProofV2 uses pinned Node 24, a five-minute timeout, no persisted checkout credential, and one visible credential-free artifact path.
+- Agent, console, and demo images build for `linux/amd64`, run as a non-root user, expose healthy endpoints, and scan at zero critical/high findings.
+- Final images contain Node and application files but no npm or Corepack; production installation executes no package lifecycle scripts.
+
 ## Agent necessity corpus
 
 Use 36 compact, redacted evidence bundles—not live repositories:

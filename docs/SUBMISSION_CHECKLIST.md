@@ -44,12 +44,13 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 
 - [ ] Clone the final public commit into an empty directory.
 - [ ] Node version satisfies `>=22`.
-- [ ] `npm ci --legacy-peer-deps` succeeds.
+- [ ] `npm ci --legacy-peer-deps --ignore-scripts` succeeds.
 - [ ] `npm audit --omit=dev --audit-level=high` reports zero vulnerabilities.
 - [ ] `npm test` passes with the published count.
 - [ ] GitHub App token handling passes both classic and approximately 520-character stateless-token tests; a real app test forced with `enabled` and `disabled` succeeds before the temporary header is removed.
 - [ ] `actionlint -no-color` passes.
 - [ ] Console container builds for `linux/amd64` from the pinned base image.
+- [ ] Agent, console, and demo `linux/amd64` images scan with zero critical/high findings.
 - [ ] Private Taskmaster and public console image digests match the evidence record.
 - [ ] Public console `/`, `/healthz`, and `/api/status` behave as documented; POST/mutation routes do not exist.
 - [ ] Private Taskmaster rejects Cloud Run IAM alone and requires the separate application gate.
