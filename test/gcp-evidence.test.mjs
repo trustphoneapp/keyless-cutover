@@ -63,7 +63,7 @@ test("GCP readback proves exact WIF trust addition and unchanged downstream IAM"
 test("GCP evidence reader uses ADC and normalizes the latest ready revision", async () => {
   const requests = [];
   const reader = createGcpEvidenceReader({
-    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    auth: { getClient: async () => ({ getRequestHeaders: async () => new Headers({ authorization: "Bearer test" }) }) },
     fetchImpl: async (url, options) => {
       requests.push({ url, options });
       return {
@@ -78,7 +78,8 @@ test("GCP evidence reader uses ADC and normalizes the latest ready revision", as
   assert.deepEqual(await reader.readCloudRunRevision({
     projectId: "keyless-k0-demo", region: "us-central1", service: "keyless-demo",
   }), { service: "keyless-demo", revision: "keyless-demo-wif-2" });
-  assert.equal(requests[0].options.headers.authorization, "Bearer test");
+  assert.equal(requests[0].options.headers.get("authorization"), "Bearer test");
+  assert.equal(requests[0].options.headers.get("content-type"), "application/json");
 });
 
 test("GCP evidence reader binds key disable to one exact human Admin Activity entry", async () => {
