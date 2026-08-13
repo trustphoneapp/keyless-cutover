@@ -22,7 +22,7 @@ Keyless may help remove one permanent authentication path only when it can prove
 5. It performs authenticated Google `serviceAccounts.keys.get`, requires the exact active user-managed key, fetches the matching Google X.509 certificate, and verifies signature and expected context.
 6. One Firestore transaction rereads `ISSUED` and writes `CONSUMED` plus proof digest. Only that transaction winner succeeds.
 
-The current local module implements only payload creation, expected-context equality, lifetime, signature, and public-certificate lookup. It does not yet implement this complete protocol.
+The local implementation now includes payload creation, expected-context equality, lifetime/signature checks, public-certificate lookup, a transactional Firestore challenge store, a completed-run/workflow/review GitHub observer, and an ADC-backed Google key reader. These paths are covered with deterministic test doubles only; no live Firestore, GitHub, or Google proof has passed yet.
 
 ## Mandatory identity tests
 

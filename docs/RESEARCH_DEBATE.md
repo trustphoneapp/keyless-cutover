@@ -64,7 +64,7 @@ Gemini interprets redacted workflow evidence and diagnoses bounded failures. It 
 
 ### Exact-key proof
 
-The current local code is only a partial ProofV2 payload primitive. The protocol is incomplete until server-issued challenges, atomic consumption, GitHub refetch, Google `keys.get`, protected workflow ordering, and live integration tests pass.
+The debate originally found only a partial ProofV2 payload primitive. The local code now implements server-issued challenges, transactional consumption, completed-run/workflow/review GitHub observation, and ADC-backed Google `keys.get` behind tested adapters. ProofV2 remains unproven until those adapters pass against live Firestore, GitHub, and Google services in K0.
 
 ### Demo truth
 

@@ -80,7 +80,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current local progress on August 13: the deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
+Current local progress on August 13: the deterministic compiler/WIF plan portions of C4, the tool-free ADK schemas of C5, and the 36-case corpus/scorer/lockfile portions of C9 are implemented. C2 now has local Firestore, GitHub-observer, and Google-key-reader adapters with deterministic tests, but no live integration pass. No live Gemini result, Cloud Run ADK deployment, or sealed-case pass is claimed yet.
 
 ## Calendar
 

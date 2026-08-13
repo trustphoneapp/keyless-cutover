@@ -9,6 +9,7 @@ import {
   verifyAndConsumeGoogleKeyProof,
   verifyGoogleKeyProof,
   verifyKeyProof,
+  verifyStoredGoogleKeyProof,
 } from "../src/key-proof.mjs";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -168,4 +169,26 @@ test("protocol consumes one authoritative challenge exactly once", async () => {
     () => expectedKeyProofContext(challenge, { ...observed, repository_id: "999" }),
     /does not match/,
   );
+
+  const challengeStore = {
+    get: async (id) => id === challenge.challenge_id ? challenge : null,
+    consume,
+  };
+  consumed = false;
+  assert.equal(await verifyStoredGoogleKeyProof({
+    proof,
+    observed,
+    challengeStore,
+    getGoogleKey,
+    fetchImpl,
+    now: input.now,
+  }), true);
+  assert.equal(await verifyStoredGoogleKeyProof({
+    proof: { ...proof, challenge_id: "missing" },
+    observed,
+    challengeStore,
+    getGoogleKey,
+    fetchImpl,
+    now: input.now,
+  }), false);
 });

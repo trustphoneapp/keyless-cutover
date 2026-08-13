@@ -268,6 +268,31 @@ export async function verifyAndConsumeGoogleKeyProof({
   })) === true;
 }
 
+export async function verifyStoredGoogleKeyProof({
+  proof,
+  observed,
+  challengeStore,
+  getGoogleKey,
+  fetchImpl = fetch,
+  now = new Date(),
+}) {
+  if (typeof challengeStore?.get !== "function" || typeof challengeStore?.consume !== "function") {
+    throw new Error("an authoritative challenge store is required");
+  }
+  const challengeId = required(proof?.challenge_id, "challenge_id");
+  const challenge = await challengeStore.get(challengeId);
+  if (!challenge) return false;
+  return verifyAndConsumeGoogleKeyProof({
+    proof,
+    challenge,
+    observed,
+    getGoogleKey,
+    fetchImpl,
+    consume: (transition) => challengeStore.consume(transition),
+    now,
+  });
+}
+
 function expectedDigest(proof) {
   return createHash("sha256")
     .update(JSON.stringify(proof, Object.keys(proof).sort()))

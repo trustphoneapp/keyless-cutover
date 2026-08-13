@@ -67,19 +67,19 @@ Implemented locally:
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 evidence-manifest verifier with fixed H1–H8 controls and false-safe rejection.
-- Twelve passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust planning, strict ADK output/citation contracts, and deterministic evaluation thresholds.
+- Eighteen passing local tests, including a simultaneous replay race, the Cloud Run canary contract, exact cutover compilation, immutable WIF trust planning, strict ADK output/citation contracts, deterministic evaluation thresholds, Firestore transitions, GitHub observation, and authenticated Google key lookup.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - A deterministic plan/apply compiler that refuses source drift, template drift, unpinned actions, credential retention, or workflow-path changes and emits byte-identical reviewed WIF workflow content.
 - A deterministic WIF compiler that binds numeric owner/repository IDs, protected `main`, the canonical workflow, `push`, `production`, GitHub-hosted runners, provider URL audience, one impersonated service account, and only `roles/iam.workloadIdentityUser`.
 - Two tool-free ADK `LlmAgent` stages pinned to `gemini-3.5-flash`: bounded evidence classification and allowlisted failure diagnosis. Their Zod schemas reject extra fields, and deterministic post-validation requires every cited evidence ID to exist in the supplied redacted bundle.
 - A 36-case corpus (12 visible development, 12 sealed supported, 4 sealed refusal, 8 sealed recovery), a frozen rules-only baseline, and a raw-count evaluator that rejects forbidden model content.
+- A Firestore challenge store with create-once issuance, transactional `ISSUED → CONSUMED` transition, expiry enforcement, and digest binding; an authoritative GitHub observer that rebuilds the proof context from a completed run, workflow blob, and independent environment review; and an ADC-backed exact Google key reader.
 - Google Cloud CLI installed.
 
 Not yet proven:
 
-- Firestore-backed challenge persistence and transactional consumption; the local protocol currently injects the atomic consumer.
-- Authoritative GitHub run refetch and authenticated Google `keys.get`.
+- A live Firestore transaction and live GitHub/Google adapter calls; their interfaces and failure behavior are currently covered only by deterministic test doubles.
 - GCP account, billing project, live WIF, deployed Cloud Run canaries, eight denials, human key disable, live Gemini calls, ADK deployment, KMS receipt, hosted console, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
