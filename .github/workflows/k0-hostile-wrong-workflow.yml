@@ -22,6 +22,7 @@ jobs:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          audience: ${{ vars.GCP_WIF_AUDIENCE }}
           request_reason: keyless hostile=H4 run=${{ github.run_id }}
 
       - name: Fail closed if H4 unexpectedly authenticated

@@ -44,6 +44,7 @@ function validateWorkflows(current, template) {
     template.includes("credentials_json:") ||
     count(template, "workload_identity_provider:") !== 1 ||
     count(template, "service_account:") !== 1 ||
+    count(template, "audience:") !== 1 ||
     count(template, "id-token: write") !== 1
   ) {
     throw new Error("template is not the exact WIF authentication shape");

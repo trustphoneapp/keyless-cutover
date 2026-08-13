@@ -1,0 +1,33 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { buildWifPlan, verifyWifPlan } from "../src/wif-plan.mjs";
+
+const input = {
+  project_id: "keyless-k0-demo",
+  project_number: "123456789",
+  pool_id: "keyless-k0",
+  provider_id: "github",
+  owner_id: "111",
+  repository_id: "222",
+  owner: "trustphoneapp",
+  repository: "keyless-cutover",
+  service_account: "keyless-deploy@keyless-k0-demo.iam.gserviceaccount.com",
+};
+
+test("WIF compiler binds immutable GitHub identity and exact workflow context", () => {
+  const plan = buildWifPlan(input);
+
+  assert.equal(verifyWifPlan(input, plan), true);
+  assert.equal(plan.audience, `https://iam.googleapis.com/${plan.provider}`);
+  assert.match(plan.attribute_condition, /repository_owner_id=='111'/);
+  assert.match(plan.attribute_condition, /repository_id=='222'/);
+  assert.match(plan.attribute_condition, /workflow_ref=='trustphoneapp\/keyless-cutover\/.github\/workflows\/k0-deploy.yml@refs\/heads\/main'/);
+  assert.match(plan.attribute_condition, /event_name=='push'/);
+  assert.match(plan.attribute_condition, /environment=='production'/);
+  assert.match(plan.attribute_condition, /runner_environment=='github-hosted'/);
+  assert.equal(plan.impersonation_binding.role, "roles/iam.workloadIdentityUser");
+  assert.equal(plan.commands.flat().some((value) => /Owner|Editor|TokenCreator|\*/.test(value)), false);
+  assert.equal(verifyWifPlan({ ...input, repository_id: "223" }, plan), false);
+  assert.throws(() => buildWifPlan({ ...input, repository: "bad'repo" }), /invalid/);
+});

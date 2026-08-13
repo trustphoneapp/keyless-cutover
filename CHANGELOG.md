@@ -7,6 +7,7 @@
 - Pinned every GitHub Action to a full commit SHA and validated workflow syntax with `actionlint`/ShellCheck.
 - Corrected ProofV2 triggering-actor binding to match GitHub's documented variables.
 - Added a hash-bound plan/apply compiler that preserves the canonical workflow path and refuses drift, unpinned actions, or legacy credential retention.
+- Added a deterministic WIF plan/compiler with provider-URL audience, immutable GitHub IDs, exact workflow/event/environment/runner conditions, and one narrowly scoped impersonation binding.
 - Live GitHub and Google Cloud execution remains pending user-controlled authentication.
 
 ## 0.1.0-local-protocol — 2026-08-12
