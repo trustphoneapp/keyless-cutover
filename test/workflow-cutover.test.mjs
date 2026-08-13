@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { applyCutoverPlan, buildCutoverPlan } from "../src/workflow-cutover.mjs";
 
-const current = await readFile(new URL("../.github/workflows/k0-deploy.yml", import.meta.url), "utf8");
+const current = await readFile(new URL("../k0/fixtures/k0-deploy.legacy.yml", import.meta.url), "utf8");
 const template = await readFile(new URL("../k0/templates/k0-deploy.wif.yml", import.meta.url), "utf8");
 
 test("cutover compiler emits only the exact approved same-path WIF bytes", () => {
