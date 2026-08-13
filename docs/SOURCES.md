@@ -1,6 +1,6 @@
 # Official source index
 
-Retrieved August 12, 2026 unless noted. Primary sources govern security and rule claims. Current entrant searches are non-exhaustive because the official gallery is unpublished.
+Retrieved August 12, 2026 unless noted; the binding event rules and submission requirements were rechecked August 13, 2026. Primary sources govern security and rule claims. Current entrant searches are non-exhaustive because the official gallery is unpublished.
 
 ## Hackathon rules
 

@@ -16,7 +16,7 @@ npm test
 npm audit --omit=dev --audit-level=high
 ```
 
-The current release candidate has 42 deterministic tests and zero known production dependency vulnerabilities at the configured audit threshold.
+The current release candidate has 43 deterministic tests and zero known production dependency vulnerabilities at the configured audit threshold.
 
 ## Validate deterministic artifacts
 
