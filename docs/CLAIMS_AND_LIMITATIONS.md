@@ -4,7 +4,7 @@
 
 After all release gates pass, Keyless may claim that it migrated one supported GitHub Actions workflow from one repository-scoped Google service-account JSON secret to a narrowly bound WIF path with no added downstream permissions for one existing Cloud Run service. The target claim includes a human-reviewed PR, one authorized path and eight scoped hostile paths, human disable of the exact key, a fresh legacy authentication failure, post-disable WIF deployment, and a signed scoped receipt.
 
-Today the complete claim remains unproven. Live readiness evidence includes `legacy-1`, exact WIF/provider and IAM read-back, one-use ProofV2 replay rejection without an independent environment review, a private served Gemini result, a compiler-produced draft PR, and H2 rejection from a different repository ID. Independent approval, H1 and H3–H8, protected cutover, `wif-1`, human key disable, fresh legacy denial, `wif-2`, KMS signature, and the hosted evidence console are still missing.
+Today the complete claim remains unproven. Live readiness evidence includes `legacy-1`, independently reviewed ProofV2, exact WIF/provider and IAM read-back, merged protected cutover, live `wif-1`, H1–H8 denial at their named controls with the forbidden revision unchanged, a private served Gemini result, and the hosted fail-closed evidence console. Human key disable, fresh hosted legacy denial, post-disable `wif-2`, and the KMS-signed final receipt remain missing.
 
 ## What the claim requires
 

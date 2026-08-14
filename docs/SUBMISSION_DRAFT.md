@@ -49,18 +49,16 @@ These facts are already implemented and observed; they are readiness evidence, n
 - Two strict, tool-free model stages: evidence classification and bounded recovery diagnosis. The model has no IAM, deployment, merge, key, shell, policy, or receipt authority.
 - Second full sealed Vertex evaluation: 12/12 supported, 11 paired wins over the frozen rules baseline, 4/4 safe refusals, 8/8 recoveries, 0 forbidden outputs, and 72/72 schema-valid calls.
 - Live legacy Cloud Run deployment, exact WIF provider/binding read-back, and unchanged downstream service-account permission footprint.
-- Live ProofV2 challenge consumed once and replay rejected; authoritative status remains `HOLD` because independent environment review was absent.
-- Live H2 wrong-repository test reached Google WIF, was rejected by the attribute condition, and left the forbidden Cloud Run revision unchanged.
+- Live ProofV2 run `31758449936` was independently approved by `cherala2002`, matched the exact active key and merged workflow, consumed its five-minute Firestore challenge once before expiry, rejected replay, and produced a credential-free hash-bound receipt.
+- Live `wif-1` deployed through GitHub OIDC, Google STS/WIF, service-account impersonation, and Cloud Run.
+- H1–H8 were reconstructed from exact runs, artifacts, and logs; each reached and denied at its named control and left the forbidden Cloud Run revision unchanged.
 - Public read-only Cloud Run evidence console from an immutable image. Its runtime service account has no project roles and the served state is honestly `NO_GO_INCOMPLETE`.
-- 53 deterministic tests, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
+- 58 deterministic tests, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
 
 ## Target release evidence — pending
 
 The final description may add these statements only after their exact evidence exists:
 
-- `[PENDING]` Independent PR and protected-environment approval.
-- `[PENDING]` `wif-1` created through GitHub OIDC → Google STS/WIF → service-account impersonation.
-- `[PENDING]` H1–H8 all reached and denied at their named controls; forbidden revision unchanged.
 - `[PENDING]` Independent human disabled the exact legacy key; live key state and Admin Activity agree.
 - `[PENDING]` Fresh hosted legacy authentication was rejected after disable.
 - `[PENDING]` Fresh post-disable WIF deployment created `wif-2`.

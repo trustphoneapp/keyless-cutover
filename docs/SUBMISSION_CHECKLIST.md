@@ -21,17 +21,17 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 
 - [x] Independent GitHub collaborator accepted write access.
 - [x] `production` requires that reviewer and prevents self-review/bypass.
-- [ ] Cumulative release PR #11 has green CI and non-last-pusher approval.
-- [ ] PR #11 is merged; superseded stacked PRs are closed.
-- [ ] Cutover PR #3 is updated onto protected `main` without hand repair.
-- [ ] Compiler output, plan digest, provider hash, binding hash, and no-widening diff are rechecked.
-- [ ] Independent reviewer approves exact cutover head; human merges.
-- [ ] `wif-1` succeeds from the exact merged commit.
-- [ ] H1 uses a genuinely different numeric owner ID and reaches WIF condition denial.
-- [ ] H2–H7 reach their intended STS/WIF/audience controls and deny.
-- [ ] H8 reaches forbidden-resource Cloud Run IAM and denies.
-- [ ] Every hostile artifact/run/log agrees; forbidden revision is unchanged.
-- [ ] Pre-disable manifest reconstruction passes with no missing/unreferenced evidence.
+- [x] Cumulative release PR #11 has green CI and non-last-pusher approval.
+- [x] PR #11 is merged; superseded stacked PRs are closed.
+- [x] Cutover PR #3 is updated onto protected `main` without hand repair.
+- [x] Compiler output, plan digest, provider hash, binding hash, and no-widening diff are rechecked.
+- [x] Independent reviewer approves exact cutover head; human merges.
+- [x] `wif-1` succeeds from the exact merged commit.
+- [x] H1 uses a genuinely different numeric owner ID and reaches WIF condition denial.
+- [x] H2–H7 reach their intended STS/WIF/audience controls and deny.
+- [x] H8 reaches forbidden-resource Cloud Run IAM and denies.
+- [x] Every hostile artifact/run/log agrees; forbidden revision is unchanged.
+- [x] Pre-disable receipt reconstruction passes with no missing hostile control.
 - [ ] Independent operator disables—not deletes—the exact key.
 - [ ] Live key read-back says disabled; one exact human Admin Activity entry agrees.
 - [ ] Fresh hosted legacy probe reaches Google and receives recognized key/auth denial.

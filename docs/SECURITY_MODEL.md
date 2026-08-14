@@ -23,11 +23,11 @@ Keyless may help remove one permanent authentication path only when it can prove
 5. It takes the signed key ID revealed by the protected runner, performs authenticated Google `serviceAccounts.keys.get` under the selected service account, requires that exact active user-managed key, fetches its matching Google X.509 certificate, and verifies signature and expected context.
 6. One Firestore transaction rereads `ISSUED` and writes `CONSUMED` plus proof digest. Only that transaction winner succeeds.
 
-The implementation includes payload creation, expected-context equality, lifetime/signature checks, public-certificate lookup, a transactional Firestore challenge store, a completed-run/workflow/review GitHub observer, and an ADC-backed Google key reader. A fresh hosted run matched the exact active user-managed key, consumed one live Firestore challenge once, and rejected replay. It remains readiness evidence rather than release proof because an independent protected-environment review was absent.
+The implementation includes payload creation, expected-context equality, lifetime/signature checks, public-certificate lookup, a transactional Firestore challenge store, a completed-run/workflow/review GitHub observer, and an ADC-backed Google key reader. Independently approved run `31758449936` matched the exact active user-managed key, consumed one five-minute Firestore challenge before expiry, rejected replay, and reconstructed the same receipt after consumption.
 
 The WIF readback path compares a canonical hash of the live provider issuer/audiences/mapping/condition to the approved plan, requires the service-account IAM delta to contain exactly one new `roles/iam.workloadIdentityUser` member and no removal, and requires semantic equality of both allowed and forbidden Cloud Run IAM policies across the cutover. This is a scoped “no added downstream permissions” claim, not a universal least-privilege certification.
 
-The live provider/binding read-back matches the approved hashes, and H2 reached Google WIF from a different repository ID under the intended owner and was rejected by the provider condition without changing the forbidden service. H1 and H3–H8 remain unproven.
+The live provider/binding read-back matches the approved hashes. `wif-1` deployed through GitHub OIDC, Google STS/WIF, and service-account impersonation. Deterministic collectors independently refetched H1–H8 runs, artifacts, and logs: H1–H6 were rejected by the provider condition, H7 by audience validation, and H8 by Cloud Run IAM. The forbidden service remained on `keyless-forbidden-00001-rvf`.
 
 ## Mandatory identity tests
 

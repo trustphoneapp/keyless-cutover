@@ -3,8 +3,8 @@
 ## Immediate blockers
 
 - The public repository, protected `main`, private `production` environment, billed GCP project, ADC, live WIF, Cloud Run services, Firestore, and Vertex Gemini access exist.
-- No independent reviewer/key operator or genuinely foreign-owner repository is established. The same-owner wrong-repository H2 probe passed; it does not satisfy H1.
-- The protected merge, key disable, and post-disable continuity actions remain intentionally unreachable without that second human.
+- Independent collaborator `cherala2002` provides protected PR and `production` review. The independently approved ProofV2 transaction passed; foreign-owner H1 and H2–H8 were reconstructed at their intended controls.
+- The exact WIF cutover and `wif-1` are live. Key disable, fresh legacy rejection, post-disable continuity, and final KMS signing remain separately human-gated.
 
 The technical K0 substrate is running. The human-gated K0 transaction starts only when independent authority exists.
 
@@ -81,7 +81,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current live progress on August 13: C0 and the technical portions of C1–C2 are complete. `legacy-1`, exact WIF readback, live ProofV2/Firestore replay rejection, a private Cloud Run ADK service, a real dual-auth Vertex call, compiler-produced draft PR, H2 wrong-repository denial, and a public fail-closed Cloud Run evidence console exist. The second 72-call sealed evaluation passes every published gate. PR #3 now passes CI after freezing the legacy fixture. C3 remains incomplete because independent approval, H1, merge, the rest of H1–H8, key disable, fresh legacy rejection, and `wif-2` are still missing.
+Current live progress through August 14: C0–C2 and the pre-disable portion of C3 are complete. Independently approved ProofV2 passed, the exact WIF workflow is merged, `wif-1` is live, and deterministic collectors prove H1–H8 at their intended controls with the forbidden revision unchanged. A private Cloud Run ADK service, a real dual-auth Vertex call, the public fail-closed console, and the passing 72-call sealed evaluation also exist. C3 remains incomplete because the human key disable, fresh legacy rejection, and post-disable `wif-2` are still missing.
 
 ## Calendar
 

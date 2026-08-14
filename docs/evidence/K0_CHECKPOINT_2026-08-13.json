@@ -1,19 +1,21 @@
 {
   "version": 1,
   "status": "NO_GO_INCOMPLETE",
-  "recorded_at": "2026-08-13T12:00:00-04:00",
+  "recorded_at": "2026-08-14T01:08:00.000Z",
   "repository": {
     "full_name": "trustphoneapp/keyless-cutover",
     "owner_id": "289479481",
     "repository_id": "1332803088",
     "cutover_pr": 3,
-    "cutover_pr_head": "f301f82"
+    "cutover_pr_head": "cd12815907cd84a3d0a65f5f75265d0844a2e147",
+    "cutover_merge_commit": "ad965cfc54ae3455437717801970372ab5c2cba6"
   },
   "gcp": {
     "project_id": "keyless-k0-20260813",
     "project_number": "208865688014",
     "region": "us-central1",
     "legacy_revision": "keyless-demo-legacy-1",
+    "wif_1_revision": "keyless-demo-wif-1",
     "forbidden_revision": "keyless-forbidden-00001-rvf",
     "agent_revision": "keyless-agent-00004-spt",
     "agent_image": "us-central1-docker.pkg.dev/keyless-k0-20260813/keyless/model-runtime@sha256:3d70db4e5af6061fd1155e60b81550e8917005ea3c71ae51dc933b77e6431984"
@@ -24,22 +26,37 @@
     "downstream_permission_added": false
   },
   "proof_v2": {
-    "github_run_id": "31711163537",
-    "artifact_id": "9185319725",
+    "github_run_id": "31758449936",
+    "workflow_commit": "f48d9f1b9ac1d321c6b953217b50df82cd59ca4d",
+    "workflow_blob_sha": "b0f1504d3afefb7c5b45fc589b10c6861587f9f8",
+    "artifact_id": "9203702005",
+    "artifact_zip_sha256": "56feb3c3601ad75782c56201c01abf72cbeaf99411e02e8003b95d823d172272",
+    "challenge_id": "2dda9f12-07fd-4255-8bcd-61aea76dabdb",
+    "proof_digest": "2035d7bd083a817edc243947863682279c36d0447a6cb9610040d31d80f62b66",
+    "receipt_sha256": "2c15dfc21c15dd245d652a1b6466a13ebea792e64bb1176e4cbf558a066bb123",
+    "reviewer": "cherala2002",
     "firestore_consumed_once": true,
     "replay_rejected": true,
-    "authoritative_status": "HOLD_INDEPENDENT_REVIEW_MISSING"
+    "authoritative_status": "VERIFIED_INDEPENDENT_REVIEW"
   },
-  "h2_wrong_repository": {
-    "github_run_id": "31717226551",
-    "github_run_url": "https://github.com/trustphoneapp/keyless-hostile/actions/runs/31717226551",
-    "hostile_repository_id": "1333281314",
-    "protected_repository_id": "1332803088",
-    "client_outcome": "failure",
-    "denial_signature": "unauthorized_client / attribute condition",
-    "artifact_sha256": "df5742ba2c7b7bf40267db3a9b2ea0a1aa783d8f0a0079b98a00d6e9f23ef009",
-    "collector_log_sha256": "6ae62be216a075e4043506bfd04b92d32d2511357f8b945abd1a793858bbf867",
-    "forbidden_revision_unchanged": true
+  "pre_disable": {
+    "status": "K0_PREDISABLE_VERIFIED",
+    "receipt": "docs/evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json",
+    "wif_1_github_run_id": "31742708660",
+    "wif_1_github_run_url": "https://github.com/trustphoneapp/keyless-cutover/actions/runs/31742708660",
+    "hostile_controls_passed": "8/8",
+    "forbidden_revision_before": "keyless-forbidden-00001-rvf",
+    "forbidden_revision_after": "keyless-forbidden-00001-rvf",
+    "hostile_tests": [
+      { "id": "H1", "run_id": "31746236399", "outcome": "DENIED", "reached_control": true, "log_sha256": "b7a9b56a2652cfe6d4ffc2c2f122e96801f88c0709fd10c50f6b3b9ff0f38267" },
+      { "id": "H2", "run_id": "31717226551", "outcome": "DENIED", "reached_control": true, "log_sha256": "6ae62be216a075e4043506bfd04b92d32d2511357f8b945abd1a793858bbf867" },
+      { "id": "H3", "run_id": "31743504333", "outcome": "DENIED", "reached_control": true, "log_sha256": "cf442fb35276a582d44779569ad663d612544d5d2e3d40bfcfe1772679414a4b" },
+      { "id": "H4", "run_id": "31742708670", "outcome": "DENIED", "reached_control": true, "log_sha256": "900e88ddf6f297ee2bdf09de7c7972fdf40b15097fa69bbed6b225b25cfe8399" },
+      { "id": "H5", "run_id": "31743503963", "outcome": "DENIED", "reached_control": true, "log_sha256": "148eaf5869d0d041dfecd5cf9cfdbe3d13f33d791a8e145fa699789e7f44d246" },
+      { "id": "H6", "run_id": "31742708660", "outcome": "DENIED", "reached_control": true, "log_sha256": "39c51e9788f76f922f97d57ecce6a44af6aa9f62c5b30dfe69c10084b30feec9" },
+      { "id": "H7", "run_id": "31742708660", "outcome": "DENIED", "reached_control": true, "log_sha256": "bc86fafa065d2246ed5a7806f4a3cc6b8a8d31f8f2539de9d19c3d6f67c1d7f5" },
+      { "id": "H8", "run_id": "31742708660", "outcome": "DENIED", "reached_control": true, "log_sha256": "85740422e6ce0499179d25750e17ba2638aa380b0956634703d64f83625fae9f" }
+    ]
   },
   "agent_eval": {
     "raw_artifact_sha256": "8ddee8966aea36add3d022bddde340140f2316e38e901daa9e321e96de3e9983",
@@ -52,10 +69,6 @@
     "pass": true
   },
   "blockers": [
-    "independent protected PR and environment approval",
-    "H1 from a genuinely different GitHub owner",
-    "merge of the exact WIF workflow",
-    "wif-1 and remaining hostile controls",
     "human disable of the exact legacy key",
     "fresh legacy authentication rejection",
     "post-disable wif-2",
