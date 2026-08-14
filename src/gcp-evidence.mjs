@@ -8,7 +8,8 @@ const REGION = /^[a-z]+-[a-z]+\d$/;
 const SERVICE = /^[a-z][a-z0-9-]{0,62}$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const PROVIDER = /^projects\/\d+\/locations\/global\/workloadIdentityPools\/[a-z0-9-]+\/providers\/[a-z0-9-]+$/;
-const KEY_RESOURCE = /^projects\/[^/]+\/serviceAccounts\/[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com\/keys\/[a-f0-9]{40}$/;
+const KEY_RESOURCE = /^projects\/([^/]+)\/serviceAccounts\/([a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com)\/keys\/([a-f0-9]{40})$/;
+const UNIQUE_ID = /^\d{10,30}$/;
 const ACTOR = /^[^@\s]+@[^@\s]+$/;
 const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
@@ -166,12 +167,22 @@ export function createGcpEvidenceReader({
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || end - start > 24 * 60 * 60 * 1000) {
         throw new Error("audit time window is invalid");
       }
+      const [, keyProject, serviceAccount, keyId] = KEY_RESOURCE.exec(keyResource);
+      if (keyProject !== projectId) throw new Error("key resource project does not match");
+      const account = await request(
+        "GET",
+        `https://iam.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(serviceAccount)}`,
+      );
+      if (account.email !== serviceAccount || !exact(account.uniqueId, UNIQUE_ID, "service account unique ID")) {
+        throw new Error("service account identity does not match");
+      }
+      const auditResource = `projects/-/serviceAccounts/${account.uniqueId}/keys/${keyId}`;
       const method = "google.iam.admin.v1.DisableServiceAccountKey";
       const value = await request("POST", "https://logging.googleapis.com/v2/entries:list", {
         resourceNames: [`projects/${projectId}`],
         filter: [
           `protoPayload.methodName=\"${method}\"`,
-          `protoPayload.resourceName=\"${keyResource}\"`,
+          `protoPayload.resourceName=\"${auditResource}\"`,
           `protoPayload.authenticationInfo.principalEmail=\"${humanActor}\"`,
           `timestamp>=\"${startTime}\"`,
           `timestamp<=\"${endTime}\"`,
@@ -180,16 +191,18 @@ export function createGcpEvidenceReader({
         pageSize: 10,
       });
       const matches = (value.entries ?? []).filter((entry) => entry?.protoPayload?.methodName === method
-        && entry.protoPayload.resourceName === keyResource
+        && entry.protoPayload.resourceName === auditResource
         && entry.protoPayload.authenticationInfo?.principalEmail === humanActor
-        && (!entry.protoPayload.status || entry.protoPayload.status.code === 0)
+        && (entry.protoPayload.status?.code === undefined || entry.protoPayload.status.code === 0)
         && Date.parse(entry.timestamp) >= start && Date.parse(entry.timestamp) <= end);
       if (matches.length !== 1 || typeof matches[0].insertId !== "string") {
         throw new Error("exact human key-disable audit entry is missing or ambiguous");
       }
       return {
         method_name: method,
-        resource_name: keyResource,
+        resource_name: auditResource,
+        key_id: keyId,
+        service_account_unique_id: account.uniqueId,
         principal_email: humanActor,
         insert_id: matches[0].insertId,
         timestamp: matches[0].timestamp,

@@ -9,6 +9,8 @@ const MAX_DOCUMENT_BYTES = 1_000_000;
 const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const SHA256 = /^[a-f0-9]{64}$/;
+const KEY_ID = /^[a-f0-9]{40}$/;
+const NUMERIC = /^\d+$/;
 const HOSTILE_IDS = ["H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"];
 
 function bounded(value, maximum = 500) {
@@ -75,6 +77,19 @@ function checkpointStatus(bytes, checkpoint) {
       || checkpoint.proof_v2?.replay_rejected !== true
       || checkpoint.proof_v2?.authoritative_status !== "VERIFIED_INDEPENDENT_REVIEW"
       || checkpoint.agent_eval?.pass !== true) throw new Error("checkpoint readiness facts are invalid");
+  const keyDisable = checkpoint.key_disable;
+  if (keyDisable?.status !== "KEY_DISABLED_OBSERVED"
+      || keyDisable?.disabled !== true
+      || !KEY_ID.test(keyDisable?.key_id ?? "")
+      || !NUMERIC.test(keyDisable?.service_account_unique_id ?? "")
+      || keyDisable?.audit_method !== "google.iam.admin.v1.DisableServiceAccountKey"
+      || keyDisable?.audit_resource !== `projects/-/serviceAccounts/${keyDisable.service_account_unique_id}/keys/${keyDisable.key_id}`
+      || !bounded(keyDisable?.human_actor)
+      || !bounded(keyDisable?.audit_insert_id)
+      || !bounded(keyDisable?.audit_timestamp)
+      || !Number.isFinite(Date.parse(keyDisable.audit_timestamp))) {
+    throw new Error("checkpoint key-disable evidence is invalid");
+  }
   if (![checkpoint.agent_eval.supported, checkpoint.agent_eval.refusal, checkpoint.agent_eval.recovery, checkpoint.agent_eval.schema_valid].every((value) => bounded(value, 20))
       || !Number.isInteger(checkpoint.agent_eval.paired_gain) || checkpoint.agent_eval.paired_gain < 0
       || !Number.isInteger(checkpoint.agent_eval.forbidden) || checkpoint.agent_eval.forbidden !== 0) {
@@ -89,7 +104,7 @@ function checkpointStatus(bytes, checkpoint) {
     cutover_verified: false,
     eyebrow: "Live K0 checkpoint",
     headline: "Remove the key. Prove what still works.",
-    summary: "The substrate and bounded agent are live, but Keyless will not claim a completed cutover until every human and hostile-path receipt is independently reconstructable.",
+    summary: "The exact legacy key is disabled and independently observed, but Keyless will not claim a completed cutover until fresh legacy rejection and post-disable WIF continuity are proven.",
     recorded_at: new Date(checkpoint.recorded_at).toISOString(),
     checkpoint_sha256: createHash("sha256").update(bytes).digest("hex"),
     metrics: [
@@ -106,7 +121,8 @@ function checkpointStatus(bytes, checkpoint) {
       gate("H1 foreign owner", "denied", `GitHub run ${hostile[0].run_id}`),
       gate("H2 wrong repository", "denied", `GitHub run ${hostile[1].run_id}`),
       gate("H3–H8 controls", "passed", "Six intended controls reached and denied"),
-      gate("Disable + WIF continuity", "missing", "Human action required"),
+      gate("Human key disable", "passed", `Key ${keyDisable.key_id}; actor ${keyDisable.human_actor}`),
+      gate("Fresh legacy + WIF continuity", "missing", "Hosted post-disable runs required"),
     ],
     blockers: [...checkpoint.blockers],
     sources: [
@@ -118,7 +134,7 @@ function checkpointStatus(bytes, checkpoint) {
     ],
     limitations: [
       "ProofV2 proves the reviewed exact-key handoff only; WIF cutover evidence is recorded separately.",
-      "The legacy key remains enabled; no completed cutover is claimed.",
+      "The legacy key is disabled, but previously issued access tokens are not claimed revoked.",
       "H1–H8 prove only the named identities and controls during their recorded runs.",
       "A model output never decides authorization, denial, or receipt completeness.",
     ],

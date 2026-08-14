@@ -84,12 +84,26 @@ test("GCP evidence reader uses ADC and normalizes the latest ready revision", as
 
 test("GCP evidence reader binds key disable to one exact human Admin Activity entry", async () => {
   const keyResource = `projects/keyless-k0-demo/serviceAccounts/${plan.service_account}/keys/${"a".repeat(40)}`;
+  const auditResource = `projects/-/serviceAccounts/110652672782847439596/keys/${"a".repeat(40)}`;
+  const requests = [];
   const reader = createGcpEvidenceReader({
     auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
     fetchImpl: async (url, options) => {
+      requests.push({ url, options });
+      if (url.startsWith("https://iam.googleapis.com/v1/projects/-/serviceAccounts/")) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({
+            email: plan.service_account,
+            uniqueId: "110652672782847439596",
+          }),
+        };
+      }
       assert.equal(url, "https://logging.googleapis.com/v2/entries:list");
       const body = JSON.parse(options.body);
       assert.match(body.filter, /DisableServiceAccountKey/);
+      assert.match(body.filter, new RegExp(auditResource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
       return {
         ok: true,
         status: 200,
@@ -98,8 +112,9 @@ test("GCP evidence reader binds key disable to one exact human Admin Activity en
           timestamp: "2026-08-13T12:01:00Z",
           protoPayload: {
             methodName: "google.iam.admin.v1.DisableServiceAccountKey",
-            resourceName: keyResource,
+            resourceName: auditResource,
             authenticationInfo: { principalEmail: "operator@example.com" },
+            status: {},
           },
         }] }),
       };
@@ -113,9 +128,72 @@ test("GCP evidence reader binds key disable to one exact human Admin Activity en
     endTime: "2026-08-13T12:05:00Z",
   }), {
     method_name: "google.iam.admin.v1.DisableServiceAccountKey",
-    resource_name: keyResource,
+    resource_name: auditResource,
+    key_id: "a".repeat(40),
+    service_account_unique_id: "110652672782847439596",
     principal_email: "operator@example.com",
     insert_id: "audit-1",
     timestamp: "2026-08-13T12:01:00Z",
   });
+  assert.equal(requests.length, 2);
+});
+
+test("GCP evidence reader rejects an audit entry for a different numeric service account", async () => {
+  const keyResource = `projects/keyless-k0-demo/serviceAccounts/${plan.service_account}/keys/${"a".repeat(40)}`;
+  const reader = createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async (url) => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(url.startsWith("https://iam.googleapis.com/")
+        ? { email: plan.service_account, uniqueId: "110652672782847439596" }
+        : { entries: [{
+          insertId: "audit-wrong-account",
+          timestamp: "2026-08-13T12:01:00Z",
+          protoPayload: {
+            methodName: "google.iam.admin.v1.DisableServiceAccountKey",
+            resourceName: `projects/-/serviceAccounts/999999999999999999999/keys/${"a".repeat(40)}`,
+            authenticationInfo: { principalEmail: "operator@example.com" },
+          },
+        }] }),
+    }),
+  });
+  await assert.rejects(reader.readDisableAuditEntry({
+    projectId: "keyless-k0-demo",
+    keyResource,
+    humanActor: "operator@example.com",
+    startTime: "2026-08-13T12:00:00Z",
+    endTime: "2026-08-13T12:05:00Z",
+  }), /missing or ambiguous/);
+});
+
+test("GCP evidence reader rejects a failed disable Admin Activity entry", async () => {
+  const keyResource = `projects/keyless-k0-demo/serviceAccounts/${plan.service_account}/keys/${"a".repeat(40)}`;
+  const auditResource = `projects/-/serviceAccounts/110652672782847439596/keys/${"a".repeat(40)}`;
+  const reader = createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async (url) => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(url.startsWith("https://iam.googleapis.com/")
+        ? { email: plan.service_account, uniqueId: "110652672782847439596" }
+        : { entries: [{
+          insertId: "audit-failed",
+          timestamp: "2026-08-13T12:01:00Z",
+          protoPayload: {
+            methodName: "google.iam.admin.v1.DisableServiceAccountKey",
+            resourceName: auditResource,
+            authenticationInfo: { principalEmail: "operator@example.com" },
+            status: { code: 7, message: "permission denied" },
+          },
+        }] }),
+    }),
+  });
+  await assert.rejects(reader.readDisableAuditEntry({
+    projectId: "keyless-k0-demo",
+    keyResource,
+    humanActor: "operator@example.com",
+    startTime: "2026-08-13T12:00:00Z",
+    endTime: "2026-08-13T12:05:00Z",
+  }), /missing or ambiguous/);
 });

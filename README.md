@@ -61,14 +61,14 @@ Firestore exists for one-time ProofV2 challenge consumption and evidence-derived
 - KMS proves receipt origin and tamper resistance, not that external events happened.
 - Disabling a key blocks fresh authentication but does not revoke access tokens minted earlier.
 
-## Current status — August 13, 2026
+## Current status — August 14, 2026
 
 Implemented locally:
 
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance without a preselected key ID, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
 - Deterministic K0 v2 evidence-manifest verifier with fixed H1–H8 controls, typed/hashed GitHub and GCP evidence, unchanged-target requirements, cross-reference integrity, and false-safe rejection.
-- Fifty-eight passing local tests, including a simultaneous replay race, the Cloud Run canary and evidence-console contracts, documentation-link integrity, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, authenticated Google key/audit lookup, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, the reviewed ProofV2 operator transaction, pre-disable receipt reconstruction, and offline evidence reconstruction.
+- Sixty-one passing local tests, including a simultaneous replay race, the Cloud Run canary and evidence-console contracts, documentation-link integrity, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, canonical numeric-service-account audit lookup, authenticated Google key readback, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, the reviewed ProofV2 operator transaction, pre-disable and disable receipt reconstruction, and offline evidence reconstruction.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - The WIF template now executes H3 (fixed hostile branch), H5 (manual event), H6 (staging environment), H7 (wrong audience), and H8 (valid identity mutating the forbidden service) as explicit expected-denial jobs. A frozen external-repository template drives H1/H2; H4 remains the wrong-path workflow. Each expected denial emits a small credential-free artifact with platform run identity and actual step outcome; every workflow passes `actionlint` locally.
@@ -91,16 +91,17 @@ Implemented locally:
 
 Live but incomplete:
 
-- The public [Keyless evidence console](https://keyless-evidence-208865688014.us-central1.run.app) is deployed on Cloud Run revision `keyless-evidence-00001-82l` from an immutable amd64 image. Its dedicated runtime identity has no project role and the expected hardened response headers. The deployed image still serves the earlier eight-blocker checkpoint; the reviewed local checkpoint now has four blockers and requires a separately authorized console rebuild/deploy.
+- The public [Keyless evidence console](https://keyless-evidence-208865688014.us-central1.run.app) is deployed on Cloud Run revision `keyless-evidence-00001-82l` from an immutable amd64 image. Its dedicated runtime identity has no project role and the expected hardened response headers. The deployed image still serves the earlier eight-blocker checkpoint; the current local checkpoint now has three blockers and requires a separately authorized console rebuild/deploy.
 - The billed project `keyless-k0-20260813`, private Cloud Run agent, `legacy-1` canary, forbidden canary, Firestore database, reviewed WIF provider/binding, merged compiler-produced cutover, and live `keyless-demo-wif-1` revision exist. Provider/IAM readback matches the approved hashes and adds no downstream service-account permission.
 - ProofV2 run `31758449936` executed on merged commit `f48d9f1b9ac1d321c6b953217b50df82cd59ca4d` after protected `production` approval by `cherala2002`. It matched the exact active user-managed key, atomically consumed challenge `2dda9f12-07fd-4255-8bcd-61aea76dabdb` before expiry, rejected replay, survived receipt reconstruction after consumption, and passed an independent credential-shape scan. The credential-free [ProofV2 receipt](docs/evidence/PROOFV2_RECEIPT_2026-08-14.json) records the exact hashes and limitations.
-- PR #14 established the hardened reviewed workflow and PR #15 added the fail-closed operator. Both merged with independent review and passing post-merge CI; the exact legacy key remains enabled because key disable is a later human-gated K0 step.
+- PR #14 established the hardened reviewed workflow, PR #15 added the fail-closed operator, and PR #16 recorded the verified pre-disable state. All merged with independent review and passing post-merge CI.
 - H1–H8 were independently reconstructed from their exact GitHub runs, artifacts, and job logs. All eight reached and denied at the intended WIF/audience/Cloud Run control, including foreign-owner H1 from `cherala2002/keyless-h1-probe`; `keyless-forbidden-00001-rvf` remained unchanged. The credential-free [pre-disable receipt](docs/evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json) records the exact run, artifact, and log hashes.
+- Human operator `yashwanth.surabhi@gmail.com` disabled—not deleted—the exact key `253d40858619a76541f1b6374d157560cf8b14f6`. Live key readback reports `disabled: true`; the credential-free [disable receipt](docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json) binds the exact Admin Activity method, actor, timestamp, insert ID, numeric service-account identity, and key ID.
 - The second full sealed Vertex evaluation passed 12/12 supported cases, 11 paired wins over rules-only, 4/4 refusals, 8/8 recoveries, 0 forbidden outputs, and 72/72 schema-valid calls. The first run failed and is retained locally as negative evidence.
 
 Not yet proven:
 
-- Human disable of the exact legacy key, fresh hosted legacy rejection, post-disable `wif-2`, KMS receipt, updated evidence-console deployment, or video.
+- Fresh hosted legacy rejection, post-disable `wif-2`, KMS receipt, updated evidence-console deployment, or video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 

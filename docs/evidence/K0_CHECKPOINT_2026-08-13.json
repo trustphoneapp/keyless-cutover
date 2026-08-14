@@ -1,7 +1,7 @@
 {
   "version": 1,
   "status": "NO_GO_INCOMPLETE",
-  "recorded_at": "2026-08-14T01:08:00.000Z",
+  "recorded_at": "2026-08-14T03:34:41.000Z",
   "repository": {
     "full_name": "trustphoneapp/keyless-cutover",
     "owner_id": "289479481",
@@ -58,6 +58,19 @@
       { "id": "H8", "run_id": "31742708660", "outcome": "DENIED", "reached_control": true, "log_sha256": "85740422e6ce0499179d25750e17ba2638aa380b0956634703d64f83625fae9f" }
     ]
   },
+  "key_disable": {
+    "status": "KEY_DISABLED_OBSERVED",
+    "receipt": "docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json",
+    "key_id": "253d40858619a76541f1b6374d157560cf8b14f6",
+    "service_account_unique_id": "110652672782847439596",
+    "disabled": true,
+    "disable_reason": "SERVICE_ACCOUNT_KEY_DISABLE_REASON_USER_INITIATED",
+    "human_actor": "yashwanth.surabhi@gmail.com",
+    "audit_method": "google.iam.admin.v1.DisableServiceAccountKey",
+    "audit_resource": "projects/-/serviceAccounts/110652672782847439596/keys/253d40858619a76541f1b6374d157560cf8b14f6",
+    "audit_insert_id": "y4ni34eax6yl",
+    "audit_timestamp": "2026-08-14T03:29:50.942748787Z"
+  },
   "agent_eval": {
     "raw_artifact_sha256": "8ddee8966aea36add3d022bddde340140f2316e38e901daa9e321e96de3e9983",
     "supported": "12/12",
@@ -69,7 +82,6 @@
     "pass": true
   },
   "blockers": [
-    "human disable of the exact legacy key",
     "fresh legacy authentication rejection",
     "post-disable wif-2",
     "KMS-signed reconstructable final receipt"

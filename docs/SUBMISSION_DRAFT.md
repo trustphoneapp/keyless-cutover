@@ -53,13 +53,13 @@ These facts are already implemented and observed; they are readiness evidence, n
 - Live `wif-1` deployed through GitHub OIDC, Google STS/WIF, service-account impersonation, and Cloud Run.
 - H1–H8 were reconstructed from exact runs, artifacts, and logs; each reached and denied at its named control and left the forbidden Cloud Run revision unchanged.
 - Public read-only Cloud Run evidence console from an immutable image. Its runtime service account has no project roles and the served state is honestly `NO_GO_INCOMPLETE`.
-- 58 deterministic tests, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
+- 61 deterministic tests, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
 
 ## Target release evidence — pending
 
 The final description may add these statements only after their exact evidence exists:
 
-- `[PENDING]` Independent human disabled the exact legacy key; live key state and Admin Activity agree.
+- `[OBSERVED]` Separately authenticated human GCP operator disabled—not deleted—the exact legacy key after independent GitHub review; live key state and one exact Admin Activity entry agree.
 - `[PENDING]` Fresh hosted legacy authentication was rejected after disable.
 - `[PENDING]` Fresh post-disable WIF deployment created `wif-2`.
 - `[PENDING]` Canonical receipt signature verified with the scoped Cloud KMS public key; one-byte mutation failed.

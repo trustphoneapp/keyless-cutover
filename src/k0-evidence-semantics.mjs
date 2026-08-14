@@ -50,6 +50,8 @@ function validateArtifactData(kind, data, fail, id) {
     fail(string(data.service, REVISION) && string(data.revision, REVISION), `${id} Cloud Run revision data is invalid`);
   } else if (kind === "GCP_AUDIT_ENTRY") {
     fail(string(data.method_name) && string(data.resource_name) && string(data.principal_email)
+      && string(data.key_id, KEY_ID) && string(data.service_account_unique_id, NUMERIC)
+      && data.resource_name === `projects/-/serviceAccounts/${data.service_account_unique_id}/keys/${data.key_id}`
       && string(data.insert_id) && string(data.timestamp), `${id} audit entry data is invalid`);
   } else if (kind === "GOOGLE_AUTH_RESULT") {
     fail(string(data.key_id, KEY_ID) && string(data.run_id, NUMERIC), `${id} legacy-auth identity is invalid`);
@@ -118,6 +120,7 @@ export async function verifyK0EvidenceSemantics(manifest, readArtifact) {
   fail(disabledKeys.some((data) => data?.key_id === manifest.scope.key_id && data?.disabled === true), "disabled-key artifact does not match");
   const disableAudits = dataOfKind(manifest.disable.source_ids, "GCP_AUDIT_ENTRY");
   fail(disableAudits.some((data) => data?.principal_email === manifest.disable.human_actor
+    && data?.key_id === manifest.scope.key_id
     && /DisableServiceAccountKey/.test(data?.method_name ?? "")), "human disable audit artifact does not match");
 
   const legacy = dataOfKind(manifest.legacy_after_disable.source_ids, "GOOGLE_AUTH_RESULT");
