@@ -1,4 +1,7 @@
 import { requireGitHubReadToken } from "./github-token.mjs";
+import { boundedGitHubPage, isGitHubHostedJob } from "./github-denial-evidence.mjs";
+import { githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
+import { isRfc3339 } from "./rfc3339.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -28,12 +31,7 @@ async function json(url, token, fetchImpl) {
 }
 
 function workflowSource(content) {
-  if (content?.encoding !== "base64" || typeof content.content !== "string") {
-    throw new Error("GitHub workflow content is invalid");
-  }
-  const source = Buffer.from(content.content.replace(/\s/g, ""), "base64").toString("utf8");
-  if (Buffer.byteLength(source) > 64 * 1024) throw new Error("GitHub workflow is too large");
-  return source;
+  return githubWorkflowSnapshot(content);
 }
 
 function approvedEnvironment(reviews, environment, actorId) {
@@ -67,16 +65,23 @@ export async function fetchGitHubProofObservation({
     throw new Error("GitHub run repository or workflow path does not match");
   }
   const headSha = exact(run.head_sha, /^[a-f0-9]{40}$/, "head_sha");
-  const [content, reviews] = await Promise.all([
+  const [content, reviews, jobsResponse] = await Promise.all([
     json(`${base}/contents/${workflowPath}?ref=${headSha}`, token, fetchImpl),
     json(`${base}/actions/runs/${runId}/approvals`, token, fetchImpl),
+    json(`${base}/actions/runs/${runId}/jobs?per_page=100`, token, fetchImpl),
   ]);
-  const source = workflowSource(content);
+  const snapshot = workflowSource(content);
+  const source = snapshot.bytes.toString("utf8");
   if (!/^\s*runs-on:\s*ubuntu-latest\s*$/m.test(source) || source.includes("self-hosted")) {
     throw new Error("proof workflow is not fixed to a GitHub-hosted runner");
   }
   if (!new RegExp(`^\\s*environment:\\s*${environment}\\s*$`, "m").test(source)) {
     throw new Error("proof workflow does not use the expected environment");
+  }
+  const jobs = boundedGitHubPage(jobsResponse, "jobs").filter(({ name }) => name === "proof");
+  if (jobs.length !== 1 || jobs[0].status !== "completed" || jobs[0].conclusion !== "success"
+      || !isGitHubHostedJob(jobs[0])) {
+    throw new Error("ProofV2 job is not an authoritative hosted success");
   }
   const actorId = exact(String(run?.actor?.id), RUN_ID, "actor_id");
   const approval = approvedEnvironment(reviews, environment, actorId);
@@ -84,12 +89,14 @@ export async function fetchGitHubProofObservation({
     throw new Error("independent environment approval is missing");
   }
   const ref = `refs/heads/${exact(run.head_branch, /^[A-Za-z0-9._/-]+$/, "head_branch")}`;
+  if (!isRfc3339(run.run_started_at)) throw new Error("run_started_at is invalid");
   return {
     owner_id: exact(String(run?.repository?.owner?.id), RUN_ID, "owner_id"),
     repository_id: exact(String(run?.repository?.id), RUN_ID, "repository_id"),
     workflow_path: workflowPath,
     workflow_ref: `${owner}/${repository}/${workflowPath}@${ref}`,
-    workflow_blob_sha: exact(content.sha, /^[a-f0-9]{40}$/, "workflow_blob_sha"),
+    workflow_blob_sha: snapshot.workflow_blob_sha,
+    workflow_sha256: snapshot.workflow_sha256,
     head_sha: headSha,
     run_id: String(run.id),
     run_attempt: exact(String(run.run_attempt), RUN_ID, "run_attempt"),
@@ -99,6 +106,8 @@ export async function fetchGitHubProofObservation({
     ref,
     environment,
     runner_environment: "github-hosted",
+    started_at: run.run_started_at,
+    release_marker: null,
     environment_review: {
       state: "approved",
       environment,

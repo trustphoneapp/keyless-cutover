@@ -13,32 +13,32 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 - [x] Public repository, English documentation, license, privacy/security, and AI-assistance disclosure exist.
 - [x] README contains local validation instructions.
 - [x] Architecture diagram and Google-service roles are documented.
-- [ ] Independent K0 transaction and final receipt pass.
+- [ ] A separately authorized fresh K0 transaction checkpoints its canonical pre-disable archive while the key remains enabled, passes disable → legacy-denial → WIF-2 ordering, authentically issues the exact pending receipt, and verifies its separately authorized scoped real KMS signature against pinned trust without changing the human release boundary.
 - [ ] Public English/subtitled video is ≤4:00 and shows backend on Google Cloud.
 - [ ] Devpost form is completed and submitted before August 31, 2026 at 5:00 PM PT.
 
 ## Protected K0 release gate
 
-- [x] Independent GitHub collaborator accepted write access.
-- [x] `production` requires that reviewer and prevents self-review/bypass.
-- [x] Cumulative release PR #11 has green CI and non-last-pusher approval.
-- [x] PR #11 is merged; superseded stacked PRs are closed.
-- [x] Cutover PR #3 is updated onto protected `main` without hand repair.
-- [x] Compiler output, plan digest, provider hash, binding hash, and no-widening diff are rechecked.
-- [x] Independent reviewer approves exact cutover head; human merges.
-- [x] `wif-1` succeeds from the exact merged commit.
-- [x] H1 uses a genuinely different numeric owner ID and reaches WIF condition denial.
-- [x] H2–H7 reach their intended STS/WIF/audience controls and deny.
-- [x] H8 reaches forbidden-resource Cloud Run IAM and denies.
-- [x] Every hostile artifact/run/log agrees; forbidden revision is unchanged.
-- [x] Pre-disable receipt reconstruction passes with no missing hostile control.
-- [x] Separately authenticated human GCP operator disables—not deletes—the exact key after independent GitHub review.
-- [x] Live key read-back says disabled; one exact human Admin Activity entry agrees.
-- [ ] Fresh hosted legacy probe reaches Google and receives recognized key/auth denial.
-- [ ] Fresh hosted WIF run creates `wif-2`.
-- [ ] Credential scan is clean; `npm run verify:k0` passes from artifact bytes.
-- [ ] One-byte evidence mutation fails.
-- [ ] Scoped asymmetric KMS receipt signs and verifies; one-byte receipt mutation fails.
+The prior checked transaction is historical readiness only. Its key was disabled before a canonical v3 archive checkpoint was reviewed and merged; never re-enable it or count its later missing steps toward release.
+
+### Required fresh v3 sequence
+
+- [ ] Protected RC is independently reviewed/merged; `required_linear_history: true` and the complete branch/environment protection tuple are read back.
+- [ ] A separately authorized fresh disposable key transaction produces a successful baseline plus fresh ProofV2, WIF-1/parity, and H1–H8 including H2.
+- [ ] The exact canonical pre-disable archive checkpoint is independently reviewed, merged, and reread while the fresh key is enabled.
+- [ ] Human operator disables—not deletes—the exact fresh key; key state and one exact Admin Activity entry agree.
+- [ ] Fresh hosted legacy probe reaches Google and receives a recognized denial before WIF-2 starts.
+- [ ] A later fresh hosted WIF run creates and reads back `wif-2`; WIF audit/parity and forbidden-target readback agree.
+- [ ] Authenticated read-only pending issuance verifies and writes the exact private output with `RECOLLECTION_REQUIRED` and `release_ready: false`.
+- [ ] A separately authorized scoped real KMS signature verifies against pinned trust; one-byte mutation fails and no release state changes.
+- [ ] A separate human reviews the complete evidence and owns the release decision.
+
+### Historical readiness already observed — not v3 completion
+
+- [x] Independent GitHub collaborator and protected `production` review existed.
+- [x] Historical ProofV2, `wif-1`, H1–H8, forbidden-target readback, key disable, and Admin Activity were independently reconstructed.
+- [x] Local v3 verifier, pending issuer, signature verifier, credential scan, and deterministic mutation tests pass.
+- [ ] None of those historical or local facts is relabeled as a completed live v3 transaction.
 
 ## Clean-release verification
 
@@ -46,7 +46,7 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 - [ ] Node version satisfies `>=22`.
 - [ ] `npm ci --legacy-peer-deps --ignore-scripts` succeeds.
 - [ ] `npm audit --omit=dev --audit-level=high` reports zero vulnerabilities.
-- [ ] `npm test` passes with the published count.
+- [ ] `npm test` passes without stale count claims.
 - [ ] GitHub App token handling passes both classic and approximately 520-character stateless-token tests; a real app test forced with `enabled` and `disabled` succeeds before the temporary header is removed.
 - [ ] `actionlint -no-color` passes.
 - [ ] Console container builds for `linux/amd64` from the pinned base image.
@@ -65,9 +65,9 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 - [ ] Show Cloud Run, ADK, exact Gemini model on Vertex AI, and one typed cited result.
 - [ ] Show the compiler-owned PR and deterministic no-widening boundary.
 - [ ] Label completed evidence `RECORDED/OBSERVED @ UTC`; label current activity `LIVE`.
-- [ ] Show `legacy-1`, ProofV2 replay rejection, `wif-1`, H1–H8, human disable, fresh legacy denial, `wif-2`, and unchanged forbidden service.
+- [ ] Show one fresh transaction in order: `legacy-1`, ProofV2, `wif-1`, H1–H8, merged archive checkpoint, human disable, fresh legacy denial, later `wif-2`, and unchanged forbidden service.
 - [ ] State the token-revocation and scope limitations aloud.
-- [ ] Verify KMS receipt, mutate one byte, and show verification failure.
+- [ ] Verify the scoped real KMS signature on the authentically issued exact pending receipt against pinned trust, mutate one byte and show failure, and state that the signature does not authorize release.
 - [ ] Show at least one GitHub run and one Google Cloud revision/audit identifier.
 - [ ] Stop by 3:55; never rely on content after 4:00.
 - [ ] Upload publicly to YouTube or Vimeo; verify in a signed-out browser.

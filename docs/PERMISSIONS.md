@@ -17,7 +17,7 @@ Install only on the selected demo repository.
 | Workflows | write | Modify `.github/workflows/*.yml`. |
 | Pull requests | write | Open and update the draft migration PR. |
 | Actions | read | Observe runs, jobs, conclusions, and sanitized logs. |
-| Checks | write, after K0 | Publish evidence status and the final receipt digest. |
+| Checks | write, after K0 | Publish only evidence status plus the exact pending-receipt digest and signature evidence after authenticated issuance; never publish a release-authorization claim. |
 
 The App receives no Actions-secret permission, administration permission, merge bypass, environment bypass, or organization-wide installation.
 
@@ -33,11 +33,11 @@ The App receives no Actions-secret permission, administration permission, merge 
 
 It cannot create/update/delete WIF providers or IAM bindings; disable, enable, delete, or create service-account keys; deploy to Cloud Run; sign a receipt; merge a PR; retrieve an Actions secret value; or execute arbitrary repository shell commands.
 
-### `keyless-receipt-sa` — after K0 only
+### `keyless-receipt-sa` — future scoped signing authority, after complete fresh K0 only
 
-- Invoked only by the deterministic receipt-finalization path after the complete K0 evidence bundle verifies.
-- May use one asymmetric Cloud KMS key version to sign a canonical receipt digest.
-- Cannot read repository credentials, mutate GitHub/GCP infrastructure, or decide evidence completeness.
+- Invoked only by a separately authorized future KMS signing step after the implemented read-only issuer has produced and verified the exact pending output for a complete fresh transaction.
+- May use one asymmetric Cloud KMS key version to sign that exact pending-receipt digest.
+- Cannot read repository credentials, mutate GitHub/GCP infrastructure, decide evidence completeness, or authorize release.
 
 ### `keyless-console-sa`
 

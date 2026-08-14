@@ -45,11 +45,13 @@ flowchart LR
     W --> SA["Existing deploy service account"]
     SA --> CR["Allowed Cloud Run service"]
     SA -. denied .-> X["Forbidden Cloud Run service"]
-    A --> K["Cloud KMS receipt signature"]
+    R["Local authenticated read-only recollection + pending issuer"] --> P["Private canonical pending-output JSON"]
+    P -. inert digest request .-> K["Scoped Cloud KMS signing (not implemented)"]
+    K -. signed pending receipt .-> C
     C["Public read-only evidence console"] --> E["Credential-free checkpoint or verified K0 bundle"]
 ```
 
-Firestore exists for one-time ProofV2 challenge consumption and evidence-derived operation state. KMS is added only after the real 48-hour transaction passes. Cloud Tasks, Pub/Sub, Agent Engine, Registry, Memory Bank, autonomous IAM mutation, and a multi-agent fleet are intentionally outside the hackathon build.
+Firestore exists for one-time ProofV2 challenge consumption and evidence-derived operation state. The current local RC implements and tests authenticated read-only recollection and pending issuance, but it has not been committed, published, or run against the live 48-hour transaction. The live KMS key/signing call remains gated. Cloud Tasks, Pub/Sub, Agent Engine, Registry, Memory Bank, autonomous IAM mutation, and a multi-agent fleet are intentionally outside the hackathon build.
 
 ## Safety contract
 
@@ -67,8 +69,8 @@ Implemented locally:
 
 - Git repository initialized.
 - Node ProofV2 protocol primitives for random challenge issuance without a preselected key ID, separately expected authoritative context, a five-minute maximum window, active user-managed Google-key validation, bounded certificate lookup, and atomic-consumer replay rejection.
-- Deterministic K0 v2 evidence-manifest verifier with fixed H1–H8 controls, typed/hashed GitHub and GCP evidence, unchanged-target requirements, cross-reference integrity, and false-safe rejection.
-- Sixty-one passing local tests, including a simultaneous replay race, the Cloud Run canary and evidence-console contracts, documentation-link integrity, exact cutover compilation, immutable WIF trust/readback planning, strict ADK invocation/output/citation contracts, three-repeat deterministic evaluation thresholds, Firestore transitions, GitHub observation, canonical numeric-service-account audit lookup, authenticated Google key readback, hostile and fresh-legacy denial collection, crash-window-aware draft PR creation, the reviewed ProofV2 operator transaction, pre-disable and disable receipt reconstruction, and offline evidence reconstruction.
+- Deterministic K0 v3 evidence-manifest and semantic verification with exact canonical manifest/artifact bytes, fixed H1–H8 controls, authoritative GitHub/GCP scope binding, unchanged-target requirements, cross-reference integrity, and false-safe rejection.
+- A passing local suite covering replay races, Cloud Run and console contracts, documentation links, exact cutover compilation, Firestore transitions, authoritative GitHub/GCP collectors, ProofV2, pre-disable and disable reconstruction, offline bundle/receipt verification, FIFO rejection, and deterministic tamper failures without relying on a brittle published test count.
 - A locally built and exercised digest-pinned canary container.
 - One canonical legacy deployment workflow, a non-running WIF cutover template preserving the same workflow path, and the H4 wrong-workflow probe; all actions are SHA-pinned and `actionlint` passes.
 - The WIF template now executes H3 (fixed hostile branch), H5 (manual event), H6 (staging environment), H7 (wrong audience), and H8 (valid identity mutating the forbidden service) as explicit expected-denial jobs. A frozen external-repository template drives H1/H2; H4 remains the wrong-path workflow. Each expected denial emits a small credential-free artifact with platform run identity and actual step outcome; every workflow passes `actionlint` locally.
@@ -80,11 +82,15 @@ Implemented locally:
 - A Firestore challenge store with create-once issuance, transactional `ISSUED → CONSUMED` transition, expiry enforcement, and digest binding; an authoritative GitHub observer that rebuilds the proof context from a completed run, workflow blob, and independent environment review; and an ADC-backed exact Google key reader.
 - A fail-closed ProofV2 operator with separate `issue` and `verify` commands. It emits only the five bounded dispatch inputs, accepts GitHub credentials only through an environment variable, refetches the exact run/workflow/artifact/reviewer, validates the active Google key and certificate, atomically consumes once, rejects replay, and reconstructs the exact receipt after a crash that occurs immediately after consumption.
 - A private, bounded Node HTTP service that runs the two tool-free ADK stages, revalidates every final output, and disables OpenTelemetry export in its pinned container. Cloud Run IAM authenticates an invoke-only operator and a separate `X-Keyless-API-Token` gates the model routes. A real served Vertex Gemini 3.5 Flash request passed both gates; IAM alone reached the app and was rejected with 401.
-- A dependency-free, read-only evidence console that renders only a validated credential-free checkpoint or a fully verified K0 manifest/artifact bundle. It contains no client script or mutation route, rejects self-asserted success, and keeps a verifier-passing but unsigned cutover in `K0_VERIFIED_RECEIPT_PENDING` rather than declaring release success.
-- A canonical evidence-artifact format and semantic verifier: every K0 ledger digest must resolve to matching credential-free `artifacts/E###.json` bytes, and their contents must agree with the claimed key, WIF hashes, hostile identity/run/control, unchanged revision, human disable, legacy denial, and `wif-2` result.
+- A dependency-free, read-only evidence console that renders only a validated credential-free checkpoint or a fully verified external K0 bundle. It has no client script or mutation route, rejects forged or mutated status objects through a private authoritative snapshot, rejects FIFO/non-regular inputs without blocking, and never exposes a local release-ready state.
+- A canonical evidence-artifact format and semantic verifier: every K0 ledger digest resolves to matching credential-free `artifacts/E###.json` bytes captured once, and their contents agree with the claimed key, reviewed workflows/runs, WIF audit provenance, Cloud Run readback, hostile identity/run/control, unchanged revision, human disable, legacy denial, and `wif-2` result.
+- A dependency-free offline assembler plus shared exact filesystem loader. `assemble` validates fully before creating a new directory and never overwrites; `verify` requires canonical `manifest.json`, exact `artifacts/E###.json` enumeration, bounded regular files, and no network or cloud access.
+- A deterministic canonical pending receipt derived from the exact verified manifest bytes, with `K0_VERIFIED_RECEIPT_PENDING`, `RECOLLECTION_REQUIRED`, and `release_ready: false`. A local authenticated issuer now recollects the fixed GitHub/GCP sources through read-only credentials, verifies the complete v3 transaction, and writes one canonical private JSON basename in its current working directory. The issuer creates and re-verifies the pending envelope and its inert KMS digest request; it does not verify a returned signature and has no signer, KMS client, or promotion fallback.
+- A separate public verification primitive validates a canonical signature sidecar against the exact pending-receipt bytes, approved algorithm, full pinned KMS key version, and out-of-band pinned public key. Even a valid signature cannot promote authorization or release readiness.
+- A 36/36 deterministic mutation matrix spanning bundle, artifact, receipt, signature, and trust-anchor changes, including one-byte, noncanonical-byte, wrong-key, and valid-second-key substitution failures.
 - A selected-repository GitHub adapter that rechecks numeric owner/repository IDs, protected base SHA, live workflow bytes, and approved plan before creating compiler-owned branch bytes and a draft PR. It never merges and safely reuses only exact branch/PR residue after a retry.
-- A GitHub hostile-run collector that refetches the completed run/job, downloads the bounded platform artifact and job log through trusted redirects without forwarding authorization, correlates immutable context, and recognizes only allowlisted Google STS/audience/Cloud Run denial signatures. Generic setup/network failures remain unproven.
-- An ADC-backed Google evidence reader and WIF readback verifier that hashes the exact live provider configuration, permits only the approved repository impersonation binding as the service-account IAM delta, proves the allowed/forbidden Cloud Run IAM policies are semantically unchanged, and normalizes the latest ready revision.
+- Authoritative GitHub collectors that refetch independently reviewed workflow approvals, exact workflow/release-marker bytes at the pinned commit, completed deploy runs/jobs/steps/environment review, and hostile/legacy probe evidence. Generic setup/network failures and caller-supplied run claims remain unproven.
+- ADC-backed Google collectors that hash the exact live provider configuration, require the approved repository impersonation binding as the only service-account IAM delta, project bounded official STS/IAM Credentials audit shapes, reject pagination/ambiguity, and read authoritative Cloud Run revision/create-time/release-marker/image-digest state without copying GitHub identity into cloud evidence.
 - A protected manual legacy-auth workflow and collector that remain available after the canonical workflow becomes WIF, force a fresh Google request with the exact old key on a new hosted runner, and accept only a Google key/authentication rejection signature. The workflow cannot deploy.
 - A bounded Cloud Logging query that accepts exactly one successful `DisableServiceAccountKey` Admin Activity entry for the scoped key, expected human principal, and approved 24-hour-or-shorter window; ambiguity blocks final evidence.
 - Google Cloud CLI installed.
@@ -99,15 +105,19 @@ Live but incomplete:
 - Human operator `yashwanth.surabhi@gmail.com` disabled—not deleted—the exact key `253d40858619a76541f1b6374d157560cf8b14f6`. Live key readback reports `disabled: true`; the credential-free [disable receipt](docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json) binds the exact Admin Activity method, actor, timestamp, insert ID, numeric service-account identity, and key ID.
 - The second full sealed Vertex evaluation passed 12/12 supported cases, 11 paired wins over rules-only, 4/4 refusals, 8/8 recoveries, 0 forbidden outputs, and 72/72 schema-valid calls. The first run failed and is retained locally as negative evidence.
 
+Those key-transaction artifacts are historical readiness evidence only. The key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged, so that transaction can never satisfy v3. Do not re-enable the historical key to resume it. A complete v3 result requires a separately authorized fresh disposable key transaction whose archive checkpoint merges while that new key is still enabled.
+
 Not yet proven:
 
-- Fresh hosted legacy rejection, post-disable `wif-2`, KMS receipt, updated evidence-console deployment, or video.
+- Publication and independent review of the current local RC; live branch-protection repair and read-back of `required_linear_history: true`; a separately authorized fresh disposable v3 transaction; authenticated pending issuance from that transaction; separately authorized scoped KMS signature verification; the separate human release decision; and the updated evidence-console deployment and video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 
 ## 48-hour kill gate
 
-K0 must produce real `legacy-1`, `wif-1`, and post-disable `wif-2` Cloud Run revisions; consume ProofV2 once; deny H1–H8 at their intended controls; keep the forbidden service unchanged; observe the exact key disabled by a human; reject a fresh online legacy authentication attempt; and produce a reconstructable, credential-free manifest.
+The fresh K0 order is fixed: merge the protected RC and repair/read back required linear history; collect a fresh legacy baseline, ProofV2, WIF-1 parity, and H1–H8 including H2; review and merge the canonical pre-disable archive checkpoint while the fresh key remains enabled; have a human disable the exact key and read it back; prove fresh legacy denial before deploying and reading back `wif-2`; run authenticated pending issuance; separately authorize and verify the scoped KMS signature; then leave release to a separate human decision. The signature does not replace that boundary, and local v3 reconstruction alone does not pass this gate.
+
+The verifier selects the earliest authoritative occurrence time, checkpoint-receipt `recorded_at`, or checkpoint event time across the final evidence and requires `manifest.assembled_at`—the latest authenticated final collection—to be no more than 48 hours later. Archive or checkpoint sealing and later recollection cannot reset, backdate, or extend that window.
 
 Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong-key ambiguity, hand-repaired generated patch, or failed post-disable WIF deployment kills or pivots the project.
 
@@ -142,7 +152,7 @@ Node 22 or newer is required. Live setup instructions will be added only after K
 ## Track and judging position
 
 - Track: **The Taskmaster — Build a Complete Workflow, Not Just a Chatbot**.
-- Current judge-style estimate: Stage One fail; counterfactual 52/100.
-- Projected only after every gate: approximately 90/100 under the official 40/30/30 weighting.
+- The mandatory served Google/ADK path now exists.
+- Any final judging or submission claim still waits on the incomplete K0, scoped live receipt signature, updated hosted console, and video gates.
 
-These are internal estimates, not organizer scores or a guarantee of winning.
+Historical planning estimates are recorded in the research debate; they are not current organizer scores or a guarantee of winning.

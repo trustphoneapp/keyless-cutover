@@ -80,7 +80,7 @@ Alert on:
 
 After the observation window and demo:
 
-1. Export final signed receipts and evidence manifest.
+1. Export the authentically issued exact pending receipt, its scoped signature sidecar, and evidence manifest without relabeling them as release authorization.
 2. Human removes the obsolete GitHub secret.
 3. Human decides whether to delete the disabled GCP key.
 4. Remove disposable repositories/projects through their owning consoles.

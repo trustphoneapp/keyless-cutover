@@ -1,6 +1,6 @@
 # Approvals, cancellation, and rollback
 
-> ADR 0002 governs: humans apply IAM, merge the PR, and disable/re-enable keys. Any automated-IAM language below is post-hackathon historical design.
+> ADR 0002 governs: humans apply IAM, merge the PR, and disable keys. The already-disabled historical key is never re-enabled to resume its ineligible transaction. Any future rollback re-enable is human-only, kills that fresh transaction, and exists only to restore service. Automated-IAM language below is post-hackathon historical design.
 
 ## Two independent approvals
 
@@ -41,12 +41,13 @@ Stale approval always moves the migration to `HOLD`; it never auto-rebases.
 | Before provisioning | Mark cancelled; no external residue. |
 | Provider/binding created, PR not merged | Remove only Keyless-created resources if the original approval explicitly covers compensation and live state still matches. Otherwise report residue. |
 | PR merged, old key enabled | Propose a human-reviewed rollback PR. Do not disable the provider automatically because that may cause an outage. |
-| Old key disabled | Stop. Human decides whether to re-enable the exact key and revert the workflow. Keyless never auto-enables it. |
+| Fresh transaction key disabled, service broken | Stop and kill the transaction. Human may re-enable that fresh key and revert only to restore service; Keyless never enables it. |
+| Historical key disabled without a prior v3 archive checkpoint | Preserve evidence and never re-enable; start a separately authorized fresh transaction. |
 
 ## Rollback truth
 
 - Disable, do not delete, during the demonstration and observation window.
-- A disabled key can be re-enabled by an authorized human; a deleted key cannot be recovered.
+- A fresh transaction's disabled key can be re-enabled only by an authorized human rollback, which invalidates that transaction; a deleted key cannot be recovered.
 - Disabling a key blocks new authentication but does not invalidate access tokens minted earlier.
 - Removing or disabling a WIF provider also does not revoke credentials already issued.
 - The immediate receipt can prove a new old-key authentication attempt fails and a new WIF attempt succeeds. It cannot prove that every previously issued credential has expired.
@@ -67,7 +68,7 @@ Enter `FAILED_SAFE`. If concurrency guards prove the provider/binding is solely 
 
 ### Key observed disabled but WIF deployment fails
 
-Enter `ROLLBACK_REQUIRES_HUMAN`. Offer the exact re-enable and workflow-revert plan; do not perform either action automatically.
+For a failed fresh transaction, enter `ROLLBACK_REQUIRES_HUMAN` and offer the exact re-enable/workflow-revert plan only to restore service; do not perform either action automatically. For the historical key, offer no re-enable plan.
 
 ### Audit evidence is delayed or absent
 

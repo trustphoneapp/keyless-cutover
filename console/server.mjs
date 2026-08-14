@@ -2,7 +2,13 @@ import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadConsoleStatus } from "./status.mjs";
+import { getUntamperedConsoleStatusSnapshot, loadConsoleStatus } from "./status.mjs";
+
+const STATUS_FIELDS = new Set([
+  "version", "status", "authorization", "release_ready", "cutover_verified", "signature_verified",
+  "eyebrow", "headline", "summary", "recorded_at", "checkpoint_sha256", "metrics", "gates",
+  "blockers", "sources", "limitations",
+]);
 
 const SECURITY_HEADERS = {
   "cache-control": "no-store",
@@ -30,11 +36,14 @@ function renderGate(item, index) {
 }
 
 export function renderConsoleHtml(status) {
-  const badge = status.release_ready ? "Release verified" : status.cutover_verified ? "Receipt pending" : "No-go · evidence incomplete";
+  const badge = status.status === "K0_VERIFIED_RECEIPT_PENDING"
+    ? status.signature_verified ? "Signature verified · recollection required" : "Bundle verified · recollection required"
+    : status.status === "NO_GO_VERIFICATION_FAILED" ? "No-go · verification failed" : "No-go · evidence incomplete";
   const metricCards = status.metrics.map((item) => `<div class="metric"><strong>${escapeHtml(item.value)}</strong><span>${escapeHtml(item.label)}</span></div>`).join("");
   const sources = status.sources.length
     ? status.sources.map((item) => `<a href="${escapeHtml(item.href)}" rel="noopener noreferrer">${escapeHtml(item.label)}<span>↗</span></a>`).join("")
     : "<p>No public evidence source is eligible.</p>";
+  const hashLabel = status.status === "K0_VERIFIED_RECEIPT_PENDING" ? "Manifest SHA-256" : "Checkpoint SHA-256";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -97,7 +106,7 @@ export function renderConsoleHtml(status) {
       <div class="panel"><div class="panel__kicker">Authoritative sequence</div><h2>Cutover gates</h2><ol class="gates">${status.gates.map(renderGate).join("")}</ol></div>
       <div class="side">
         <section class="panel"><div class="panel__kicker">Fail-closed state</div><h2>What still blocks release</h2><ul class="blockers">${status.blockers.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
-        <section class="panel"><div class="panel__kicker">Reconstructable proof</div><h2>External sources</h2><div class="sources">${sources}</div>${status.checkpoint_sha256 ? `<div class="hash">Checkpoint SHA-256<br>${escapeHtml(status.checkpoint_sha256)}</div>` : ""}</section>
+        <section class="panel"><div class="panel__kicker">Reconstructable proof</div><h2>External sources</h2><div class="sources">${sources}</div>${status.checkpoint_sha256 ? `<div class="hash">${hashLabel}<br>${escapeHtml(status.checkpoint_sha256)}</div>` : ""}</section>
       </div>
     </section>
     <footer><span>Scoped to one GitHub Actions workflow, one GCP service account, and one Cloud Run target.</span><span>${status.recorded_at ? `Observed ${escapeHtml(status.recorded_at)}` : "Verification stopped"}</span></footer>
@@ -111,7 +120,36 @@ function send(response, statusCode, contentType, body) {
   response.end(body);
 }
 
+function exactStatusFields(status) {
+  const keys = Reflect.ownKeys(status);
+  return Object.getPrototypeOf(status) === Object.prototype
+    && keys.length === STATUS_FIELDS.size
+    && keys.every((key) => typeof key === "string" && STATUS_FIELDS.has(key));
+}
+
+function validStateTuple(status) {
+  if (status.version !== 1 || status.release_ready !== false || status.cutover_verified !== false) return false;
+  if (status.status === "NO_GO_INCOMPLETE") {
+    return status.authorization === "INCOMPLETE" && status.signature_verified === false;
+  }
+  if (status.status === "NO_GO_VERIFICATION_FAILED") {
+    return status.authorization === "VERIFICATION_FAILED" && status.signature_verified === false;
+  }
+  return status.status === "K0_VERIFIED_RECEIPT_PENDING"
+    && status.authorization === "RECOLLECTION_REQUIRED"
+    && typeof status.signature_verified === "boolean";
+}
+
 export function createConsoleServer(status) {
+  let capturedStatus;
+  try {
+    capturedStatus = getUntamperedConsoleStatusSnapshot(status);
+  } catch {
+    throw new Error("console status is not fail-closed");
+  }
+  if (!exactStatusFields(capturedStatus) || !validStateTuple(capturedStatus)) {
+    throw new Error("console status is not fail-closed");
+  }
   return createServer((request, response) => {
     if (request.method === "GET" && request.url === "/healthz") {
       response.writeHead(204, SECURITY_HEADERS);
@@ -119,11 +157,11 @@ export function createConsoleServer(status) {
       return;
     }
     if (request.method === "GET" && request.url === "/api/status") {
-      send(response, 200, "application/json; charset=utf-8", `${JSON.stringify(status)}\n`);
+      send(response, 200, "application/json; charset=utf-8", `${JSON.stringify(capturedStatus)}\n`);
       return;
     }
     if (request.method === "GET" && request.url === "/") {
-      send(response, 200, "text/html; charset=utf-8", renderConsoleHtml(status));
+      send(response, 200, "text/html; charset=utf-8", renderConsoleHtml(capturedStatus));
       return;
     }
     send(response, 404, "application/json; charset=utf-8", '{"error":"not_found"}\n');
@@ -135,6 +173,7 @@ async function main() {
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("PORT is invalid");
   const status = await loadConsoleStatus({
     checkpointPath: process.env.KEYLESS_CHECKPOINT_PATH ?? "docs/evidence/K0_CHECKPOINT_2026-08-13.json",
+    bundlePath: process.env.KEYLESS_K0_BUNDLE_PATH,
     manifestPath: process.env.KEYLESS_K0_MANIFEST_PATH,
   });
   createConsoleServer(status).listen(port, "0.0.0.0", () => process.stdout.write(`keyless-console listening on ${port}\n`));

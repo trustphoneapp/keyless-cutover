@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -13,6 +14,21 @@ const checkpointPath = fileURLToPath(new URL("../docs/evidence/K0_CHECKPOINT_202
 const proofV2ReceiptPath = fileURLToPath(new URL("../docs/evidence/PROOFV2_RECEIPT_2026-08-14.json", import.meta.url));
 const predisableReceiptPath = fileURLToPath(new URL("../docs/evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json", import.meta.url));
 const disableReceiptPath = fileURLToPath(new URL("../docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json", import.meta.url));
+
+async function serveConsoleStatus(status) {
+  const server = createConsoleServer(status);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const [htmlResponse, apiResponse] = await Promise.all([
+      fetch(`http://127.0.0.1:${port}/`),
+      fetch(`http://127.0.0.1:${port}/api/status`),
+    ]);
+    return { html: await htmlResponse.text(), api: await apiResponse.json() };
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+}
 
 test("ProofV2 receipt is credential-free, checkpoint-bound, and hash-reconstructable", async () => {
   const [receiptBytes, checkpointBytes] = await Promise.all([
@@ -83,19 +99,23 @@ test("disable receipt binds the exact key, numeric service account, human actor,
   assert.equal(receipt.blockers.length, 3);
 });
 
-test("console derives an honest no-go view from the credential-free live checkpoint", async () => {
+test("console derives an honest no-go view from the credential-free historical checkpoint", async () => {
   const status = await loadConsoleStatus({ checkpointPath });
   assert.equal(status.status, "NO_GO_INCOMPLETE");
   assert.equal(status.release_ready, false);
   assert.equal(status.cutover_verified, false);
-  assert.equal(status.gates.length, 9);
+  assert.equal(status.gates.length, 10);
   assert.equal(status.blockers.length, 3);
   assert.match(status.checkpoint_sha256, /^[a-f0-9]{64}$/);
-  assert.equal(status.gates.find(({ label }) => label === "H2 wrong repository").state, "denied");
-  assert.equal(status.gates.find(({ label }) => label === "H1 foreign owner").state, "denied");
-  assert.equal(status.gates.find(({ label }) => label === "ProofV2 replay").state, "passed");
-  assert.equal(status.gates.find(({ label }) => label === "H3–H8 controls").state, "passed");
-  assert.equal(status.gates.find(({ label }) => label === "Human key disable").state, "passed");
+  assert.equal(status.gates.find(({ label }) => label === "H2 wrong repository").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "H1 foreign owner").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "ProofV2 replay").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "H3–H8 controls").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "Human key disable").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "Canonical pre-disable archive checkpoint").state, "missing");
+  assert.match(status.headline, /Historical evidence only/);
+  assert.match(status.summary, /cannot satisfy v3/);
+  assert.equal(status.blockers.some((item) => /Never re-enable the historical key/.test(item)), true);
 });
 
 test("console rejects a self-asserted success checkpoint instead of falling back", async () => {
@@ -106,6 +126,35 @@ test("console rejects a self-asserted success checkpoint instead of falling back
   assert.equal(status.status, "NO_GO_VERIFICATION_FAILED");
   assert.equal(status.release_ready, false);
   assert.equal(status.cutover_verified, false);
+});
+
+test("checkpoint FIFO fails closed without blocking, output, or fallback", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "keyless-console-fifo-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const fifoPath = join(directory, "checkpoint.fifo");
+  const created = spawnSync("mkfifo", [fifoPath], { encoding: "utf8" });
+  if (created.error?.code === "ENOENT") {
+    t.skip("mkfifo is unavailable");
+    return;
+  }
+  assert.equal(created.status, 0, created.stderr);
+  const statusModule = new URL("../console/status.mjs", import.meta.url).href;
+  const script = `
+    import { loadConsoleStatus } from ${JSON.stringify(statusModule)};
+    const status = await loadConsoleStatus({ checkpointPath: process.env.KEYLESS_TEST_FIFO });
+    if (status.status !== "NO_GO_VERIFICATION_FAILED" || status.release_ready !== false
+        || status.cutover_verified !== false || status.metrics.length !== 0) process.exitCode = 2;
+  `;
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    encoding: "utf8",
+    env: { ...process.env, KEYLESS_TEST_FIFO: fifoPath },
+    timeout: 2_000,
+    killSignal: "SIGKILL",
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "");
 });
 
 test("configured invalid K0 manifest fails closed and never uses checkpoint readiness", async () => {
@@ -141,6 +190,7 @@ test("console HTML escapes evidence-derived strings and contains no executable c
 test("console routes are read-only and return hardened response headers", async () => {
   const status = await loadConsoleStatus({ checkpointPath });
   const server = createConsoleServer(status);
+  status.release_ready = true;
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address();
   try {
@@ -151,7 +201,86 @@ test("console routes are read-only and return hardened response headers", async 
     assert.equal(page.headers.get("x-frame-options"), "DENY");
     const mutation = await fetch(`http://127.0.0.1:${port}/api/status`, { method: "POST" });
     assert.equal(mutation.status, 404);
+    const apiStatus = await (await fetch(`http://127.0.0.1:${port}/api/status`)).json();
+    assert.equal(apiStatus.release_ready, false);
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
+});
+
+test("console server rejects fabricated, promoted, or pre-capture mutated statuses", async () => {
+  const legitimate = await loadConsoleStatus({ checkpointPath });
+  const unbranded = structuredClone(legitimate);
+  const authorized = { ...unbranded,
+    status: "K0_VERIFIED_RECEIPT_PENDING", authorization: "AUTHORIZED", signature_verified: true };
+  const promotionField = { ...unbranded, final: true };
+  const fabricatedHeadline = { ...unbranded, headline: "GO" };
+  for (const status of [unbranded, authorized, promotionField, fabricatedHeadline]) {
+    assert.throws(() => createConsoleServer(status), /fail-closed/);
+  }
+
+  legitimate.headline = "GO";
+  assert.throws(() => createConsoleServer(legitimate), /fail-closed/);
+  const withExtraField = await loadConsoleStatus({ checkpointPath });
+  withExtraField.promotion = true;
+  assert.throws(() => createConsoleServer(withExtraField), /fail-closed/);
+});
+
+test("console serves only its private snapshot through stateful getters and proxies", async () => {
+  const headlineStatus = await loadConsoleStatus({ checkpointPath });
+  const safeHeadline = headlineStatus.headline;
+  let headlineReads = 0;
+  Object.defineProperty(headlineStatus, "headline", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      headlineReads += 1;
+      return headlineReads < 3 ? safeHeadline : "GO_GETTER_INJECTED";
+    },
+  });
+  const headlineServed = await serveConsoleStatus(headlineStatus);
+  assert.equal(headlineReads, 1);
+  assert.equal(headlineServed.api.headline, safeHeadline);
+  assert.doesNotMatch(headlineServed.html, /GO_GETTER_INJECTED/);
+
+  const nestedStatus = await loadConsoleStatus({ checkpointPath });
+  const safeDetail = nestedStatus.gates[0].detail;
+  let detailReads = 0;
+  Object.defineProperty(nestedStatus.gates[0], "detail", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      detailReads += 1;
+      return detailReads === 1 ? safeDetail : "GO_NESTED_INJECTED";
+    },
+  });
+  const nestedServed = await serveConsoleStatus(nestedStatus);
+  assert.equal(detailReads, 1);
+  assert.equal(nestedServed.api.gates[0].detail, safeDetail);
+  assert.doesNotMatch(nestedServed.html, /GO_NESTED_INJECTED/);
+
+  const proxyStatus = await loadConsoleStatus({ checkpointPath });
+  const originalMetrics = proxyStatus.metrics;
+  let metricReads = 0;
+  proxyStatus.metrics = new Proxy(originalMetrics, {
+    get(target, property, receiver) {
+      if (property === "0") {
+        metricReads += 1;
+        return metricReads === 1
+          ? Reflect.get(target, property, receiver)
+          : { value: "GO_PROXY_INJECTED", label: "injected" };
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+  const proxyServed = await serveConsoleStatus(proxyStatus);
+  assert.equal(metricReads, 1);
+  assert.deepEqual(proxyServed.api.metrics, originalMetrics);
+  assert.doesNotMatch(proxyServed.html, /GO_PROXY_INJECTED/);
+});
+
+test("legitimate unmodified verifier-failure status is accepted by the server", async () => {
+  const status = await loadConsoleStatus({ checkpointPath: "missing-checkpoint.json" });
+  assert.equal(status.status, "NO_GO_VERIFICATION_FAILED");
+  assert.doesNotThrow(() => createConsoleServer(status));
 });

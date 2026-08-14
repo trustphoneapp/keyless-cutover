@@ -1,15 +1,38 @@
 import { createHash } from "node:crypto";
+import { TextDecoder } from "node:util";
+import { isRfc3339 } from "./rfc3339.mjs";
 
 const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/;
 const EVIDENCE_ID = /^E[0-9]{3}$/;
-const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const ARTIFACT_FIELDS = new Set(["version", "id", "kind", "locator", "observed_at", "data"]);
+const UTF8 = new TextDecoder("utf-8", { fatal: true });
+
+function validUnicode(value) {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!Number.isInteger(next) || next < 0xdc00 || next > 0xdfff) return false;
+      index += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function checkedString(value) {
+  if (!validUnicode(value)) throw new Error("JSON string contains an invalid Unicode surrogate");
+  return value;
+}
 
 function normalize(value) {
-  if (value === null || typeof value === "boolean" || typeof value === "string") return value;
+  if (value === null || typeof value === "boolean") return value;
+  if (typeof value === "string") return checkedString(value);
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (Array.isArray(value)) return value.map(normalize);
   if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, normalize(value[key])]));
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [checkedString(key), normalize(value[key])]));
   }
   throw new Error("evidence contains a non-JSON value");
 }
@@ -18,11 +41,15 @@ export function canonicalJson(value) {
   return `${JSON.stringify(normalize(value))}\n`;
 }
 
+export function decodeUtf8(bytes) {
+  return UTF8.decode(bytes);
+}
+
 export function createEvidenceArtifact({ id, kind, locator, observed_at: observedAt, data }) {
   if (typeof id !== "string" || !EVIDENCE_ID.test(id)) throw new Error("evidence ID is invalid");
   if (typeof kind !== "string" || !kind) throw new Error("evidence kind is invalid");
   if (typeof locator !== "string" || !locator || /[\r\n]/.test(locator)) throw new Error("evidence locator is invalid");
-  if (typeof observedAt !== "string" || !TIMESTAMP.test(observedAt) || !Number.isFinite(Date.parse(observedAt))) {
+  if (!isRfc3339(observedAt)) {
     throw new Error("evidence observed_at is invalid");
   }
   const artifact = canonicalJson({ version: 1, id, kind, locator, observed_at: observedAt, data });
@@ -53,7 +80,13 @@ export async function verifyEvidenceArtifacts(manifest, readArtifact) {
       errors.push(`${entry.id} artifact exceeds the evidence budget`);
       continue;
     }
-    const text = raw.toString("utf8");
+    let text;
+    try {
+      text = decodeUtf8(raw);
+    } catch {
+      errors.push(`${entry.id} artifact is not valid UTF-8`);
+      continue;
+    }
     if (CREDENTIAL.test(text)) errors.push(`${entry.id} artifact contains credential-shaped material`);
     let parsed;
     try {
@@ -62,14 +95,19 @@ export async function verifyEvidenceArtifacts(manifest, readArtifact) {
       errors.push(`${entry.id} artifact is not JSON`);
       continue;
     }
-    let canonical;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)
+        || Object.keys(parsed).length !== ARTIFACT_FIELDS.size
+        || Object.keys(parsed).some((key) => !ARTIFACT_FIELDS.has(key))) {
+      errors.push(`${entry.id} artifact fields are invalid`);
+    }
+    let canonicalBytes;
     try {
-      canonical = canonicalJson(parsed);
+      canonicalBytes = Buffer.from(canonicalJson(parsed), "utf8");
     } catch {
       errors.push(`${entry.id} artifact contains a non-JSON value`);
       continue;
     }
-    if (text !== canonical) errors.push(`${entry.id} artifact is not canonical JSON`);
+    if (!raw.equals(canonicalBytes)) errors.push(`${entry.id} artifact is not canonical JSON`);
     if (parsed?.version !== 1 || parsed?.id !== entry.id || parsed?.kind !== entry.kind
         || parsed?.locator !== entry.locator || parsed?.observed_at !== entry.observed_at) {
       errors.push(`${entry.id} artifact envelope does not match the manifest`);
