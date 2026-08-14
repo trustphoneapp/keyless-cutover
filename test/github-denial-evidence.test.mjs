@@ -98,6 +98,16 @@ test("GitHub collector proves a hostile denial from API, artifact, and allowlist
     .every(({ authorization }) => authorization === undefined), true);
 });
 
+test("GitHub collector accepts a bounded OAuth token only for read-side evidence", async () => {
+  const { fetchImpl } = fixture();
+  const result = await collectGitHubDenialEvidence({
+    ...input,
+    installationToken: `gho_${"t".repeat(36)}`,
+    fetchImpl,
+  });
+  assert.equal(result.clientResult.error_category, "AUDIENCE_DENIED");
+});
+
 test("GitHub collector refuses a generic failure before the intended control", async () => {
   const { fetchImpl } = fixture("network timeout before authentication");
   await assert.rejects(collectGitHubDenialEvidence({ ...input, fetchImpl }), /does not prove/);

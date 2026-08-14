@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import AdmZip from "adm-zip";
-import { requireGitHubInstallationToken } from "./github-token.mjs";
+import { requireGitHubReadToken } from "./github-token.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -123,7 +123,7 @@ export async function collectGitHubDenialEvidence({
   exact(repository, REPOSITORY, "repository");
   exact(String(runId), NUMERIC, "run ID");
   if (!Object.hasOwn(JOBS, hostileId)) throw new Error("hostile ID is invalid");
-  const token = requireGitHubInstallationToken(installationToken);
+  const token = requireGitHubReadToken(installationToken);
   const ownerId = exact(scopeOwnerId, NUMERIC, "scope owner ID");
   const repositoryId = exact(scopeRepositoryId, NUMERIC, "scope repository ID");
   exact(forbiddenService, SERVICE, "forbidden service");

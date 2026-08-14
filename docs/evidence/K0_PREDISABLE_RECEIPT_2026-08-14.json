@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "status": "K0_PREDISABLE_VERIFIED",
+  "release_status": "NO_GO_INCOMPLETE",
+  "recorded_at": "2026-08-14T01:08:00.000Z",
+  "scope": {
+    "repository": "trustphoneapp/keyless-cutover",
+    "owner_id": "289479481",
+    "repository_id": "1332803088",
+    "project_id": "keyless-k0-20260813",
+    "project_number": "208865688014",
+    "service_account": "keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com",
+    "key_id": "253d40858619a76541f1b6374d157560cf8b14f6",
+    "allowed_service": "keyless-demo",
+    "forbidden_service": "keyless-forbidden"
+  },
+  "proof_v2": {
+    "receipt": "docs/evidence/PROOFV2_RECEIPT_2026-08-14.json",
+    "github_run_id": "31758449936",
+    "challenge_id": "2dda9f12-07fd-4255-8bcd-61aea76dabdb",
+    "proof_digest": "2035d7bd083a817edc243947863682279c36d0447a6cb9610040d31d80f62b66",
+    "receipt_sha256": "2c15dfc21c15dd245d652a1b6466a13ebea792e64bb1176e4cbf558a066bb123",
+    "reviewer": "cherala2002",
+    "verified": true,
+    "consumed": true,
+    "replay_rejected": true
+  },
+  "wif_1": {
+    "github_run_id": "31742708660",
+    "github_run_url": "https://github.com/trustphoneapp/keyless-cutover/actions/runs/31742708660",
+    "head_sha": "dd0def20bc49d7735199b15e49433b54fa5e3c47",
+    "reviewer": "cherala2002",
+    "revision": "keyless-demo-wif-1",
+    "revision_created_at": "2026-08-13T20:53:28.849Z",
+    "status": "READY"
+  },
+  "wif_readback": {
+    "provider": "projects/208865688014/locations/global/workloadIdentityPools/keyless-k0/providers/github",
+    "provider_state": "ACTIVE",
+    "provider_config_sha256": "7de2795228b563f421ba6f018de784099cc16f93aba19d141fd70ee6e791f0d8",
+    "impersonation_binding_sha256": "e74884e61ad91999b6baaeeccfa8862a9a2bd2511e6dae3b2416f882e7a6d2da",
+    "no_added_downstream_permissions": true
+  },
+  "hostile_tests": [
+    {
+      "id": "H1",
+      "identity_case": "WRONG_OWNER_ID",
+      "expected_control": "WIF_PROVIDER_CONDITION",
+      "repository": "cherala2002/keyless-h1-probe",
+      "owner_id": "214124322",
+      "repository_id": "1333546403",
+      "run_id": "31746236399",
+      "run_attempt": "1",
+      "artifact_id": "9199083881",
+      "artifact_json_sha256": "3a3ba3964ce035b291be560be19eb3c92b9527c3e79276e278652f9529d60ba2",
+      "log_sha256": "b7a9b56a2652cfe6d4ffc2c2f122e96801f88c0709fd10c50f6b3b9ff0f38267",
+      "outcome": "DENIED",
+      "reached_control": true
+    },
+    {
+      "id": "H2",
+      "identity_case": "WRONG_REPOSITORY_ID",
+      "expected_control": "WIF_PROVIDER_CONDITION",
+      "repository": "trustphoneapp/keyless-hostile",
+      "owner_id": "289479481",
+      "repository_id": "1333281314",
+      "run_id": "31717226551",
+      "run_attempt": "1",
+      "artifact_id": "9187755309",
+      "artifact_json_sha256": "df5742ba2c7b7bf40267db3a9b2ea0a1aa783d8f0a0079b98a00d6e9f23ef009",
+      "log_sha256": "6ae62be216a075e4043506bfd04b92d32d2511357f8b945abd1a793858bbf867",
+      "outcome": "DENIED",
+      "reached_control": true
+    },
+    {
+      "id": "H3",
+      "identity_case": "WRONG_REF",
+      "expected_control": "WIF_PROVIDER_CONDITION",
+      "repository": "trustphoneapp/keyless-cutover",
+      "run_id": "31743504333",
+      "run_attempt": "2",
+      "artifact_id": "9198260771",
+      "artifact_json_sha256": "23afab579a8aebf9281791aae2a6b585755467d7abd58dfeb1fb72e43035b89b",
+      "log_sha256": "cf442fb35276a582d44779569ad663d612544d5d2e3d40bfcfe1772679414a4b",
+      "outcome": "DENIED",
+      "reached_control": true
+    },
+    {
+      "id": "H4",
+      "identity_case": "WRONG_WORKFLOW_REF",
+      "expected_control": "WIF_PROVIDER_CONDITION",
+      "repository": "trustphoneapp/keyless-cutover",
+      "run_id": "31742708670",
+      "run_attempt": "1",
+      "artifact_id": "9197925843",
+      "artifact_json_sha256": "63723b5b50c776fa31c1c68fb5e4ec574ead7542e95df4ed2d4252d4d5bb5cec",
+      "log_sha256": "900e88ddf6f297ee2bdf09de7c7972fdf40b15097fa69bbed6b225b25cfe8399",
+      "outcome": "DENIED",
+      "reached_control": true
+    },
+    {
+      "id": "H5",
+      "identity_case": "WRONG_EVENT",
+      "expected_control": "WIF_PROVIDER_CONDITION",
+      "repository": "trustphoneapp/keyless-cutover",
+      "run_id": "31743503963",
+      "run_attempt": "1",
+      "artifact_id": "9198159553",
+      "artifact_json_sha256": "7f465629215d019c38dfb173308eb79d8cc8615d147b337f12d687e2b43ed73d",
+      "log_sha256": "148eaf5869d0d041dfecd5cf9cfdbe3d13f33d791a8e145fa699789e7f44d246",
+      "outcome": "DENIED",
+      "reached_control": true
+    },
+    {
+      "id": "H6",
+      "identity_case": "WRONG_ENVIRONMENT",
+      "expected_control": "WIF_PROVIDER_CONDITION",
+      "repository": "trustphoneapp/keyless-cutover",
+      "run_id": "31742708660",
+      "run_attempt": "1",
+      "artifact_id": "9197716647",
+      "artifact_json_sha256": "840f51c3590b80ec7f4b3c17d8a417b87f1c85cf4293b609ee7ec6cc377cfbe7",
+      "log_sha256": "39c51e9788f76f922f97d57ecce6a44af6aa9f62c5b30dfe69c10084b30feec9",
+      "outcome": "DENIED",
+      "reached_control": true
+    },
+    {
+      "id": "H7",
+      "identity_case": "WRONG_AUDIENCE",
+      "expected_control": "STS_AUDIENCE",
+      "repository": "trustphoneapp/keyless-cutover",
+      "run_id": "31742708660",
+      "run_attempt": "1",
+      "artifact_id": "9197853278",
+      "artifact_json_sha256": "13c3ac91ff71749fea377d84fb57703b0746e859d94b3abc40d49ed981c7d06a",
+      "log_sha256": "bc86fafa065d2246ed5a7806f4a3cc6b8a8d31f8f2539de9d19c3d6f67c1d7f5",
+      "outcome": "DENIED",
+      "reached_control": true
+    },
+    {
+      "id": "H8",
+      "identity_case": "FORBIDDEN_RESOURCE",
+      "expected_control": "CLOUD_RUN_IAM",
+      "repository": "trustphoneapp/keyless-cutover",
+      "run_id": "31742708660",
+      "run_attempt": "1",
+      "artifact_id": "9197857945",
+      "artifact_json_sha256": "82ce525cbf6cbe149f80b17de18982860c986fb4c16e4de54f58d46a29ee2117",
+      "log_sha256": "85740422e6ce0499179d25750e17ba2638aa380b0956634703d64f83625fae9f",
+      "outcome": "DENIED",
+      "reached_control": true
+    }
+  ],
+  "forbidden_target": {
+    "revision_before": "keyless-forbidden-00001-rvf",
+    "revision_after": "keyless-forbidden-00001-rvf",
+    "unchanged": true
+  },
+  "blockers": [
+    "independent human disable of the exact legacy key",
+    "fresh hosted legacy authentication rejection after disable",
+    "fresh post-disable WIF deployment creating wif-2",
+    "KMS-signed reconstructable final receipt"
+  ],
+  "limitations": [
+    "This receipt proves the bounded pre-disable state only; the legacy key is still enabled.",
+    "A successful denial means the named identity reached and was rejected at the named control; it is not a universal security claim.",
+    "Final K0 remains blocked until human disable, fresh legacy denial, post-disable WIF continuity, and KMS signature verification complete."
+  ]
+}

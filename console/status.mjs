@@ -8,6 +8,8 @@ import { verifyK0Manifest } from "../src/k0-manifest.mjs";
 const MAX_DOCUMENT_BYTES = 1_000_000;
 const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const SHA256 = /^[a-f0-9]{64}$/;
+const HOSTILE_IDS = ["H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"];
 
 function bounded(value, maximum = 500) {
   return typeof value === "string" && value.length > 0 && value.length <= maximum && !/[\r\n]/.test(value);
@@ -50,16 +52,28 @@ function checkpointStatus(bytes, checkpoint) {
   if (!REPOSITORY.test(checkpoint.repository?.full_name ?? "")) throw new Error("checkpoint repository is invalid");
   if (!Number.isInteger(checkpoint.repository?.cutover_pr) || checkpoint.repository.cutover_pr < 1
       || !bounded(checkpoint.gcp?.legacy_revision)
-      || !String(checkpoint.h2_wrong_repository?.github_run_url ?? "").startsWith("https://github.com/")) {
+      || !bounded(checkpoint.gcp?.wif_1_revision)
+      || !String(checkpoint.pre_disable?.wif_1_github_run_url ?? "").startsWith("https://github.com/")) {
     throw new Error("checkpoint public identifiers are invalid");
   }
   if (!Array.isArray(checkpoint.blockers) || checkpoint.blockers.length < 1 || checkpoint.blockers.length > 20
       || !checkpoint.blockers.every((item) => bounded(item))) throw new Error("checkpoint blockers are invalid");
+  const hostile = checkpoint.pre_disable?.hostile_tests;
+  if (checkpoint.pre_disable?.status !== "K0_PREDISABLE_VERIFIED"
+      || checkpoint.pre_disable?.hostile_controls_passed !== "8/8"
+      || checkpoint.pre_disable?.forbidden_revision_before !== checkpoint.pre_disable?.forbidden_revision_after
+      || !Array.isArray(hostile) || hostile.length !== 8
+      || hostile.some((item, index) => item?.id !== HOSTILE_IDS[index]
+        || !/^\d+$/.test(item?.run_id ?? "")
+        || item?.outcome !== "DENIED"
+        || item?.reached_control !== true
+        || !SHA256.test(item?.log_sha256 ?? ""))) {
+    throw new Error("checkpoint pre-disable evidence is invalid");
+  }
   if (checkpoint.wif_readback?.downstream_permission_added !== false
       || checkpoint.proof_v2?.firestore_consumed_once !== true
       || checkpoint.proof_v2?.replay_rejected !== true
-      || checkpoint.proof_v2?.authoritative_status !== "HOLD_INDEPENDENT_REVIEW_MISSING"
-      || checkpoint.h2_wrong_repository?.forbidden_revision_unchanged !== true
+      || checkpoint.proof_v2?.authoritative_status !== "VERIFIED_INDEPENDENT_REVIEW"
       || checkpoint.agent_eval?.pass !== true) throw new Error("checkpoint readiness facts are invalid");
   if (![checkpoint.agent_eval.supported, checkpoint.agent_eval.refusal, checkpoint.agent_eval.recovery, checkpoint.agent_eval.schema_valid].every((value) => bounded(value, 20))
       || !Number.isInteger(checkpoint.agent_eval.paired_gain) || checkpoint.agent_eval.paired_gain < 0
@@ -87,22 +101,25 @@ function checkpointStatus(bytes, checkpoint) {
     gates: [
       gate("Legacy baseline", "observed", checkpoint.gcp.legacy_revision),
       gate("WIF trust read-back", "observed", "No downstream permission added"),
-      gate("ProofV2 replay", "hold", "Consumed once; independent review missing"),
+      gate("ProofV2 replay", "passed", `Reviewed run ${checkpoint.proof_v2.github_run_id}; consumed once; replay rejected`),
       gate("Gemini necessity", "passed", "Sealed release evaluation passed"),
-      gate("H1 foreign owner", "missing", "Not run"),
-      gate("H2 wrong repository", "denied", `GitHub run ${checkpoint.h2_wrong_repository.github_run_id}`),
-      gate("H3–H8 controls", "missing", "Protected cutover required"),
+      gate("H1 foreign owner", "denied", `GitHub run ${hostile[0].run_id}`),
+      gate("H2 wrong repository", "denied", `GitHub run ${hostile[1].run_id}`),
+      gate("H3–H8 controls", "passed", "Six intended controls reached and denied"),
       gate("Disable + WIF continuity", "missing", "Human action required"),
     ],
     blockers: [...checkpoint.blockers],
     sources: [
       { label: "Cumulative release PR", href: `https://github.com/${owner}/${repo}/pull/11` },
       { label: "Compiler-produced cutover PR", href: `https://github.com/${owner}/${repo}/pull/${checkpoint.repository.cutover_pr}` },
-      { label: "Live H2 denial run", href: checkpoint.h2_wrong_repository.github_run_url },
+      { label: "Reviewed ProofV2 run", href: `https://github.com/${owner}/${repo}/actions/runs/${checkpoint.proof_v2.github_run_id}` },
+      { label: "Live WIF-1 and H6–H8 run", href: checkpoint.pre_disable.wif_1_github_run_url },
+      { label: "Live H1 denial run", href: "https://github.com/cherala2002/keyless-h1-probe/actions/runs/31746236399" },
     ],
     limitations: [
-      "ProofV2 is readiness evidence until an independent protected-environment review exists.",
+      "ProofV2 proves the reviewed exact-key handoff only; WIF cutover evidence is recorded separately.",
       "The legacy key remains enabled; no completed cutover is claimed.",
+      "H1–H8 prove only the named identities and controls during their recorded runs.",
       "A model output never decides authorization, denial, or receipt completeness.",
     ],
   };

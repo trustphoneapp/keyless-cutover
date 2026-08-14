@@ -2,16 +2,16 @@
 
 This runbook is the human gate for the live Keyless K0 transaction. It does not authorize anyone to share a browser authorization code, private key, GitHub secret, access token, ID token, or application token. Keyless never needs those values in chat, a pull-request comment, or an evidence artifact.
 
-## Historical stop state before the reviewed ProofV2 milestone
+## Historical stop state before the reviewed ProofV2 milestone — superseded
 
-- `release/live-agent-v2` is the cumulative non-cutover release candidate in PR #11.
-- `keyless/k0-live` is the compiler-produced WIF cutover in draft PR #3.
-- `KEYLESS_K0_ENABLED` remains `false`.
+- `release/live-agent-v2` was the cumulative non-cutover release candidate in PR #11.
+- `keyless/k0-live` was the compiler-produced WIF cutover in draft PR #3.
+- `KEYLESS_K0_ENABLED` was `false`.
 - The exact legacy service-account key remains enabled.
-- H2 is proven. H1 and H3–H8 are not complete.
-- No reviewer other than the repository owner currently has qualifying authority.
+- At that checkpoint H2 was proven while H1 and H3–H8 were incomplete.
+- At that checkpoint no reviewer other than the repository owner had qualifying authority.
 
-Do not merge PR #3, enable the K0 workflows, or disable the key until the authority setup below is complete.
+Those historical conditions are superseded. PR #3 is merged, `KEYLESS_K0_ENABLED` is `true`, `wif-1` is live, reviewed ProofV2 passed, and deterministic collectors prove H1–H8 with the forbidden revision unchanged. The key remains enabled. Continue only from the human key-disable gate below; do not repeat the completed pre-disable actions.
 
 ## Required independent person
 
