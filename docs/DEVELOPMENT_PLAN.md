@@ -56,7 +56,7 @@ Stop if the exact key remains ambiguous, any replay wins twice, or private mater
 4. Merge the static-key → WIF patch and deploy `wif-1`.
 5. Execute H1–H8 at their intended controls.
 6. Verify `keyless-forbidden` is unchanged.
-7. Independent human disables the exact key.
+7. Separately authenticated human GCP operator disables the exact key after independent GitHub review.
 8. Re-read `disabled: true` through Google.
 9. Dispatch the separate protected `k0-legacy-auth-check.yml` workflow on a fresh hosted runner, force a new online Google token/API request with the legacy key, and observe a Google key-related denial. The canonical deploy workflow has already been replaced and cannot provide this probe.
 10. On another fresh run, deploy `wif-2` through OIDC/WIF.
@@ -81,7 +81,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current live progress through August 14: C0–C2 and the pre-disable portion of C3 are complete. Independently approved ProofV2 passed, the exact WIF workflow is merged, `wif-1` is live, and deterministic collectors prove H1–H8 at their intended controls with the forbidden revision unchanged. A private Cloud Run ADK service, a real dual-auth Vertex call, the public fail-closed console, and the passing 72-call sealed evaluation also exist. C3 remains incomplete because the human key disable, fresh legacy rejection, and post-disable `wif-2` are still missing.
+Current live progress through August 14: C0–C2 and the human-disable portion of C3 are complete. Independently approved ProofV2 passed, the exact WIF workflow is merged, `wif-1` is live, deterministic collectors prove H1–H8 at their intended controls with the forbidden revision unchanged, and the exact legacy key is disabled with matching human Admin Activity. A private Cloud Run ADK service, a real dual-auth Vertex call, the public fail-closed console, and the passing 72-call sealed evaluation also exist. C3 remains incomplete because fresh legacy rejection and post-disable `wif-2` are still missing.
 
 ## Calendar
 

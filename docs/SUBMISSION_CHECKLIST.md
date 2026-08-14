@@ -32,8 +32,8 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 - [x] H8 reaches forbidden-resource Cloud Run IAM and denies.
 - [x] Every hostile artifact/run/log agrees; forbidden revision is unchanged.
 - [x] Pre-disable receipt reconstruction passes with no missing hostile control.
-- [ ] Independent operator disables—not deletes—the exact key.
-- [ ] Live key read-back says disabled; one exact human Admin Activity entry agrees.
+- [x] Separately authenticated human GCP operator disables—not deletes—the exact key after independent GitHub review.
+- [x] Live key read-back says disabled; one exact human Admin Activity entry agrees.
 - [ ] Fresh hosted legacy probe reaches Google and receives recognized key/auth denial.
 - [ ] Fresh hosted WIF run creates `wif-2`.
 - [ ] Credential scan is clean; `npm run verify:k0` passes from artifact bytes.

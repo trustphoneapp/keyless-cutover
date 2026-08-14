@@ -7,32 +7,35 @@ This runbook is the human gate for the live Keyless K0 transaction. It does not 
 - `release/live-agent-v2` was the cumulative non-cutover release candidate in PR #11.
 - `keyless/k0-live` was the compiler-produced WIF cutover in draft PR #3.
 - `KEYLESS_K0_ENABLED` was `false`.
-- The exact legacy service-account key remains enabled.
+- The exact legacy service-account key remained enabled.
 - At that checkpoint H2 was proven while H1 and H3–H8 were incomplete.
 - At that checkpoint no reviewer other than the repository owner had qualifying authority.
 
-Those historical conditions are superseded. PR #3 is merged, `KEYLESS_K0_ENABLED` is `true`, `wif-1` is live, reviewed ProofV2 passed, and deterministic collectors prove H1–H8 with the forbidden revision unchanged. The key remains enabled. Continue only from the human key-disable gate below; do not repeat the completed pre-disable actions.
+Those historical conditions are superseded. PR #3 is merged, `KEYLESS_K0_ENABLED` is `true`, `wif-1` is live, reviewed ProofV2 passed, deterministic collectors prove H1–H8 with the forbidden revision unchanged, and the exact key is now disabled with matching human Admin Activity. Continue only from the fresh legacy-auth probe and post-disable WIF steps below; do not repeat the completed pre-disable actions or key-disable mutation.
 
-## Required independent person
+## Required independent GitHub reviewer
 
 Use one GitHub account whose numeric user ID differs from actor/owner ID `289479481`. The person must:
 
 1. accept write access to `trustphoneapp/keyless-cutover` so GitHub counts the review;
 2. review from their own account, not a shared session;
 3. be the required reviewer for the `production` environment with prevent-self-review enabled;
-4. own the separate H1 repository, so its numeric owner ID is genuinely different; and
-5. perform the exact key-disable action only after the pre-disable evidence gate passes.
+4. own the separate H1 repository, so its numeric owner ID is genuinely different.
 
-Grant only the permissions required for those duties. Do not grant project Owner, IAM Admin, service-account Token Creator, repository secrets access, or runtime-agent mutation authority. The GCP key operator needs `roles/iam.serviceAccountKeyAdmin` on the exact disposable deployment service account only.
+Grant only the permissions required for those GitHub duties. Do not grant the GitHub reviewer project Owner, IAM Admin, service-account Token Creator, repository secrets access, or runtime-agent mutation authority.
+
+## Separate human GCP key operator
+
+The key operator is a separately authenticated human boundary from the Keyless runtime and may be distinct from the independent GitHub reviewer. The operator receives a fresh exact-key approval only after the reviewed merge and pre-disable evidence pass, disables—not deletes—the exact key, and appears as the human principal in Admin Activity. The Keyless runtime cannot hold or use this identity. If delegated, scope `roles/iam.serviceAccountKeyAdmin` to the exact disposable deployment service account only; the K0 owner account used for this transaction was `yashwanth.surabhi@gmail.com`.
 
 ## Authority setup
 
-The project owner records the reviewer's GitHub login, numeric GitHub user ID, and GCP principal. Before continuing, independently read back:
+The project owner records the reviewer's GitHub login and numeric GitHub user ID, plus the separate key operator's GCP principal. Before continuing, independently read back:
 
 - repository collaborator permission is `write`;
 - `main` still requires CI, one approval, last-pusher approval, stale-review dismissal, and linear history;
 - `production` requires the independent reviewer, prevents self-review, and allows protected branches only; and
-- the GCP key role is scoped to the exact deployment service account.
+- the GCP key operator is an explicit human identity outside the Keyless runtime and has disable plus rollback authority for the exact deployment key.
 
 If any read-back is ambiguous, stop. Never work around a missing reviewer by weakening branch or environment protection.
 

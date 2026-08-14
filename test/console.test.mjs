@@ -12,6 +12,7 @@ import { loadConsoleStatus } from "../console/status.mjs";
 const checkpointPath = fileURLToPath(new URL("../docs/evidence/K0_CHECKPOINT_2026-08-13.json", import.meta.url));
 const proofV2ReceiptPath = fileURLToPath(new URL("../docs/evidence/PROOFV2_RECEIPT_2026-08-14.json", import.meta.url));
 const predisableReceiptPath = fileURLToPath(new URL("../docs/evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json", import.meta.url));
+const disableReceiptPath = fileURLToPath(new URL("../docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json", import.meta.url));
 
 test("ProofV2 receipt is credential-free, checkpoint-bound, and hash-reconstructable", async () => {
   const [receiptBytes, checkpointBytes] = await Promise.all([
@@ -61,18 +62,40 @@ test("pre-disable receipt binds WIF-1, all hostile controls, and the unchanged f
   assert.equal(receipt.blockers.length, 4);
 });
 
+test("disable receipt binds the exact key, numeric service account, human actor, and checkpoint", async () => {
+  const [receiptBytes, checkpointBytes] = await Promise.all([
+    readFile(disableReceiptPath),
+    readFile(checkpointPath),
+  ]);
+  const receiptText = receiptBytes.toString("utf8");
+  assert.doesNotMatch(receiptText, /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/);
+  const receipt = JSON.parse(receiptText);
+  const checkpoint = JSON.parse(checkpointBytes.toString("utf8"));
+  assert.equal(receipt.status, "KEY_DISABLED_OBSERVED");
+  assert.equal(receipt.key_readback.disabled, true);
+  assert.equal(receipt.scope.key_id, checkpoint.key_disable.key_id);
+  assert.equal(receipt.scope.service_account_unique_id, checkpoint.key_disable.service_account_unique_id);
+  assert.equal(receipt.admin_activity.principal_email, checkpoint.key_disable.human_actor);
+  assert.equal(receipt.admin_activity.resource_name, checkpoint.key_disable.audit_resource);
+  assert.equal(receipt.admin_activity.insert_id, checkpoint.key_disable.audit_insert_id);
+  assert.equal(receipt.admin_activity.resource_name,
+    `projects/-/serviceAccounts/${receipt.scope.service_account_unique_id}/keys/${receipt.scope.key_id}`);
+  assert.equal(receipt.blockers.length, 3);
+});
+
 test("console derives an honest no-go view from the credential-free live checkpoint", async () => {
   const status = await loadConsoleStatus({ checkpointPath });
   assert.equal(status.status, "NO_GO_INCOMPLETE");
   assert.equal(status.release_ready, false);
   assert.equal(status.cutover_verified, false);
-  assert.equal(status.gates.length, 8);
-  assert.equal(status.blockers.length, 4);
+  assert.equal(status.gates.length, 9);
+  assert.equal(status.blockers.length, 3);
   assert.match(status.checkpoint_sha256, /^[a-f0-9]{64}$/);
   assert.equal(status.gates.find(({ label }) => label === "H2 wrong repository").state, "denied");
   assert.equal(status.gates.find(({ label }) => label === "H1 foreign owner").state, "denied");
   assert.equal(status.gates.find(({ label }) => label === "ProofV2 replay").state, "passed");
   assert.equal(status.gates.find(({ label }) => label === "H3–H8 controls").state, "passed");
+  assert.equal(status.gates.find(({ label }) => label === "Human key disable").state, "passed");
 });
 
 test("console rejects a self-asserted success checkpoint instead of falling back", async () => {

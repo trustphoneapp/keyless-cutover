@@ -78,7 +78,7 @@ The initial failure was not discarded: it exposed that the model treated the leg
 
 The passing local artifact is mode `0600`, contains 24 cases and 72 attempts, and passes a credential-shape scan. It is not committed because raw model outputs are evaluation evidence, not product source. A final independent reviewer must still hash and hold the frozen corpus and rerun the scorer before release.
 
-The hash-bound evidence summary is [Agent evaluation evidence](evidence/AGENT_EVAL_2026-08-13.md). The independently reviewed exact-key transaction is recorded in the [ProofV2 receipt](evidence/PROOFV2_RECEIPT_2026-08-14.json). Live `wif-1` and H1–H8 reconstruction are recorded in the [pre-disable receipt](evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json). The overall non-final live transaction remains the [K0 checkpoint](evidence/K0_CHECKPOINT_2026-08-13.json).
+The hash-bound evidence summary is [Agent evaluation evidence](evidence/AGENT_EVAL_2026-08-13.md). The independently reviewed exact-key transaction is recorded in the [ProofV2 receipt](evidence/PROOFV2_RECEIPT_2026-08-14.json). Live `wif-1` and H1–H8 reconstruction are recorded in the [pre-disable receipt](evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json). Exact key state plus the canonical numeric-service-account Admin Activity entry are recorded in the [disable receipt](evidence/K0_DISABLE_RECEIPT_2026-08-14.json). The overall non-final live transaction remains the [K0 checkpoint](evidence/K0_CHECKPOINT_2026-08-13.json).
 
 ## Typed model boundary
 

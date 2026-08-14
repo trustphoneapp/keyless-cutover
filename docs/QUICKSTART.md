@@ -16,7 +16,7 @@ npm test
 npm audit --omit=dev --audit-level=high
 ```
 
-The current release candidate has 58 deterministic tests and zero known production dependency vulnerabilities at the configured audit threshold. The test suite also fails on unreviewed dependency-tree problems, unpinned workflow actions, an unpinned ProofV2 runtime, hidden proof-artifact paths, package-manager tooling in final containers, absent/self environment review, ambiguous proof artifacts, mismatched consumed digests, or accepted replay.
+The current release candidate has 61 deterministic tests and zero known production dependency vulnerabilities at the configured audit threshold. The test suite also fails on unreviewed dependency-tree problems, unpinned workflow actions, an unpinned ProofV2 runtime, hidden proof-artifact paths, package-manager tooling in final containers, absent/self environment review, ambiguous proof artifacts, mismatched consumed digests, accepted replay, mismatched numeric service-account audit identity, or failed disable Admin Activity.
 
 ## Validate deterministic artifacts
 
