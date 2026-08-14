@@ -30,6 +30,7 @@ This is a set of twenty projects from two comparable events, not twenty separate
 - [GitHub OIDC reference](https://docs.github.com/en/actions/reference/security/oidc)
 - [OIDC with Google Cloud](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-google-cloud-platform)
 - [Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
+- [Reviewing protected deployments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)
 - [Secure use and immutable action pinning](https://docs.github.com/en/actions/reference/security/secure-use)
 - [GitHub App permission selection](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app)
 - [Actions secrets API](https://docs.github.com/en/rest/actions/secrets)

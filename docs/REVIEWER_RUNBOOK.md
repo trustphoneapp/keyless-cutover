@@ -2,7 +2,7 @@
 
 This runbook is the human gate for the live Keyless K0 transaction. It does not authorize anyone to share a browser authorization code, private key, GitHub secret, access token, ID token, or application token. Keyless never needs those values in chat, a pull-request comment, or an evidence artifact.
 
-## Current stop state
+## Historical stop state before the reviewed ProofV2 milestone
 
 - `release/live-agent-v2` is the cumulative non-cutover release candidate in PR #11.
 - `keyless/k0-live` is the compiler-produced WIF cutover in draft PR #3.
@@ -35,6 +35,41 @@ The project owner records the reviewer's GitHub login, numeric GitHub user ID, a
 - the GCP key role is scoped to the exact deployment service account.
 
 If any read-back is ambiguous, stop. Never work around a missing reviewer by weakening branch or environment protection.
+
+## Reviewed ProofV2 operator transaction
+
+The operator uses two separate commands so issuance cannot silently dispatch a workflow and verification cannot silently create a challenge. `issue` performs exactly one Firestore document creation and prints only the five bounded workflow inputs. `verify` is read-only in GitHub and Google IAM until the signed proof, exact completed run, workflow blob, and independent environment approval all agree; only then does it atomically transition the same challenge from `ISSUED` to `CONSUMED` and prove a second consume is rejected.
+
+1. Reconfirm `main`, CI, the production reviewer, exact active user-managed key, repository/owner IDs, and five-minute operator scope.
+2. With explicit Firestore-write permission, run the issue command once. Do not issue early: expiry is exactly five minutes.
+
+   ```sh
+   npm run proofv2 -- issue \
+     --project-id keyless-k0-20260813 \
+     --migration-id k0-proofv2-reviewed \
+     --owner-id 289479481 \
+     --repository-id 1332803088 \
+     --workflow-path .github/workflows/k0-proof-v2.yml \
+     --client-email keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com
+   ```
+
+3. With separate workflow-dispatch permission, dispatch `k0-proof-v2.yml` using exactly the five printed values and `ref=main`.
+4. `cherala2002` opens the pending run and selects **Review deployments → production → Approve and deploy**. GitHub does not expose the environment secret to the job before this approval.
+5. After completion, set `KEYLESS_GITHUB_TOKEN` from a bounded read-capable GitHub token and run the verify command. Never pass a token on the command line.
+
+   ```sh
+   export KEYLESS_GITHUB_TOKEN="$(gh auth token)"
+   npm run proofv2 -- verify \
+     --project-id keyless-k0-20260813 \
+     --owner trustphoneapp \
+     --repository keyless-cutover \
+     --run-id RUN_ID_FROM_GITHUB \
+     --workflow-path .github/workflows/k0-proof-v2.yml
+   unset KEYLESS_GITHUB_TOKEN
+   ```
+6. Preserve the credential-free receipt and GitHub run/artifact/environment-review identifiers. Re-query Firestore and Google IAM independently.
+
+Stop on expiry, multiple matching artifacts, absent/self approval, wrong workflow/ref/run, disabled or mismatched key, certificate failure, Firestore contention, accepted replay, or any credential-shaped artifact. Never re-dispatch an expired challenge and never create a replacement challenge without a new explicit write permission.
 
 ## Merge sequence
 

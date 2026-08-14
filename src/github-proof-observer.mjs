@@ -1,4 +1,4 @@
-import { requireGitHubInstallationToken } from "./github-token.mjs";
+import { requireGitHubReadToken } from "./github-token.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -38,7 +38,7 @@ function workflowSource(content) {
 
 function approvedEnvironment(reviews, environment, actorId) {
   if (!Array.isArray(reviews)) throw new Error("GitHub review history is invalid");
-  return reviews.some((review) => review?.state === "approved"
+  return reviews.find((review) => review?.state === "approved"
     && String(review?.user?.id) !== actorId
     && review.environments?.some(({ name }) => name === environment));
 }
@@ -57,7 +57,7 @@ export async function fetchGitHubProofObservation({
   exact(String(runId), RUN_ID, "run_id");
   exact(workflowPath, WORKFLOW_PATH, "workflow_path");
   exact(environment, /^[A-Za-z0-9_-]{1,64}$/, "environment");
-  requireGitHubInstallationToken(token);
+  requireGitHubReadToken(token);
   const base = `https://api.github.com/repos/${owner}/${repository}`;
   const run = await json(`${base}/actions/runs/${runId}`, token, fetchImpl);
   if (String(run?.id) !== String(runId) || run?.status !== "completed" || run?.conclusion !== "success") {
@@ -79,7 +79,8 @@ export async function fetchGitHubProofObservation({
     throw new Error("proof workflow does not use the expected environment");
   }
   const actorId = exact(String(run?.actor?.id), RUN_ID, "actor_id");
-  if (!approvedEnvironment(reviews, environment, actorId)) {
+  const approval = approvedEnvironment(reviews, environment, actorId);
+  if (!approval) {
     throw new Error("independent environment approval is missing");
   }
   const ref = `refs/heads/${exact(run.head_branch, /^[A-Za-z0-9._/-]+$/, "head_branch")}`;
@@ -98,5 +99,11 @@ export async function fetchGitHubProofObservation({
     ref,
     environment,
     runner_environment: "github-hosted",
+    environment_review: {
+      state: "approved",
+      environment,
+      reviewer_id: exact(String(approval.user.id), RUN_ID, "reviewer_id"),
+      reviewer_login: exact(approval.user.login, /^[A-Za-z0-9-]{1,39}$/, "reviewer_login"),
+    },
   };
 }
