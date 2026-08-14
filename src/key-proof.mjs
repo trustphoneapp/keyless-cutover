@@ -242,6 +242,27 @@ function googleKeyMatches(googleKey, expected) {
   );
 }
 
+export async function verifyGoogleKeyProofAuthority({
+  proof,
+  challenge,
+  observed,
+  getGoogleKey,
+  fetchImpl = fetch,
+  now = new Date(),
+}) {
+  if (typeof getGoogleKey !== "function") throw new Error("an authenticated Google key reader is required");
+  if (!challenge || !["ISSUED", "CONSUMED"].includes(challenge.status)) {
+    throw new Error("challenge status is invalid");
+  }
+  const expected = expectedKeyProofContext({ ...challenge, status: "ISSUED" }, observed, proof?.private_key_id);
+  const googleKey = await getGoogleKey({
+    client_email: expected.client_email,
+    private_key_id: expected.private_key_id,
+  });
+  if (!googleKeyMatches(googleKey, expected)) return false;
+  return verifyGoogleKeyProof(proof, expected, fetchImpl, now);
+}
+
 export async function verifyAndConsumeGoogleKeyProof({
   proof,
   challenge,
@@ -252,19 +273,13 @@ export async function verifyAndConsumeGoogleKeyProof({
   now = new Date(),
 }) {
   if (typeof consume !== "function") throw new Error("an atomic challenge consumer is required");
-  if (typeof getGoogleKey !== "function") throw new Error("an authenticated Google key reader is required");
-  const expected = expectedKeyProofContext(challenge, observed, proof?.private_key_id);
-  const googleKey = await getGoogleKey({
-    client_email: expected.client_email,
-    private_key_id: expected.private_key_id,
-  });
-  if (!googleKeyMatches(googleKey, expected)) return false;
-  if (!await verifyGoogleKeyProof(proof, expected, fetchImpl, now)) return false;
+  if (challenge?.status !== "ISSUED") throw new Error("challenge is not issued");
+  if (!await verifyGoogleKeyProofAuthority({ proof, challenge, observed, getGoogleKey, fetchImpl, now })) return false;
   return (await consume({
-    challenge_id: expected.challenge_id,
+    challenge_id: challenge.challenge_id,
     expected_status: "ISSUED",
     consumed_status: "CONSUMED",
-    proof_digest: expectedDigest(proof),
+    proof_digest: keyProofDigest(proof),
   })) === true;
 }
 
@@ -293,7 +308,7 @@ export async function verifyStoredGoogleKeyProof({
   });
 }
 
-function expectedDigest(proof) {
+export function keyProofDigest(proof) {
   return createHash("sha256")
     .update(JSON.stringify(proof, Object.keys(proof).sort()))
     .digest("hex");

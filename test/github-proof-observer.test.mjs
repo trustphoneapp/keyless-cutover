@@ -29,13 +29,13 @@ const run = {
   },
 };
 
-function fetchFixture({ approved = true, path = run.path } = {}) {
+function fetchFixture({ approved = true, path = run.path, reviewerId = 444 } = {}) {
   return async (url) => {
     let value;
     if (url.includes("/contents/")) {
       value = { encoding: "base64", content: Buffer.from(workflow).toString("base64"), sha: "a".repeat(40) };
     } else if (url.endsWith("/approvals")) {
-      value = approved ? [{ state: "approved", user: { id: 444 }, environments: [{ name: "production" }] }] : [];
+      value = approved ? [{ state: "approved", user: { id: reviewerId, login: "reviewer" }, environments: [{ name: "production" }] }] : [];
     } else {
       value = { ...run, path };
     }
@@ -69,6 +69,12 @@ test("GitHub observer rebuilds proof context from completed run, blob, and indep
     ref: "refs/heads/main",
     environment: "production",
     runner_environment: "github-hosted",
+    environment_review: {
+      state: "approved",
+      environment: "production",
+      reviewer_id: "444",
+      reviewer_login: "reviewer",
+    },
   });
 });
 
@@ -79,6 +85,10 @@ test("GitHub observer fails closed on wrong workflow or self-approval", async ()
   );
   await assert.rejects(
     fetchGitHubProofObservation({ ...input, fetchImpl: fetchFixture({ approved: false }) }),
+    /approval/,
+  );
+  await assert.rejects(
+    fetchGitHubProofObservation({ ...input, fetchImpl: fetchFixture({ reviewerId: run.actor.id }) }),
     /approval/,
   );
 });
