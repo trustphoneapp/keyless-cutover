@@ -1,25 +1,49 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { resolve } from "node:path";
 
-import { verifyK0EvidenceSemantics } from "../src/k0-evidence-semantics.mjs";
-import { verifyK0Manifest } from "../src/k0-manifest.mjs";
+import { readBoundedFile, readK0BundleDirectory } from "../src/k0-bundle-files.mjs";
+import { verifyKmsSignature } from "../src/k0-kms.mjs";
+import { createK0Receipt, verifyK0Receipt } from "../src/k0-receipt.mjs";
 
 const MAX_DOCUMENT_BYTES = 1_000_000;
+const MAX_SIDECAR_BYTES = 16_384;
 const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
 const NUMERIC = /^\d+$/;
 const HOSTILE_IDS = ["H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"];
+const CONSOLE_STATUS_SNAPSHOTS = new WeakMap();
+
+function recordConsoleStatus(status) {
+  const snapshot = structuredClone(status);
+  CONSOLE_STATUS_SNAPSHOTS.set(status, {
+    snapshot,
+    fingerprint: createHash("sha256").update(JSON.stringify(snapshot)).digest("hex"),
+  });
+  return status;
+}
+
+export function getUntamperedConsoleStatusSnapshot(status) {
+  try {
+    if (status === null || typeof status !== "object" || !CONSOLE_STATUS_SNAPSHOTS.has(status)) {
+      throw new Error("console status provenance is invalid");
+    }
+    const recorded = CONSOLE_STATUS_SNAPSHOTS.get(status);
+    const fingerprint = createHash("sha256").update(JSON.stringify(status)).digest("hex");
+    if (fingerprint !== recorded.fingerprint) throw new Error("console status was mutated");
+    return structuredClone(recorded.snapshot);
+  } catch {
+    throw new Error("console status provenance is invalid");
+  }
+}
 
 function bounded(value, maximum = 500) {
   return typeof value === "string" && value.length > 0 && value.length <= maximum && !/[\r\n]/.test(value);
 }
 
 async function readBoundedJson(path) {
-  const bytes = await readFile(resolve(path));
-  if (bytes.length > MAX_DOCUMENT_BYTES) throw new Error("status input is too large");
+  const bytes = await readBoundedFile(resolve(path), MAX_DOCUMENT_BYTES);
   const text = bytes.toString("utf8");
   if (CREDENTIAL.test(text)) throw new Error("status input contains credential-shaped material");
   return { bytes, value: JSON.parse(text) };
@@ -33,8 +57,10 @@ function failedStatus(code = "CHECKPOINT_REJECTED") {
   return {
     version: 1,
     status: "NO_GO_VERIFICATION_FAILED",
+    authorization: "VERIFICATION_FAILED",
     release_ready: false,
     cutover_verified: false,
+    signature_verified: false,
     eyebrow: "Evidence verification stopped",
     headline: "No proof, no green light.",
     summary: "The configured evidence could not be verified. Keyless failed closed and published no security outcome.",
@@ -100,11 +126,13 @@ function checkpointStatus(bytes, checkpoint) {
   return {
     version: 1,
     status: "NO_GO_INCOMPLETE",
+    authorization: "INCOMPLETE",
     release_ready: false,
     cutover_verified: false,
-    eyebrow: "Live K0 checkpoint",
-    headline: "Remove the key. Prove what still works.",
-    summary: "The exact legacy key is disabled and independently observed, but Keyless will not claim a completed cutover until fresh legacy rejection and post-disable WIF continuity are proven.",
+    signature_verified: false,
+    eyebrow: "Historical K0 readiness checkpoint",
+    headline: "Historical evidence only. Start a fresh v3 transaction.",
+    summary: "This key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged. The recorded transaction cannot satisfy v3 and must not be resumed by re-enabling that key.",
     recorded_at: new Date(checkpoint.recorded_at).toISOString(),
     checkpoint_sha256: createHash("sha256").update(bytes).digest("hex"),
     metrics: [
@@ -114,41 +142,41 @@ function checkpointStatus(bytes, checkpoint) {
       { value: checkpoint.agent_eval.schema_valid, label: "schema-valid calls" },
     ],
     gates: [
-      gate("Legacy baseline", "observed", checkpoint.gcp.legacy_revision),
-      gate("WIF trust read-back", "observed", "No downstream permission added"),
-      gate("ProofV2 replay", "passed", `Reviewed run ${checkpoint.proof_v2.github_run_id}; consumed once; replay rejected`),
+      gate("Legacy baseline", "historical", checkpoint.gcp.legacy_revision),
+      gate("WIF trust read-back", "historical", "No downstream permission added in the recorded run"),
+      gate("ProofV2 replay", "historical", `Reviewed run ${checkpoint.proof_v2.github_run_id}; consumed once; replay rejected`),
       gate("Gemini necessity", "passed", "Sealed release evaluation passed"),
-      gate("H1 foreign owner", "denied", `GitHub run ${hostile[0].run_id}`),
-      gate("H2 wrong repository", "denied", `GitHub run ${hostile[1].run_id}`),
-      gate("H3–H8 controls", "passed", "Six intended controls reached and denied"),
-      gate("Human key disable", "passed", `Key ${keyDisable.key_id}; actor ${keyDisable.human_actor}`),
-      gate("Fresh legacy + WIF continuity", "missing", "Hosted post-disable runs required"),
+      gate("H1 foreign owner", "historical", `GitHub run ${hostile[0].run_id}`),
+      gate("H2 wrong repository", "historical", `GitHub run ${hostile[1].run_id}`),
+      gate("H3–H8 controls", "historical", "Six intended controls reached and denied"),
+      gate("Human key disable", "historical", `Key ${keyDisable.key_id}; actor ${keyDisable.human_actor}`),
+      gate("Canonical pre-disable archive checkpoint", "missing", "No reviewed and merged v3 archive checkpoint completed before disable"),
+      gate("Fresh disposable v3 transaction", "missing", "Separately authorized rerun required; historical key remains disabled"),
     ],
-    blockers: [...checkpoint.blockers],
+    blockers: [
+      "The historical transaction has no canonical v3 pre-disable archive checkpoint completed before key disable.",
+      "Publish the protected RC, repair and read back required linear history, then authorize a fresh disposable key transaction.",
+      "Never re-enable the historical key to resume K0; preserve its evidence as historical readiness only.",
+    ],
     sources: [
-      { label: "Cumulative release PR", href: `https://github.com/${owner}/${repo}/pull/11` },
-      { label: "Compiler-produced cutover PR", href: `https://github.com/${owner}/${repo}/pull/${checkpoint.repository.cutover_pr}` },
-      { label: "Reviewed ProofV2 run", href: `https://github.com/${owner}/${repo}/actions/runs/${checkpoint.proof_v2.github_run_id}` },
-      { label: "Live WIF-1 and H6–H8 run", href: checkpoint.pre_disable.wif_1_github_run_url },
-      { label: "Live H1 denial run", href: "https://github.com/cherala2002/keyless-h1-probe/actions/runs/31746236399" },
+      { label: "Historical cumulative release PR", href: `https://github.com/${owner}/${repo}/pull/11` },
+      { label: "Historical compiler-produced cutover PR", href: `https://github.com/${owner}/${repo}/pull/${checkpoint.repository.cutover_pr}` },
+      { label: "Historical reviewed ProofV2 run", href: `https://github.com/${owner}/${repo}/actions/runs/${checkpoint.proof_v2.github_run_id}` },
+      { label: "Historical WIF-1 and H6–H8 run", href: checkpoint.pre_disable.wif_1_github_run_url },
+      { label: "Historical H1 denial run", href: "https://github.com/cherala2002/keyless-h1-probe/actions/runs/31746236399" },
     ],
     limitations: [
       "ProofV2 proves the reviewed exact-key handoff only; WIF cutover evidence is recorded separately.",
       "The legacy key is disabled, but previously issued access tokens are not claimed revoked.",
       "H1–H8 prove only the named identities and controls during their recorded runs.",
+      "The recorded run predates the mandatory canonical pre-disable archive checkpoint and cannot be upgraded into a v3 transaction.",
       "A model output never decides authorization, denial, or receipt completeness.",
     ],
   };
 }
 
-async function manifestStatus(manifestPath, bytes, manifest) {
-  const structural = verifyK0Manifest(manifest);
-  if (!structural.ok) throw new Error("manifest structure was rejected");
-  const semantic = await verifyK0EvidenceSemantics(
-    manifest,
-    (id) => readFile(join(dirname(resolve(manifestPath)), "artifacts", `${id}.json`)),
-  );
-  if (!semantic.ok) throw new Error("manifest evidence was rejected");
+function bundleStatus(bundle, receipt, signatureVerified) {
+  const { manifest } = bundle;
   const sources = manifest.evidence
     .filter((item) => typeof item.public_url === "string" && item.public_url.startsWith("https://"))
     .slice(0, 8)
@@ -156,45 +184,93 @@ async function manifestStatus(manifestPath, bytes, manifest) {
   return {
     version: 1,
     status: "K0_VERIFIED_RECEIPT_PENDING",
+    authorization: "RECOLLECTION_REQUIRED",
     release_ready: false,
-    cutover_verified: true,
-    eyebrow: "K0 evidence verified",
-    headline: "The cutover is proven. The receipt is not signed yet.",
-    summary: "Every K0 manifest and evidence-artifact invariant passed, but final release remains blocked until an asymmetric KMS signature and independent verification exist.",
-    recorded_at: manifest.evidence.map((item) => item.observed_at).sort().at(-1),
-    checkpoint_sha256: createHash("sha256").update(bytes).digest("hex"),
+    cutover_verified: false,
+    signature_verified: signatureVerified,
+    eyebrow: signatureVerified ? "Offline receipt signature verified" : "Offline K0 bundle verified",
+    headline: signatureVerified
+      ? "Signature verified. Authenticated issuer output is not evidenced."
+      : "Bundle verified. Authenticated issuer output is not evidenced.",
+    summary: "The local read-only pending issuer exists and is tested, but this configured bundle, receipt, or signature does not prove that it ran against an authenticated fresh transaction. Release remains blocked.",
+    recorded_at: manifest.assembled_at,
+    checkpoint_sha256: receipt.manifest_sha256,
     metrics: [
-      { value: "8/8", label: "hostile paths denied" },
-      { value: "2/2", label: "WIF deployments" },
-      { value: "1/1", label: "legacy auth rejected" },
+      { value: "8/8", label: "hostile claims in bundle" },
+      { value: "2/2", label: "WIF claims in bundle" },
+      { value: "2/2", label: "legacy claims in bundle" },
       { value: String(manifest.evidence.length), label: "evidence artifacts" },
     ],
     gates: [
-      gate("Exact old key", "passed", "ProofV2 verified and consumed"),
-      gate("WIF permission parity", "passed", "No downstream permission added"),
-      gate("Authorized deployment", "passed", manifest.revisions.wif_1),
-      gate("H1–H8 controls", "passed", "All reached intended controls"),
-      gate("Human key disable", "passed", "Live key state and audit entry agree"),
-      gate("Fresh legacy rejection", "passed", "New hosted request denied"),
-      gate("Post-disable WIF", "passed", manifest.revisions.wif_2),
-      gate("KMS receipt", "missing", "Signature and public verification pending"),
+      gate("External v3 bundle", "passed", "Exact manifest and artifact bytes verified"),
+      gate("Legacy baseline", "passed", manifest.legacy_baseline.revision),
+      gate("Pending receipt", "passed", `Reconstructed ${receipt.receipt_id}`),
+      gate("Pinned KMS signature", signatureVerified ? "passed" : "missing",
+        signatureVerified ? "Exact pending receipt signature verified" : "External signature verification is not configured"),
+      gate("Authenticated live pending issuance", "missing", "Local issuer exists; no authenticated live issuer output is configured or evidenced"),
+      gate("Release authorization", "blocked", "RECOLLECTION_REQUIRED"),
     ],
-    blockers: ["Create and independently verify the scoped asymmetric KMS receipt."],
+    blockers: [
+      ...(signatureVerified ? [] : ["After authenticated live pending issuance, separately authorize the scoped KMS signature and verify it against pinned trust."]),
+      "Evidence from an authenticated live pending-issuer run is not configured; local implementation alone is not evidence.",
+    ],
     sources,
-    limitations: [...manifest.limitations],
+    limitations: [
+      ...manifest.limitations,
+      "Offline bundle and signature verification do not prove that the local issuer ran against a fresh authenticated transaction.",
+    ],
   };
 }
 
-export async function loadConsoleStatus({ checkpointPath, manifestPath } = {}) {
+export async function loadConsoleStatus(options = {}) {
+  const checkpointPath = options.checkpointPath;
+  const bundlePath = options.bundlePath;
+  const receiptPath = options.receiptPath;
+  const signaturePath = options.signaturePath;
+  const legacyManifestPath = options.manifestPath;
+  const trustAnchor = options.trustAnchor && typeof options.trustAnchor === "object"
+    ? {
+        key_version: options.trustAnchor.key_version,
+        algorithm: options.trustAnchor.algorithm,
+        public_key: options.trustAnchor.public_key,
+      }
+    : options.trustAnchor;
+  const bundleConfigured = bundlePath !== undefined || legacyManifestPath !== undefined;
+  const optionalConfigured = [receiptPath, signaturePath, options.trustAnchor].map((value) => value !== undefined);
   try {
-    if (manifestPath) {
-      const { bytes, value } = await readBoundedJson(manifestPath);
-      return await manifestStatus(manifestPath, bytes, value);
+    if (!bundleConfigured && optionalConfigured.every((configured) => !configured)) {
+      if (!checkpointPath) throw new Error("checkpoint path is required");
+      const { bytes, value } = await readBoundedJson(checkpointPath);
+      return recordConsoleStatus(checkpointStatus(bytes, value));
     }
-    if (!checkpointPath) throw new Error("checkpoint path is required");
-    const { bytes, value } = await readBoundedJson(checkpointPath);
-    return checkpointStatus(bytes, value);
+    if (typeof bundlePath !== "string" || !bundlePath || legacyManifestPath !== undefined
+        || (optionalConfigured.some(Boolean) && !optionalConfigured.every(Boolean))) {
+      throw new Error("configured K0 inputs are incomplete");
+    }
+
+    const bundlePromise = readK0BundleDirectory(resolve(bundlePath));
+    if (!optionalConfigured.some(Boolean)) {
+      const bundle = await bundlePromise;
+      const { receipt } = await createK0Receipt(bundle);
+      return recordConsoleStatus(bundleStatus(bundle, receipt, false));
+    }
+    if (typeof receiptPath !== "string" || !receiptPath
+        || typeof signaturePath !== "string" || !signaturePath) {
+      throw new Error("configured K0 inputs are invalid");
+    }
+    const [bundle, receiptBytes, sidecarBytes] = await Promise.all([
+      bundlePromise,
+      readBoundedFile(resolve(receiptPath), MAX_DOCUMENT_BYTES),
+      readBoundedFile(resolve(signaturePath), MAX_SIDECAR_BYTES),
+    ]);
+    if (CREDENTIAL.test(receiptBytes.toString("utf8")) || CREDENTIAL.test(sidecarBytes.toString("utf8"))) {
+      throw new Error("configured K0 inputs contain credential-shaped material");
+    }
+    await verifyK0Receipt({ receiptBytes, ...bundle });
+    verifyKmsSignature(receiptBytes, sidecarBytes, trustAnchor);
+    const { receipt } = await createK0Receipt(bundle);
+    return recordConsoleStatus(bundleStatus(bundle, receipt, true));
   } catch {
-    return failedStatus();
+    return recordConsoleStatus(failedStatus());
   }
 }

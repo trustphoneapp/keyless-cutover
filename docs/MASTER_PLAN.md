@@ -6,7 +6,20 @@ This file is the authoritative current plan. [ADR 0002](adr/0002-TASKMASTER_SCOP
 
 By August 31, 2026, demonstrate one real GitHub Actions → Google Cloud WIF cutover with exact-key proof, no added downstream privilege, human separation of duties, eight hostile tests, post-disable continuity, a served ADK/Gemini Taskmaster, and reconstructable evidence.
 
-Current checkpoint on August 14: the live Google/GitHub substrate, legacy deployment, WIF readback, ProofV2 replay rejection, served private ADK/Gemini path, passing sealed agent evaluation, protected WIF cutover, H1–H8 denial matrix, public fail-closed evidence console, and exact human key disable exist. Overall status remains **NO-GO** until fresh legacy authentication is rejected, post-disable `wif-2` is independently reconstructed, and the scoped KMS receipt verifies.
+Current checkpoint on August 14: the live Google/GitHub substrate, legacy deployment, WIF readback, ProofV2 replay rejection, served private ADK/Gemini path, passing sealed agent evaluation, protected WIF cutover, H1–H8 denial matrix, public fail-closed evidence console, and exact human key disable exist. They are historical readiness evidence only: the key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged, so that transaction cannot satisfy v3 and must never be resumed by re-enabling the key. Local v3 bundle assembly, exact loading, authenticated read-only pending issuance, pending-receipt reconstruction, public signature verification, and false-safe tests pass, but the RC is not committed/published and none of that is new live evidence. Overall status remains **NO-GO** pending a separately authorized fresh disposable key transaction.
+
+For the 48-hour gate, the verifier selects the earliest authoritative occurrence time, checkpoint-receipt `recorded_at`, or checkpoint event time across the final evidence and requires `manifest.assembled_at`—the latest authenticated final collection—to be no more than 48 hours later. Archive or checkpoint sealing and later recollection cannot reset, backdate, or extend that window.
+
+## Fresh v3 execution order
+
+1. Publish the protected RC, repair `required_linear_history: true`, and read the protection back.
+2. Under separate authorization, collect a fresh legacy baseline, ProofV2, WIF-1 parity, and H1–H8 including H2 for one new disposable key transaction.
+3. Review and merge the canonical pre-disable archive checkpoint while that key is still enabled.
+4. Have the human key operator disable the exact fresh key and independently read back key state plus Admin Activity.
+5. Prove fresh legacy denial before deploying and reading back `wif-2`.
+6. Run the authenticated read-only pending issuer and verify its private pending output.
+7. Separately authorize the scoped KMS signature and verify it against pinned out-of-band trust.
+8. Leave release to a separate human decision; no local state or signature promotes release readiness.
 
 ## Rules traceability
 
@@ -36,12 +49,12 @@ Do not build Fleet products, Agent Engine, Cloud Tasks, Pub/Sub, webhooks, an ou
 | C0 | 2 | First commit/remote, license, disclosure, rules snapshot, Taskmaster ADR | Provenance missing |
 | C1 | 4 | Disposable GitHub/GCP substrate and `legacy-1` | Shared/broad identity, missing humans, or leak |
 | C2 | 4 | Complete ProofV2 issuance, authoritative verification, atomic replay rejection | Exact key unresolved or replay accepted |
-| C3 | 12 | Human WIF/IAM, `wif-1`, H1–H8, disable, fresh legacy failure, `wif-2`, manifest | Any K0 false-safe; kill |
+| C3 | 12 | Fresh baseline/ProofV2/WIF-1/H1–H8, merged archive checkpoint, human disable, legacy denial, `wif-2`, pending output | Any ordering gap or K0 false-safe; kill |
 | C4 | 5 | Typed contracts, deterministic compiler/refusal gates, exact patch bytes | Hand edit or privilege widening |
 | C5 | 8 | Cloud Run ADK/Gemini Taskmaster and ablation | Model decorative, unsafe, or leaks data |
 | C6 | 4 | Selected-repository GitHub App opens real draft PR | No visible external agent action |
-| C7 | 5 | Firestore operation view and KMS receipt/verifier | Self-assertion can complete receipt |
-| C8 | 4 | Repeatable live harness and evidence-derived console | UI can synthesize success |
+| C7 | 5 | Local v3 authenticated read-only pending issuer and public verifier complete; publication, live execution, and scoped signature pending | Self-assertion or local signature can authorize release |
+| C8 | 4 | Local private-snapshot console complete; repeatable live harness and hosted update pending | UI can synthesize success |
 | C9 | 8 | 36-bundle eval, CI, quickstart, claim audit, rehearsals, video | Required artifact or evidence missing |
 
 Total: **56 focused hours**. C0–C3 must finish within 48 wall-clock hours, including human coordination and propagation.
@@ -72,7 +85,7 @@ The same independent second person may fill all three roles in the disposable de
 ## Definition of done
 
 - Stage One requirements are implemented and deployed, not named in prose.
-- `legacy-1`, `wif-1`, and `wif-2` are independently read back.
+- One fresh v3 transaction has `legacy-1`, `wif-1`, and `wif-2` independently read back in the required order.
 - ProofV2 accepts exactly once and verifies GitHub and Google state.
 - H1–H8 run at their intended controls and the forbidden service is unchanged.
 - Fresh legacy authentication fails after human disable; fresh WIF succeeds.

@@ -11,8 +11,11 @@ regexTarget = "secret"
 regexes = ['''^KEY_ALG_RSA_2048$''']
 paths = [
   '''^src/key-proof\.mjs$''',
+  '''^test/fixtures/k0-bundle\.mjs$''',
   '''^test/google-key-reader\.test\.mjs$''',
+  '''^test/k0-evidence-normalizer\.test\.mjs$''',
   '''^test/key-proof\.test\.mjs$''',
+  '''^test/proofv2-operator\.test\.mjs$''',
 ]
 
 [[allowlists]]

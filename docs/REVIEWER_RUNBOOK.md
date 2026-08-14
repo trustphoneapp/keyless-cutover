@@ -11,7 +11,7 @@ This runbook is the human gate for the live Keyless K0 transaction. It does not 
 - At that checkpoint H2 was proven while H1 and H3–H8 were incomplete.
 - At that checkpoint no reviewer other than the repository owner had qualifying authority.
 
-Those historical conditions are superseded. PR #3 is merged, `KEYLESS_K0_ENABLED` is `true`, `wif-1` is live, reviewed ProofV2 passed, deterministic collectors prove H1–H8 with the forbidden revision unchanged, and the exact key is now disabled with matching human Admin Activity. Continue only from the fresh legacy-auth probe and post-disable WIF steps below; do not repeat the completed pre-disable actions or key-disable mutation.
+Those historical conditions are superseded. PR #3 is merged, `KEYLESS_K0_ENABLED` is `true`, `wif-1` is live, reviewed ProofV2 passed, deterministic collectors prove H1–H8 with the forbidden revision unchanged, and the exact key is now disabled with matching human Admin Activity. That transaction is nevertheless terminal historical readiness evidence: no canonical v3 pre-disable archive checkpoint was reviewed and merged before disable. Do not continue it, do not run its missing post-disable steps, and never re-enable its key to try to make it pass. A v3 result requires the separately authorized fresh disposable transaction below.
 
 ## Required independent GitHub reviewer
 
@@ -26,7 +26,7 @@ Grant only the permissions required for those GitHub duties. Do not grant the Gi
 
 ## Separate human GCP key operator
 
-The key operator is a separately authenticated human boundary from the Keyless runtime and may be distinct from the independent GitHub reviewer. The operator receives a fresh exact-key approval only after the reviewed merge and pre-disable evidence pass, disables—not deletes—the exact key, and appears as the human principal in Admin Activity. The Keyless runtime cannot hold or use this identity. If delegated, scope `roles/iam.serviceAccountKeyAdmin` to the exact disposable deployment service account only; the K0 owner account used for this transaction was `yashwanth.surabhi@gmail.com`.
+The key operator is a separately authenticated human boundary from the Keyless runtime and may be distinct from the independent GitHub reviewer. The operator receives a fresh exact-key approval only after the canonical archive-checkpoint PR is merged and reread, disables—not deletes—the exact fresh key, and appears as the human principal in Admin Activity. The Keyless runtime cannot hold or use this identity. If delegated, scope `roles/iam.serviceAccountKeyAdmin` to the exact disposable deployment service account only. The actor recorded in the historical receipt is evidence of that old event, not authority for the fresh transaction.
 
 ## Authority setup
 
@@ -39,11 +39,13 @@ The project owner records the reviewer's GitHub login and numeric GitHub user ID
 
 If any read-back is ambiguous, stop. Never work around a missing reviewer by weakening branch or environment protection.
 
-## Reviewed ProofV2 operator transaction
+## Fresh ProofV2 operator mechanics
 
 The operator uses two separate commands so issuance cannot silently dispatch a workflow and verification cannot silently create a challenge. `issue` performs exactly one Firestore document creation and prints only the five bounded workflow inputs. `verify` is read-only in GitHub and Google IAM until the signed proof, exact completed run, workflow blob, and independent environment approval all agree; only then does it atomically transition the same challenge from `ISSUED` to `CONSUMED` and prove a second consume is rejected.
 
-1. Reconfirm `main`, CI, the production reviewer, exact active user-managed key, repository/owner IDs, and five-minute operator scope.
+The historical command values below must not be reused. For the fresh transaction, substitute only identifiers derived from its separately reviewed plan; never copy a historical challenge, run, project, key, or receipt.
+
+1. Reconfirm `main`, CI, required linear history, the production reviewer, exact fresh active user-managed key, repository/owner IDs, and five-minute operator scope.
 2. With explicit Firestore-write permission, run the issue command once. Do not issue early: expiry is exactly five minutes.
 
    ```sh
@@ -74,19 +76,17 @@ The operator uses two separate commands so issuance cannot silently dispatch a w
 
 Stop on expiry, multiple matching artifacts, absent/self approval, wrong workflow/ref/run, disabled or mismatched key, certificate failure, Firestore contention, accepted replay, or any credential-shaped artifact. Never re-dispatch an expired challenge and never create a replacement challenge without a new explicit write permission.
 
-## Merge sequence
+## Protected RC and fresh transaction setup
 
-### 1. Release candidate
+### 1. Protected release candidate
 
-The reviewer checks PR #11 against `main`, runs `npm ci --legacy-peer-deps --ignore-scripts`, `npm test`, and `npm audit --omit=dev --audit-level=high`, and verifies that no workflow, log, test fixture, or document contains credential material. They then approve PR #11. No one pushes to the branch after that approval. Merge only while the required `test` check is green.
+Publish this local RC through a new protected PR. The independent reviewer runs `npm ci --legacy-peer-deps --ignore-scripts`, `npm test`, the dependency and credential scans, and verifies the exact final head. No one pushes after approval. Merge only while the required `test` check is green.
 
-PR #11 includes the earlier fixes from PRs #2 and #4–#10. Close those older PRs as superseded only after PR #11 is merged. PR #1 is obsolete documentation and may also be closed then.
+Repair branch protection so `required_linear_history: true` is enforced, then independently read back CI strictness, one approval, stale-review dismissal, last-push approval, admin enforcement, and linear history. Stop before any fresh transaction action if the read-back differs.
 
-### 2. Cutover candidate
+### 2. Fresh disposable transaction
 
-After PR #11 reaches `main`, update draft PR #3 onto the new protected base without hand-editing the compiler-owned workflow. Re-run the compiler, actionlint, unit suite, dependency audit, WIF/provider read-back, impersonation-binding read-back, and downstream IAM no-widening comparison. A changed workflow byte, plan digest, provider hash, or IAM preimage requires a new review.
-
-Mark PR #3 ready only when those checks agree. The independent person reviews and approves the exact cutover diff; a human merges it. Keyless never auto-merges.
+Create a separately authorized disposable key transaction after the protected RC and branch-protection read-back. Use a fresh key, challenge, runs, release markers, approvals, and observations; never copy the historical transaction into a new manifest. Re-run the exact compiler, provider/IAM parity, and downstream no-widening checks. Keyless never auto-merges, applies IAM, or disables a key.
 
 ## H1 foreign-owner probe
 
@@ -105,22 +105,24 @@ A workflow syntax error, missing environment approval, network failure, or failu
 
 ## Live K0 order
 
-1. Keep the legacy key enabled and retain the last successful `legacy-1` evidence.
-2. Merge the reviewed WIF workflow and obtain a fresh `wif-1` deployment through GitHub OIDC/WIF.
-3. Execute H1–H8 at their documented controls and independently verify the forbidden service is unchanged.
-4. Reconstruct the pre-disable evidence ledger. Every required item must pass; one missing or unrecognized denial stops the transaction.
-5. Show the independent operator the exact service account, exact key ID, evidence digest, and rollback window. The operator disables—never deletes—the exact key.
-6. Read back `disabled: true` and one matching human `DisableServiceAccountKey` Admin Activity entry.
-7. On a new hosted runner, execute the non-deploying legacy-auth probe. It must make a fresh Google request and receive a recognized disabled/invalid-key rejection.
-8. On another new hosted runner, deploy `wif-2` through WIF and verify the allowed revision.
-9. Reconstruct and credential-scan the final manifest, then sign its canonical digest with the scoped KMS key.
+1. Merge the protected RC, repair `required_linear_history: true`, and independently read back the complete branch and environment protection tuple.
+2. Under separate authorization, create the fresh disposable key transaction and collect its successful legacy baseline.
+3. Run fresh ProofV2, deploy/read back `wif-1`, prove exact provider/IAM parity, and execute H1–H8 including a real H2 at their documented controls; verify the forbidden service remains unchanged.
+4. Build the canonical pre-disable archive, commit it through a protected PR, obtain independent review of its exact head, merge it, and read back the exact archive bytes while the fresh key is still enabled. Any missing source stops the transaction.
+5. Show the human key operator the exact fresh service account, key ID, archive digest, and rollback window. The operator disables—never deletes—the exact key; independently read back `disabled: true` and one matching `DisableServiceAccountKey` Admin Activity entry.
+6. On a new hosted runner, execute the non-deploying legacy-auth probe. It must make a fresh Google request and receive a recognized disabled/invalid-key rejection. Complete this denial before WIF-2.
+7. Only after legacy denial, deploy `wif-2` on another new hosted runner and read back the exact allowed revision, WIF audit, parity, and unchanged forbidden revision.
+8. Run the local authenticated read-only pending issuer against those exact sources. Verify its private canonical output; status remains `K0_VERIFIED_RECEIPT_PENDING`, authorization `RECOLLECTION_REQUIRED`, and `release_ready: false`.
+9. Through separate authorization, obtain the scoped real KMS signature and verify it against pinned out-of-band public trust. The signature changes no release state.
+10. A separate human reviews the complete evidence and owns any release decision outside the local state machine.
 
 The immediate result may claim only: **the key is disabled, fresh key authentication is rejected, and fresh WIF authentication succeeds**. It must not claim that access tokens minted before disable were revoked.
 
 ## Rollback and kill rules
 
 - Before key disable: revert the reviewed workflow or remove only the migration-owned WIF binding/provider after a new human review.
-- After key disable: Keyless cannot re-enable the key. A human may explicitly re-enable the exact key during the short rollback window and revert the workflow.
+- Historical disabled key: never re-enable it; its transaction remains historical readiness only.
+- Fresh transaction after key disable: Keyless cannot re-enable the key. A human rollback may re-enable the fresh key and revert the workflow only to restore service; doing so kills that transaction and requires another fresh one.
 - Never delete the key during K0.
 - Stop and preserve evidence on unexpected hostile success, privilege widening, target mutation, key ambiguity, source drift, missing independent approval, secret exposure, or failed post-disable WIF deployment.
 - A stopped or failed K0 remains `NO-GO`; do not repair the evidence manually or relabel it as a pass.

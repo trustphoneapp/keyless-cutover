@@ -1,6 +1,6 @@
 # Devpost submission draft
 
-> **Release status:** draft only. Do not submit or copy the target-release claims until the independent K0 cutover, KMS receipt, and video gates pass. Replace every `[PENDING]` field with an evidence-backed value or remove the claim.
+> **Release status:** draft only. Do not submit or copy the target-release claims until the independent K0 cutover, authenticated pending-receipt issuance, scoped real KMS signature, and video gates pass. Replace every `[PENDING]` field with an evidence-backed value or remove the claim.
 
 ## Project identity
 
@@ -38,12 +38,13 @@ This is not emergency incident response and not a generic IAM agent. V1 supports
 4. **Compile:** deterministic code produces exact WIF mappings, immutable numeric owner/repository conditions, audience, branch, workflow, event, environment, impersonation binding, and same-path workflow bytes.
 5. **Review:** a selected-repository adapter opens a draft PR; humans apply IAM and approve/merge the protected workflow.
 6. **Attack the replacement:** run H1–H8 across wrong owner, repository, ref, workflow, event, environment, audience, and forbidden resource. A failure before the intended control is `NOT RUN`, not success.
-7. **Retire and re-prove:** after `wif-1` and all denials pass, a human disables—not deletes—the exact key; a fresh legacy request must fail and a fresh WIF deployment must create `wif-2`.
-8. **Receipt:** verify the typed evidence manifest and artifacts, scan for credential material, and sign the final canonical digest with asymmetric Cloud KMS. `[PENDING UNTIL K0]`
+7. **Checkpoint before disable:** independently review, merge, and reread the canonical pre-disable archive while the fresh transaction's key remains enabled.
+8. **Retire and re-prove:** only after that checkpoint, a human disables—not deletes—the exact key; a fresh legacy request must fail before a later fresh WIF deployment creates `wif-2`.
+9. **Pending receipt and release boundary:** authentically recollect the exact live sources and issue the byte-exact canonical pending output with `RECOLLECTION_REQUIRED`; separately authorize and verify the scoped Cloud KMS signature, then leave release to a separate human decision. `[PENDING UNTIL K0]`
 
 ## Current working evidence
 
-These facts are already implemented and observed; they are readiness evidence, not a completed-cutover claim:
+These facts are already implemented and observed; they are historical readiness evidence, not a completed-cutover claim. The recorded key was disabled before a canonical v3 archive checkpoint was reviewed and merged. That transaction cannot satisfy v3 and must never be resumed by re-enabling the key; the target release needs a separately authorized fresh disposable transaction.
 
 - Private Cloud Run Taskmaster using Google ADK and `gemini-3.5-flash` through Vertex AI. Cloud Run IAM plus a separate application header protect the model routes.
 - Two strict, tool-free model stages: evidence classification and bounded recovery diagnosis. The model has no IAM, deployment, merge, key, shell, policy, or receipt authority.
@@ -53,16 +54,17 @@ These facts are already implemented and observed; they are readiness evidence, n
 - Live `wif-1` deployed through GitHub OIDC, Google STS/WIF, service-account impersonation, and Cloud Run.
 - H1–H8 were reconstructed from exact runs, artifacts, and logs; each reached and denied at its named control and left the forbidden Cloud Run revision unchanged.
 - Public read-only Cloud Run evidence console from an immutable image. Its runtime service account has no project roles and the served state is honestly `NO_GO_INCOMPLETE`.
-- 61 deterministic tests, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
+- A passing deterministic local suite without a brittle published count, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
 
 ## Target release evidence — pending
 
 The final description may add these statements only after their exact evidence exists:
 
-- `[OBSERVED]` Separately authenticated human GCP operator disabled—not deleted—the exact legacy key after independent GitHub review; live key state and one exact Admin Activity entry agree.
-- `[PENDING]` Fresh hosted legacy authentication was rejected after disable.
-- `[PENDING]` Fresh post-disable WIF deployment created `wif-2`.
-- `[PENDING]` Canonical receipt signature verified with the scoped Cloud KMS public key; one-byte mutation failed.
+- `[HISTORICAL ONLY]` The prior human key disable and Admin Activity agree, but no canonical archive checkpoint preceded them.
+- `[PENDING]` A fresh disposable transaction completed baseline, ProofV2, WIF-1/parity, H1–H8, and a protected merged archive checkpoint before disable.
+- `[PENDING]` Fresh hosted legacy authentication was rejected after disable and before WIF-2.
+- `[PENDING]` A later fresh WIF deployment created and read back `wif-2` with matching audit/parity evidence.
+- `[PENDING]` Authenticated pending issuance produced the exact canonical output; a separately authorized scoped KMS signature verified against pinned trust; authorization remained `RECOLLECTION_REQUIRED`; a separate human made the release decision.
 
 ## Google technology
 
@@ -75,7 +77,7 @@ The final description may add these statements only after their exact evidence e
 | Firestore | Issues and atomically consumes ProofV2 challenges | First consume succeeds; replay loses |
 | Cloud Audit Logs | Corroborates WIF/delegation and exact human key disable | Scoped method, resource, actor, timestamp, insert ID |
 | Secret Manager | Stores only the private agent's application gate | Exact accessor policy; value never enters evidence/model |
-| Cloud KMS | Signs the final canonical receipt digest | `[PENDING]` public-key verification and tamper failure |
+| Cloud KMS | Signs the exact canonical pending-receipt digest only after authenticated live recollection/issuance | `[PENDING]` pinned out-of-band verification and tamper failure; signature alone does not authorize release |
 
 ## Architecture and security
 

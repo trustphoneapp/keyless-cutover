@@ -8,10 +8,11 @@ Use one completed timestamped case plus one unedited live authorized/hostile pai
 
 ## Preconditions
 
-- A completed reconstructable K0/K1 case exists.
+- A completed fresh reconstructable v3 case exists; the already-disabled historical transaction is never presented as that case.
 - WIF/IAM is already propagated and read back.
-- Exact key is already disabled and independently observed.
-- H1–H8, `legacy-1`, `wif-1`, `wif-2`, and final receipt exist.
+- Its exact fresh key is disabled and independently observed only after the canonical archive checkpoint was protected, reviewed, merged, and reread.
+- Fresh baseline, ProofV2, H1–H8 including H2, `wif-1`, legacy denial, and later `wif-2` exist in the required order; authenticated pending issuance produced the exact output, and a separately authorized scoped KMS signature verifies against pinned trust.
+- A separate human release decision exists; neither pending issuance nor the signature promoted local release readiness.
 - Live PR triggers the authorized workflow and H4 wrong-workflow attempt in parallel.
 - Five rehearsals show hostile denial within 45 seconds and authorized revision within 150 seconds.
 
@@ -19,7 +20,7 @@ Use one completed timestamped case plus one unedited live authorized/hostile pai
 
 ### 0:00–0:20 — Honest starting state
 
-Open the public evidence console. Show `NO-GO · evidence incomplete`, the checkpoint digest, completed readiness evidence, and the exact remaining blockers. State that the page has no mutation route and cannot turn missing evidence green.
+Open the public evidence console. Show `NO-GO · evidence incomplete`, the checkpoint digest, historical readiness evidence, and the exact fresh-transaction blockers. State that the old key remains disabled, the old transaction lacks the required pre-disable archive checkpoint, and the page cannot turn missing evidence green.
 
 ### 0:20–0:45 — Hook and live launch
 
@@ -45,8 +46,9 @@ Walk the timestamped completed case:
 - ProofV2 accepted once and replay rejected.
 - Human-applied provider/binding and actual propagation duration.
 - `wif-1` and H1–H8 at named controls.
+- Protected review, merge, and exact read-back of the canonical archive checkpoint while the key was enabled.
 - Human key-disable event and fresh `disabled: true` read.
-- Fresh online legacy failure and post-disable `wif-2`.
+- Fresh online legacy failure, followed by post-disable `wif-2`.
 - Forbidden service unchanged.
 
 State that disabling does not revoke tokens minted earlier and that no universal external-consumer absence is claimed.
@@ -57,9 +59,9 @@ Show H4 reaching Google and failing at the provider condition. Show the authoriz
 
 ### 3:20–3:50 — Receipt tamper proof
 
-Verify the final receipt with the KMS public key, change one byte, and show failure. Open one GitHub run and one Cloud Run/audit source identifier.
+Show the authenticated pending-issuer output, then verify the separately authorized scoped real KMS signature against the pinned out-of-band public key. Show `RECOLLECTION_REQUIRED`, change one byte, and show failure. State and show that release was a later human decision. Open one GitHub run and one Cloud Run/audit source identifier.
 
-Say: “KMS proves the receipt bytes and signer; external identifiers support the events.”
+Say: “KMS proves the pending-receipt bytes and signer; external identifiers support the events. The signature does not authorize release—that remains a separate human boundary.”
 
 ### 3:50–4:00 — Scoped close
 
