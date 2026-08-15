@@ -242,6 +242,25 @@ test("observed GitHub transports are bounded, canonical, and keep old return sha
   assert.equal(observed.observedAt, "2026-08-13T11:11:00Z");
 });
 
+test("unobserved GitHub JSON transport refuses credentials and duplicate keys", async () => {
+  await assert.rejects(
+    () => fetchGitHubJson(
+      "https://api.github.com/example",
+      installationToken,
+      async () => response(200, { token: `AKIA${"A".repeat(16)}` }),
+    ),
+    /credential-shaped material/,
+  );
+  await assert.rejects(
+    () => fetchGitHubJson(
+      "https://api.github.com/example",
+      installationToken,
+      async () => response(200, '{"ok":true,"ok":false}'),
+    ),
+    /duplicate JSON keys/,
+  );
+});
+
 test("collector observedAt is the latest authenticated transport response", async () => {
   const { fetchImpl } = fixture();
   const dates = new Map([

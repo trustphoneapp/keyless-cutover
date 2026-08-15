@@ -517,8 +517,11 @@ export function createGcpEvidenceReader({
     }
     let value;
     try {
-      value = JSON.parse(decodeUtf8(bytes));
-    } catch {
+      const text = decodeUtf8(bytes);
+      rejectDuplicateJsonKeys(text);
+      value = JSON.parse(text);
+    } catch (error) {
+      if (error?.message === "duplicate JSON key") throw new Error("Google API response contains duplicate JSON keys");
       throw new Error("Google API response is not valid JSON");
     }
     return { response, value };

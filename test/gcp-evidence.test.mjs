@@ -1488,6 +1488,20 @@ test("Cloud Run revision readback requires a resolved image digest", async () =>
   }), /image digest/);
 });
 
+test("GCP evidence reader refuses duplicate JSON keys on Cloud Run responses", async () => {
+  const reader = createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => '{"latestReadyRevision":"keyless-demo-wif-2","latestReadyRevision":"other"}',
+    }),
+  });
+  await assert.rejects(reader.readCloudRunRevision({
+    projectId: "keyless-k0-demo", region: "us-central1", service: "keyless-demo",
+  }), /duplicate JSON keys/);
+});
+
 test("Cloud Run revision readback rejects hostile digests and marker skew", async () => {
   const hostileImages = [
     `us-docker.pkg.dev/example/app@sha256:${"a".repeat(64)}@sha256:${"b".repeat(64)}`,
