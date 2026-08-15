@@ -40,6 +40,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 30. GCP non-parity requestWithResponse Content-Length exact match.
 31. Unobserved/baseline/observer/x509 Content-Length; draft-PR CREDENTIAL refuse.
 32. Draft-PR Content-Length + workflow CREDENTIAL; Google key validAfterTime/CREDENTIAL; x509 CREDENTIAL.
+33. GCP/parity + KMS sidecar + checkpoint archive artifact CREDENTIAL refuse.
 
 ## Hard stops held
 
