@@ -67,3 +67,20 @@ test("runtime containers are digest-pinned and exclude package-manager tooling",
   const agent = await readFile(new URL("../agent/Dockerfile", import.meta.url), "utf8");
   assert.match(agent, /npm ci --omit=dev --legacy-peer-deps --ignore-scripts/);
 });
+
+test("legacy baseline deploy is dispatch-only while H4 still watches release marker pushes", async () => {
+  const deploy = await readFile(new URL("k0-deploy.yml", workflowDirectory), "utf8");
+  const hostile = await readFile(new URL("k0-hostile-wrong-workflow.yml", workflowDirectory), "utf8");
+  const template = await readFile(new URL("../k0/templates/k0-deploy.legacy.yml", import.meta.url), "utf8");
+
+  assert.equal(deploy, template);
+  assert.match(deploy, /^on:\n\s+workflow_dispatch:\n/m);
+  assert.doesNotMatch(deploy, /^\s+push:/m);
+  assert.match(deploy, /vars\.KEYLESS_K0_ENABLED == 'true' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(deploy, /secrets\.GCP_SERVICE_ACCOUNT_KEY/);
+  assert.doesNotMatch(deploy, /id-token|GCP_WIF_PROVIDER/);
+
+  assert.match(hostile, /^\s+push:\n\s+branches: \[main\]\n\s+paths:\n\s+- demo\/release\.txt$/m);
+  assert.match(hostile, /vars\.KEYLESS_K0_ENABLED == 'true'/);
+  assert.match(hostile, /hostile=H4/);
+});
