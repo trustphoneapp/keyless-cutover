@@ -4,6 +4,7 @@ import { assertCredentialFreeBytes, createCredentialScan } from "./credential-sc
 import { canonicalJson, createEvidenceArtifact, decodeUtf8, verifyEvidenceArtifacts } from "./evidence-artifact.mjs";
 import { verifyK0PreDisableEvidenceSemantics } from "./k0-evidence-semantics.mjs";
 import { verifyK0PreDisableFragment } from "./k0-manifest.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { timestampNanoseconds } from "./rfc3339.mjs";
 
 const DOMAIN = "KEYLESS_K0_PREDISABLE_ARCHIVE_V1";
@@ -127,8 +128,13 @@ export function parseK0PreDisableArchivePlanBytes(planBytes) {
   }
   let plan;
   try {
-    plan = JSON.parse(decodeUtf8(planBytes));
-  } catch {
+    const text = decodeUtf8(planBytes);
+    rejectDuplicateJsonKeys(text);
+    plan = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("pre-disable archive plan contains duplicate JSON keys");
+    }
     throw new Error("pre-disable archive plan is not JSON");
   }
   if (!planBytes.equals(Buffer.from(canonicalJson(plan), "utf8"))) {
@@ -195,8 +201,13 @@ export async function verifyK0PreDisableArchive(archiveBytes) {
   assertCredentialFreeBytes(captured);
   let archive;
   try {
-    archive = JSON.parse(decodeUtf8(captured));
-  } catch {
+    const text = decodeUtf8(captured);
+    rejectDuplicateJsonKeys(text);
+    archive = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("pre-disable archive contains duplicate JSON keys");
+    }
     throw new Error("pre-disable archive is not JSON");
   }
   if (!captured.equals(Buffer.from(canonicalJson(archive), "utf8")) || !exactObject(archive, ARCHIVE_FIELDS)

@@ -69,6 +69,9 @@ async function readObservedKeyResponse(response) {
     }
     chunks.push(chunk);
   }
+  if (length !== null && total !== Number(length)) {
+    throw new Error("Google key response length does not match Content-Length");
+  }
   let text;
   try { text = decodeUtf8(Buffer.concat(chunks, total)); } catch { throw new Error("Google key response is not valid UTF-8"); }
   let value;
@@ -151,11 +154,29 @@ export function createGoogleKeyReader({
     });
     if (!response.ok) throw new Error(`Google key lookup failed with HTTP ${response.status}`);
     const body = await response.text();
-    if (body.length > 64_000) throw new Error("Google key lookup response is too large");
-    const key = JSON.parse(body);
-    if (key.disabled !== undefined && typeof key.disabled !== "boolean") {
+    if (typeof body !== "string" || body.length > 64_000) {
+      throw new Error("Google key lookup response is too large");
+    }
+    let key;
+    try {
+      rejectDuplicateJsonKeys(body);
+      key = JSON.parse(body);
+    } catch (error) {
+      if (error?.message === "duplicate JSON key") {
+        throw new Error("Google key response contains duplicate JSON keys");
+      }
+      throw new Error("Google key lookup response is not valid JSON");
+    }
+    if (!key || typeof key !== "object" || Array.isArray(key)
+        || (key.disabled !== undefined && typeof key.disabled !== "boolean")) {
       throw new Error("Google key disabled state is invalid");
     }
-    return { ...key, disabled: key.disabled ?? false };
+    return {
+      name: typeof key.name === "string" ? key.name : undefined,
+      keyType: key.keyType,
+      keyAlgorithm: key.keyAlgorithm,
+      disabled: key.disabled ?? false,
+      ...(typeof key.validAfterTime === "string" ? { validAfterTime: key.validAfterTime } : {}),
+    };
   };
 }

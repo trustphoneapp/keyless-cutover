@@ -120,6 +120,7 @@ test("observed Google key reader rejects identity, state, type, algorithm, and e
 
 test("observed Google key transport rejects Date, status, bounds, UTF-8, and duplicate keys", async () => {
   const duplicate = JSON.stringify(validKey()).replace("{", `{"name":"duplicate",`);
+  const exact = Buffer.from(JSON.stringify(validKey()));
   const responses = [
     () => keyResponse(validKey(), { date: "" }),
     () => keyResponse(validKey(), { date: "invalid" }),
@@ -128,10 +129,26 @@ test("observed Google key transport rejects Date, status, bounds, UTF-8, and dup
     () => keyResponse(duplicate),
     () => keyResponse(validKey(), { headers: { "content-length": "64001" } }),
     () => keyResponse({ padding: "x".repeat(64_001) }),
+    () => keyResponse(exact, { headers: { "content-length": String(exact.length + 1) } }),
   ];
   for (const response of responses) {
     await assert.rejects(() => observedReader(async () => response())(observedArguments()));
   }
+});
+
+test("legacy Google key reader rejects duplicate JSON keys", async () => {
+  const reader = createGoogleKeyReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => '{"disabled":false,"disabled":true}',
+    }),
+  });
+  await assert.rejects(() => reader({
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
+  }), /duplicate/);
 });
 
 test("observed Google key transport returns only static errors for hostile boundaries", async () => {
