@@ -262,10 +262,16 @@ export async function downloadGitHubBytes(url, token, fetchImpl, limit) {
     response = await fetchImpl(location, { redirect: "error", signal: AbortSignal.timeout(8_000) });
   }
   if (!response.ok) throw new Error(`GitHub download failed with HTTP ${response.status}`);
-  const declared = Number(response.headers.get("content-length") ?? 0);
-  if (declared > limit) throw new Error("GitHub download is too large");
+  const declared = response.headers.get("content-length");
+  if (declared !== null && (typeof declared !== "string" || declared.length > 16
+      || !/^\d+$/.test(declared) || Number(declared) > limit)) {
+    throw new Error("GitHub download is too large");
+  }
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length > limit) throw new Error("GitHub download is too large");
+  if (declared !== null && bytes.length !== Number(declared)) {
+    throw new Error("GitHub download length does not match Content-Length");
+  }
   if (CREDENTIAL.test(bytes.toString("utf8"))) throw new Error("GitHub evidence contains credential-shaped material");
   return bytes;
 }
