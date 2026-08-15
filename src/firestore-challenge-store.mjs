@@ -6,7 +6,7 @@ import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
 const CHALLENGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const NUMERIC = /^\d+$/;
-const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
+const WORKFLOW = /^\.github\/workflows\/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,62}\/)*[A-Za-z0-9][A-Za-z0-9._-]{0,62}\.ya?ml$/;
 const REF = /^refs\/[A-Za-z0-9._/-]+$/;
 const EVENT_NAME = /^(?:workflow_dispatch|push)$/;
 const ENVIRONMENT = /^production$/;

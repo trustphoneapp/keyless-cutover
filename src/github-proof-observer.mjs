@@ -7,7 +7,7 @@ import { isRfc3339 } from "./rfc3339.mjs";
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const RUN_ID = /^\d+$/;
-const WORKFLOW_PATH = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
+const WORKFLOW_PATH = /^\.github\/workflows\/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,62}\/)*[A-Za-z0-9][A-Za-z0-9._-]{0,62}\.ya?ml$/;
 const MAX_RESPONSE_BYTES = 512_000;
 
 function exact(value, pattern, name) {

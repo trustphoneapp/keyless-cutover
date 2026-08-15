@@ -15,7 +15,7 @@ const NUMERIC = /^\d+$/;
 const CHALLENGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const REVISION = /^[a-z][a-z0-9-]{0,62}$/;
 const REGION = /^[a-z]+-[a-z]+\d$/;
-const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
+const WORKFLOW = /^\.github\/workflows\/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,62}\/)*[A-Za-z0-9][A-Za-z0-9._-]{0,62}\.ya?ml$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const CHECKPOINT_FIELDS = new Set([
   "owner_id", "repository_id", "collected_at", "protection", "pull", "receipt", "archive", "run", "check",

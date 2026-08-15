@@ -44,6 +44,27 @@ const context = {
   runner_environment: "github-hosted",
 };
 
+test("key-proof workflow paths refuse dot and parent segments", () => {
+  assert.throws(() => createKeyProof(serviceAccountKey, {
+    ...context,
+    workflow_path: ".github/workflows/../deploy.yml",
+  }), /workflow_path/);
+  assert.throws(() => createKeyProof(serviceAccountKey, {
+    ...context,
+    workflow_path: ".github/workflows/./deploy.yml",
+  }), /workflow_path/);
+  assert.throws(() => issueKeyProofChallenge({
+    migration_id: context.migration_id,
+    owner_id: context.owner_id,
+    repository_id: context.repository_id,
+    workflow_path: ".github/workflows/foo/../bar.yml",
+    event_name: context.event_name,
+    ref: context.ref,
+    environment: context.environment,
+    client_email: "keyless-demo@example-project.iam.gserviceaccount.com",
+  }), /workflow_path/);
+});
+
 test("proof binds the exact key and workflow context without exporting the private key", () => {
   const proof = createKeyProof(serviceAccountKey, context);
   const expected = { ...context, client_email: proof.client_email, private_key_id: proof.private_key_id };
