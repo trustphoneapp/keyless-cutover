@@ -3,7 +3,7 @@ import { TextDecoder } from "node:util";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339 } from "./rfc3339.mjs";
 
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 const EVIDENCE_ID = /^E[0-9]{3}$/;
 const ARTIFACT_FIELDS = new Set(["version", "id", "kind", "locator", "observed_at", "data"]);
 const UTF8 = new TextDecoder("utf-8", { fatal: true });

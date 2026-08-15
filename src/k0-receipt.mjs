@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { canonicalJson, decodeUtf8 } from "./evidence-artifact.mjs";
 import { verifyK0Bundle } from "./k0-bundle.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339 } from "./rfc3339.mjs";
 
 const RECEIPT_FIELDS = new Set([
@@ -97,8 +98,11 @@ export function parseK0ReceiptBytes(receiptBytes) {
   }
   let receipt;
   try {
-    receipt = JSON.parse(decodeUtf8(receiptBytes));
-  } catch {
+    const text = decodeUtf8(receiptBytes);
+    rejectDuplicateJsonKeys(text);
+    receipt = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("K0 receipt contains duplicate JSON keys");
     throw new Error("K0 receipt is not JSON");
   }
   if (!receiptBytes.equals(Buffer.from(canonicalJson(receipt), "utf8"))

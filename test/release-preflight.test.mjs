@@ -65,12 +65,16 @@ test("runtime containers are digest-pinned and exclude package-manager tooling",
     }
     assert.match(source, /\/usr\/local\/lib\/node_modules\/npm/);
     assert.match(source, /\/usr\/local\/lib\/node_modules\/corepack/);
+    assert.match(source, /^HEALTHCHECK .+$/m);
+    assert.match(source, /127\.0\.0\.1:8080\/healthz/);
   }
   const agent = await readFile(new URL("../agent/Dockerfile", import.meta.url), "utf8");
   assert.match(agent, /npm ci --omit=dev --legacy-peer-deps --ignore-scripts/);
+  assert.match(agent, /r\.status===200/);
+  const consoleImage = await readFile(new URL("../console/Dockerfile", import.meta.url), "utf8");
+  assert.match(consoleImage, /r\.status===204/);
   const demo = await readFile(new URL("../demo/service/Dockerfile", import.meta.url), "utf8");
-  assert.match(demo, /^HEALTHCHECK .+$/m);
-  assert.match(demo, /127\.0\.0\.1:8080\/healthz/);
+  assert.match(demo, /r\.status===204/);
 });
 
 test("legacy baseline deploy is dispatch-only while H4 still watches release marker pushes", async () => {

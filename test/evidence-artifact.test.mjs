@@ -38,6 +38,14 @@ test("evidence artifacts are canonical, bounded, credential-free, and digest-bou
     ...envelope,
     data: { value: `github_pat_${"a".repeat(40)}` },
   }), /credential/);
+  assert.throws(() => createEvidenceArtifact({
+    ...envelope,
+    data: { value: `AKIA${"A".repeat(16)}` },
+  }), /credential/);
+  assert.throws(() => createEvidenceArtifact({
+    ...envelope,
+    data: { value: `xoxb-${"a".repeat(12)}-${"b".repeat(24)}` },
+  }), /credential/);
   assert.doesNotThrow(() => createEvidenceArtifact({ ...envelope, observed_at: "2026-08-13T12:00:00.123456789Z" }));
   assert.throws(() => createEvidenceArtifact({ ...envelope, observed_at: "2026-02-29T12:00:00Z" }), /observed_at/);
 

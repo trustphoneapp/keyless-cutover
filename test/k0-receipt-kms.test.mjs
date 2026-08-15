@@ -121,6 +121,8 @@ test("receipt rejects absent, malformed, noncanonical, changed, or mismatched ma
     assert.throws(() => parseK0ReceiptBytes(bytes), /not JSON/);
     await assert.rejects(() => verifyK0Receipt({ receiptBytes: bytes, ...bundle }), /not JSON/);
   }
+  const duplicateReceipt = Buffer.from(receiptBytes.toString("utf8").replace('"version":1', '"version":1,"version":1'));
+  assert.throws(() => parseK0ReceiptBytes(duplicateReceipt), /duplicate JSON key/);
   const surrogateReceipt = Buffer.from(receiptBytes.toString("utf8")
     .replace('"RECOLLECTION_REQUIRED"', '"\\ud800"'));
   assert.throws(() => parseK0ReceiptBytes(surrogateReceipt), /Unicode surrogate/);

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { requireGitHubInstallationToken } from "./github-token.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { applyCutoverPlan } from "./workflow-cutover.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
@@ -45,6 +46,7 @@ function client({ token, fetchImpl }) {
     });
     const text = await response.text();
     if (text.length > MAX_RESPONSE) throw new Error("GitHub response is too large");
+    if (text) rejectDuplicateJsonKeys(text);
     const value = text ? JSON.parse(text) : null;
     if (!allowed.includes(response.status)) {
       const error = new Error(`GitHub API ${method} failed with HTTP ${response.status}`);

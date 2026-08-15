@@ -95,6 +95,21 @@ test("GitHub adapter refuses a non-draft or already-merged pull response", async
   await assert.rejects(() => openDraftCutoverPr({ ...input, fetchImpl: hostile }), /draft PR/);
 });
 
+test("GitHub adapter refuses duplicate JSON keys before mutation", async () => {
+  const { fetchImpl, requests } = createFetch();
+  const hostile = async (url, options) => {
+    if (url.includes("/repos/") && options.method === "GET" && !url.includes("/contents/") && !url.includes("/git/")) {
+      return {
+        status: 200,
+        text: async () => '{"id":1,"id":2,"full_name":"trustphoneapp/keyless-cutover"}',
+      };
+    }
+    return fetchImpl(url, options);
+  };
+  await assert.rejects(() => openDraftCutoverPr({ ...input, fetchImpl: hostile }), /duplicate JSON key/);
+  assert.equal(requests.some(({ method }) => method === "POST" || method === "PUT"), false);
+});
+
 test("GitHub adapter refuses repository identity drift before mutation", async () => {
   const { fetchImpl, requests } = createFetch({ repositoryId: 999 });
   await assert.rejects(openDraftCutoverPr({ ...input, fetchImpl }), /repository identity/);
