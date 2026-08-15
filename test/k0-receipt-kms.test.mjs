@@ -246,3 +246,36 @@ test("36 deterministic bundle, receipt, signature, and trust mutations all fail 
   assert.equal(mutations.length, 36);
   for (const [label, mutate] of mutations) await assert.rejects(async () => mutate(), undefined, label);
 });
+
+test("KMS helpers refuse AUTHORIZED or release_ready receipts and never promote", async () => {
+  const bundle = await assembleK0Bundle(validK0BundleInput());
+  const { receipt, receiptBytes } = await createK0Receipt(bundle);
+  const signer = createTestKmsSigner(KEY_VERSION);
+  const request = createKmsSigningRequest(receiptBytes, KEY_VERSION);
+  const sidecar = signer.sidecar(receiptBytes, request);
+
+  assert.equal(verifyKmsSignature(receiptBytes, sidecar, signer.trustAnchor), true);
+  assert.equal(parseK0ReceiptBytes(receiptBytes).authorization, "RECOLLECTION_REQUIRED");
+  assert.equal(parseK0ReceiptBytes(receiptBytes).release_ready, false);
+
+  const authorized = changedReceipt(receipt, (value) => { value.authorization = "AUTHORIZED"; });
+  const promoted = changedReceipt(receipt, (value) => { value.release_ready = true; });
+  assert.throws(() => createKmsSigningRequest(authorized, KEY_VERSION));
+  assert.throws(() => createKmsSigningRequest(promoted, KEY_VERSION));
+  assert.throws(() => verifyKmsSignature(authorized, sidecar, signer.trustAnchor));
+  assert.throws(() => verifyKmsSignature(promoted, sidecar, signer.trustAnchor));
+
+  const authorizedSidecar = (() => {
+    try {
+      return signer.sidecar(authorized, {
+        name: KEY_VERSION,
+        digest: { sha256: createHash("sha256").update(authorized).digest("base64") },
+      });
+    } catch {
+      return null;
+    }
+  })();
+  if (authorizedSidecar) {
+    assert.throws(() => verifyKmsSignature(authorized, authorizedSidecar, signer.trustAnchor));
+  }
+});

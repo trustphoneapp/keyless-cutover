@@ -28,6 +28,10 @@ function hasCredential(value) {
   return PATTERNS.some((pattern) => pattern.test(value));
 }
 
+export function textLooksLikeCredential(value) {
+  return typeof value === "string" && value.length > 0 && hasCredential(value);
+}
+
 function decodedUrl(value) {
   if (!value.includes("%") || value.length > MAX_INPUT) return null;
   const output = [];

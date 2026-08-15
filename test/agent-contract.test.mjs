@@ -45,6 +45,19 @@ test("ADK Taskmaster has no mutation tools and strict bounded outputs", () => {
   assert.throws(() => validateRedactedEvidenceBundle({
     evidence: [{ id: "E001", text: "safe", source: "unexpected" }],
   }), /unknown fields/);
+  for (const text of [
+    "token ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+    "token ghs_abcdefghijklmnopqrstuvwxyz0123456789",
+    "token github_pat_abcdefghijklmnopqrstuvwxyz012345",
+    "oauth ya29.a0AfH6SMB-example-token-value-xxxxxx",
+    "key AIzaSyAabcdefghijklmnopqrstuvwxyz012345",
+    'json {"private_key":"x"}',
+    "Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789",
+  ]) {
+    assert.throws(() => validateRedactedEvidenceBundle({
+      evidence: [{ id: "E001", text }],
+    }), /credential/, text);
+  }
 });
 
 test("agent citations must resolve to the authoritative evidence bundle", () => {

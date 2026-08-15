@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const workflowDirectory = new URL("../.github/workflows/", import.meta.url);
 
@@ -114,4 +116,64 @@ test("published credential-free evidence artifacts reject credential shapes", as
     const bytes = await readFile(new URL(file, evidenceDirectory));
     assert.doesNotThrow(() => assertCredentialFreeBytes(bytes), file);
   }
+});
+
+test("bin, k0, and GitHub text inventory stays credential-free", async () => {
+  const { assertCredentialFreeBytes } = await import("../src/credential-scan.mjs");
+  const root = fileURLToPath(new URL("..", import.meta.url));
+  const roots = ["bin", "k0", ".github"];
+  const allowed = /\.(mjs|ya?ml|json|md|toml|txt)$/i;
+  async function walk(directory) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === "node_modules") continue;
+        files.push(...await walk(path));
+        continue;
+      }
+      if (allowed.test(entry.name)) files.push(path);
+    }
+    return files;
+  }
+  for (const relative of roots) {
+    for (const path of await walk(join(root, relative))) {
+      const bytes = await readFile(path);
+      assert.doesNotThrow(() => assertCredentialFreeBytes(bytes), path);
+    }
+  }
+  const sample = Buffer.from('{"token":"ghp_abcdefghijklmnopqrstuvwxyz0123456789"}');
+  assert.throws(() => assertCredentialFreeBytes(sample), /credential-shaped/);
+});
+
+test("committed workflow YAML inventory rejects privilege-widening shapes", async () => {
+  const roots = [
+    new URL("../.github/workflows/", import.meta.url),
+    new URL("../k0/templates/", import.meta.url),
+    new URL("../k0/fixtures/", import.meta.url),
+  ];
+  for (const directory of roots) {
+    for (const file of await readdir(directory)) {
+      if (!/\.ya?ml$/.test(file)) continue;
+      const source = await readFile(new URL(file, directory), "utf8");
+      assert.doesNotMatch(source, /^\s*pull_request_target\s*:/m, file);
+      assert.doesNotMatch(source, /\bself-hosted\b/, file);
+      assert.doesNotMatch(source, /permissions:\s*write-all/, file);
+    }
+  }
+
+  const legacyAuth = await readFile(new URL("k0-legacy-auth-check.yml", workflowDirectory), "utf8");
+  assert.match(legacyAuth, /^on:\n\s+workflow_dispatch:\n/m);
+  assert.doesNotMatch(legacyAuth, /^\s+push:/m);
+  assert.match(legacyAuth, /vars\.KEYLESS_K0_ENABLED == 'true'/);
+  assert.match(legacyAuth, /test "\$ONLINE_OUTCOME" = failure/);
+  assert.match(legacyAuth, /credentials_json:/);
+  assert.doesNotMatch(legacyAuth, /id-token|GCP_WIF_PROVIDER/);
+
+  const external = await readFile(new URL("../k0/templates/k0-external-hostile.yml", import.meta.url), "utf8");
+  assert.match(external, /^\s+push:\n\s+branches: \[main\]\n\s+paths:\n\s+- demo\/release\.txt$/m);
+  assert.match(external, /continue-on-error: true/);
+  assert.match(external, /test "\$AUTH_OUTCOME" = failure/);
+  assert.doesNotMatch(external, /secrets\./);
 });

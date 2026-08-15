@@ -35,7 +35,38 @@ function renderGate(item, index) {
   </li>`;
 }
 
+function exactStatusFields(status) {
+  const keys = Reflect.ownKeys(status);
+  return Object.getPrototypeOf(status) === Object.prototype
+    && keys.length === STATUS_FIELDS.size
+    && keys.every((key) => typeof key === "string" && STATUS_FIELDS.has(key));
+}
+
+function validStateTuple(status) {
+  if (status.version !== 1 || status.release_ready !== false || status.cutover_verified !== false) return false;
+  if (status.status === "NO_GO_INCOMPLETE") {
+    return status.authorization === "INCOMPLETE" && status.signature_verified === false;
+  }
+  if (status.status === "NO_GO_VERIFICATION_FAILED") {
+    return status.authorization === "VERIFICATION_FAILED" && status.signature_verified === false;
+  }
+  return status.status === "K0_VERIFIED_RECEIPT_PENDING"
+    && status.authorization === "RECOLLECTION_REQUIRED"
+    && typeof status.signature_verified === "boolean";
+}
+
+function requireFailClosedStatus(status) {
+  if (!exactStatusFields(status) || !validStateTuple(status)) {
+    throw new Error("console status is not fail-closed");
+  }
+  if (/^(GO|PASS|AUTHORIZED)$/i.test(String(status.headline).trim())) {
+    throw new Error("console status is not fail-closed");
+  }
+  return status;
+}
+
 export function renderConsoleHtml(status) {
+  requireFailClosedStatus(status);
   const badge = status.status === "K0_VERIFIED_RECEIPT_PENDING"
     ? status.signature_verified ? "Signature verified · recollection required" : "Bundle verified · recollection required"
     : status.status === "NO_GO_VERIFICATION_FAILED" ? "No-go · verification failed" : "No-go · evidence incomplete";
@@ -120,34 +151,11 @@ function send(response, statusCode, contentType, body) {
   response.end(body);
 }
 
-function exactStatusFields(status) {
-  const keys = Reflect.ownKeys(status);
-  return Object.getPrototypeOf(status) === Object.prototype
-    && keys.length === STATUS_FIELDS.size
-    && keys.every((key) => typeof key === "string" && STATUS_FIELDS.has(key));
-}
-
-function validStateTuple(status) {
-  if (status.version !== 1 || status.release_ready !== false || status.cutover_verified !== false) return false;
-  if (status.status === "NO_GO_INCOMPLETE") {
-    return status.authorization === "INCOMPLETE" && status.signature_verified === false;
-  }
-  if (status.status === "NO_GO_VERIFICATION_FAILED") {
-    return status.authorization === "VERIFICATION_FAILED" && status.signature_verified === false;
-  }
-  return status.status === "K0_VERIFIED_RECEIPT_PENDING"
-    && status.authorization === "RECOLLECTION_REQUIRED"
-    && typeof status.signature_verified === "boolean";
-}
-
 export function createConsoleServer(status) {
   let capturedStatus;
   try {
-    capturedStatus = getUntamperedConsoleStatusSnapshot(status);
+    capturedStatus = requireFailClosedStatus(getUntamperedConsoleStatusSnapshot(status));
   } catch {
-    throw new Error("console status is not fail-closed");
-  }
-  if (!exactStatusFields(capturedStatus) || !validStateTuple(capturedStatus)) {
     throw new Error("console status is not fail-closed");
   }
   return createServer((request, response) => {

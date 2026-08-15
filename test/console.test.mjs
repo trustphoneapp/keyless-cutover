@@ -190,8 +190,12 @@ test("configured invalid K0 manifest fails closed and never uses checkpoint read
 
 test("console HTML escapes evidence-derived strings and contains no executable client script", () => {
   const status = {
+    version: 1,
+    status: "NO_GO_INCOMPLETE",
+    authorization: "INCOMPLETE",
     release_ready: false,
     cutover_verified: false,
+    signature_verified: false,
     eyebrow: "<checkpoint>",
     headline: "No-go",
     summary: "Evidence only",
@@ -201,12 +205,45 @@ test("console HTML escapes evidence-derived strings and contains no executable c
     gates: [{ label: "Gate", state: "missing", detail: "<script>alert(1)</script>" }],
     blockers: ["<img src=x onerror=alert(1)>"],
     sources: [],
+    limitations: ["Escaped evidence cannot become executable markup."],
   };
   const html = renderConsoleHtml(status);
   assert.ok(!html.includes("<script>"));
   assert.ok(!html.includes("<img src=x"));
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.match(html, /No-go · evidence incomplete/);
+});
+
+test("console HTML refuses promoted or incomplete status objects", () => {
+  const base = {
+    version: 1,
+    status: "NO_GO_INCOMPLETE",
+    authorization: "INCOMPLETE",
+    release_ready: false,
+    cutover_verified: false,
+    signature_verified: false,
+    eyebrow: "Evidence incomplete",
+    headline: "No proof, no green light.",
+    summary: "Missing evidence.",
+    recorded_at: null,
+    checkpoint_sha256: null,
+    metrics: [],
+    gates: [],
+    blockers: ["blocked"],
+    sources: [],
+    limitations: ["limit"],
+  };
+  for (const status of [
+    { ...base, release_ready: true },
+    { ...base, authorization: "AUTHORIZED" },
+    { ...base, status: "GO" },
+    { ...base, cutover_verified: true },
+    { ...base, final: true },
+    { ...base, headline: "GO", status: "NO_GO_INCOMPLETE" },
+  ]) {
+    assert.throws(() => renderConsoleHtml(status), /fail-closed/);
+  }
+  assert.doesNotMatch(renderConsoleHtml(base), /\bAUTHORIZED\b|release_ready.: ?true/);
 });
 
 test("console routes are read-only and return hardened response headers", async () => {
