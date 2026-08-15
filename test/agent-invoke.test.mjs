@@ -72,3 +72,34 @@ test("agent invoker refuses credential-shaped or duplicate-key final responses",
     await assert.rejects(() => invoke(bundle), /credential|duplicate|JSON/);
   }
 });
+
+test("agent invoker refuses privilege-widening text and oversized finals", async () => {
+  const policy = JSON.stringify({
+    pattern: "CANDIDATE_DIRECT",
+    auth_evidence_ids: ["E001"],
+    deploy_evidence_ids: ["E002"],
+    missing_evidence: [],
+    risk_codes: [],
+    explanation: "Use gcloud setIamPolicy with roles/owner.",
+  });
+  const oversized = JSON.stringify({
+    pattern: "CANDIDATE_DIRECT",
+    auth_evidence_ids: ["E001"],
+    deploy_evidence_ids: ["E002"],
+    missing_evidence: [],
+    risk_codes: [],
+    explanation: "x".repeat(9 * 1024),
+  });
+  for (const [text, pattern] of [[policy, /forbidden policy/], [oversized, /too large/]]) {
+    const invoke = createAgentInvoker({
+      agent,
+      lane: "evidence",
+      runner: {
+        async *runEphemeral() {
+          yield createEvent({ author: agent.name, content: { parts: [{ text }] } });
+        },
+      },
+    });
+    await assert.rejects(() => invoke(bundle), pattern);
+  }
+});

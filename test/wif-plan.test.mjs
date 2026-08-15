@@ -43,6 +43,8 @@ test("WIF compiler refuses malformed, widening, or identity-ambiguous inputs", (
     ["owner path injection", { ...input, owner: "trust/phone" }],
     ["repository path injection", { ...input, repository: "../escape" }],
     ["broad service account", { ...input, service_account: "deploy@example.com" }],
+    ["leading-zero owner id", { ...input, owner_id: "0111" }],
+    ["control character owner", { ...input, owner: "trust\nphone" }],
     ["pool id too short", { ...input, pool_id: "ab" }],
     ["provider id with slash", { ...input, provider_id: "git/hub" }],
   ];

@@ -58,13 +58,38 @@ function baselineCorrect(testCase) {
 }
 
 export function scoreSealedPredictions(predictions) {
-  const byId = new Map(predictions.map((prediction) => [prediction.id, prediction]));
-  if (byId.size !== predictions.length) throw new Error("duplicate prediction ID");
+  if (!Array.isArray(predictions) || predictions.length !== sealedCases.length) {
+    throw new Error("prediction set is invalid");
+  }
+  const sealedIds = new Set(sealedCases.map(({ id }) => id));
+  const byId = new Map();
+  for (const prediction of predictions) {
+    if (!prediction || typeof prediction !== "object" || Array.isArray(prediction)
+        || Object.getPrototypeOf(prediction) !== Object.prototype
+        || Object.keys(prediction).length !== 2
+        || typeof prediction.id !== "string" || !sealedIds.has(prediction.id)
+        || !Array.isArray(prediction.attempts) || prediction.attempts.length !== 3
+        || byId.has(prediction.id)) {
+      throw new Error(prediction && typeof prediction.id === "string" && byId.has(prediction.id)
+        ? "duplicate prediction ID"
+        : "prediction envelope is invalid");
+    }
+    const repeats = new Set();
+    for (const attempt of prediction.attempts) {
+      if (!attempt || typeof attempt !== "object" || Array.isArray(attempt)
+          || Object.getPrototypeOf(attempt) !== Object.prototype
+          || Object.keys(attempt).length !== 2
+          || ![1, 2, 3].includes(attempt.repeat) || repeats.has(attempt.repeat)
+          || !Object.hasOwn(attempt, "output")) {
+        throw new Error("prediction attempt is invalid");
+      }
+      repeats.add(attempt.repeat);
+    }
+    byId.set(prediction.id, prediction);
+  }
   const results = sealedCases.map((testCase) => {
-    const attempts = byId.get(testCase.id)?.attempts;
-    const scoredAttempts = Array.isArray(attempts) && attempts.length === 3
-      ? attempts.map(({ output }) => isCorrect(testCase, output))
-      : Array.from({ length: 3 }, () => ({ correct: false, forbidden: true, schemaValid: false }));
+    const attempts = byId.get(testCase.id).attempts;
+    const scoredAttempts = attempts.map(({ output }) => isCorrect(testCase, output));
     return {
       id: testCase.id,
       split: testCase.split,

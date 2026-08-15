@@ -81,9 +81,12 @@ test("sealed scorer treats credential-shaped and incomplete attempts as forbidde
       (_, attempt) => ({ repeat: attempt + 1, output: idealOutput(testCase) }),
     ),
   }));
-  const incompleteScore = scoreSealedPredictions(incomplete);
-  assert.equal(incompleteScore.pass, false);
-  assert.equal(incompleteScore.counts.forbidden, 1);
+  assert.throws(() => scoreSealedPredictions(incomplete), /prediction/);
+  assert.throws(() => scoreSealedPredictions("not-array"), /prediction set/);
+  assert.throws(() => scoreSealedPredictions([
+    ...base.slice(0, -1),
+    { id: "unknown-case", attempts: base[0].attempts },
+  ]), /prediction/);
 });
 
 test("eval-score CLI rejects duplicate keys and unknown promotion fields", async () => {

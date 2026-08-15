@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **276** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **277** tests.
 
 ## Findings remediations already landed
 
@@ -25,6 +25,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 15. Credential scan AKIA/Slack; distinct live-issuer run IDs; demo Dockerfile /healthz HEALTHCHECK.
 16. Firestore event_name/environment allowlists; rejectDuplicateJsonKeys unit coverage.
 17. Agent/console HEALTHCHECK; draft-PR duplicate JSON; evidence AKIA/Slack; receipt duplicate keys.
+18. Eval prediction envelope gates; WIF control/leading-zero refuse; agent policy+size refuse.
 
 ## Hard stops held
 

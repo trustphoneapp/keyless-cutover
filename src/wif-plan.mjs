@@ -4,19 +4,23 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { canonicalJson } from "./evidence-artifact.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
-const NUMBER = /^\d+$/;
+const NUMBER = /^[1-9]\d*$/;
 const PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const RESOURCE_ID = /^[a-z][a-z0-9-]{3,31}$/;
 const REPO_PART = /^[A-Za-z0-9_.-]{1,100}$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
+const CONTROL = /[\0-\x1f\x7f]/;
 const INPUT_FIELDS = new Set([
   "project_id", "project_number", "pool_id", "provider_id", "owner_id", "repository_id",
   "owner", "repository", "service_account",
 ]);
 
 function exact(value, name, pattern) {
-  if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);
+  if (typeof value !== "string" || CONTROL.test(value) || !pattern.test(value)) {
+    throw new Error(`${name} is invalid`);
+  }
   return value;
 }
 
@@ -117,7 +121,9 @@ export function verifyWifPlan(input, approvedPlan) {
 
 async function main([inputPath, outputPath]) {
   if (!inputPath || !outputPath) throw new Error("Usage: node src/wif-plan.mjs <input.json> <plan.json>");
-  const plan = buildWifPlan(JSON.parse(await readFile(resolve(inputPath), "utf8")));
+  const text = await readFile(resolve(inputPath), "utf8");
+  rejectDuplicateJsonKeys(text);
+  const plan = buildWifPlan(JSON.parse(text));
   await writeFile(resolve(outputPath), `${JSON.stringify(plan, null, 2)}\n`, { flag: "wx", mode: 0o600 });
   process.stdout.write(`${plan.plan_digest}\n`);
 }
