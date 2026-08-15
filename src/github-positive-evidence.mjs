@@ -11,6 +11,7 @@ import { parseGitHubEvidenceCheckpointReceipt } from "./k0-evidence-normalizer.m
 import { verifyK0PreDisableArchive } from "./k0-predisable-archive.mjs";
 import { githubReleaseMarker, githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
 import { requireGitHubReadToken } from "./github-token.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
@@ -175,79 +176,6 @@ async function fetchCheckpointJson(url, token, fetchImpl) {
     }
     throw new Error("GitHub API response is not valid JSON");
   }
-}
-
-function rejectDuplicateJsonKeys(text) {
-  let index = 0;
-  const whitespace = () => { while (/[\t\n\r ]/.test(text[index] ?? "")) index += 1; };
-  const string = () => {
-    const start = index;
-    if (text[index] !== '"') throw new Error("invalid JSON");
-    index += 1;
-    for (;;) {
-      const character = text[index];
-      if (character === undefined || /[\u0000-\u001f]/u.test(character)) throw new Error("invalid JSON");
-      if (character === '"') {
-        index += 1;
-        return JSON.parse(text.slice(start, index));
-      }
-      if (character === "\\") {
-        index += 1;
-        if (!/["\\/bfnrtu]/.test(text[index] ?? "")) throw new Error("invalid JSON");
-        if (text[index] === "u") {
-          if (!/^[a-f0-9]{4}$/i.test(text.slice(index + 1, index + 5))) throw new Error("invalid JSON");
-          index += 4;
-        }
-      }
-      index += 1;
-    }
-  };
-  const value = (depth) => {
-    if (depth > 64) throw new Error("invalid JSON");
-    whitespace();
-    if (text[index] === "{") {
-      index += 1;
-      whitespace();
-      const keys = new Set();
-      if (text[index] === "}") { index += 1; return; }
-      for (;;) {
-        whitespace();
-        const key = string();
-        if (keys.has(key)) throw new Error("duplicate JSON key");
-        keys.add(key);
-        whitespace();
-        if (text[index] !== ":") throw new Error("invalid JSON");
-        index += 1;
-        value(depth + 1);
-        whitespace();
-        if (text[index] === "}") { index += 1; return; }
-        if (text[index] !== ",") throw new Error("invalid JSON");
-        index += 1;
-      }
-    }
-    if (text[index] === "[") {
-      index += 1;
-      whitespace();
-      if (text[index] === "]") { index += 1; return; }
-      for (;;) {
-        value(depth + 1);
-        whitespace();
-        if (text[index] === "]") { index += 1; return; }
-        if (text[index] !== ",") throw new Error("invalid JSON");
-        index += 1;
-      }
-    }
-    if (text[index] === '"') { string(); return; }
-    for (const literal of ["true", "false", "null"]) {
-      if (text.startsWith(literal, index)) { index += literal.length; return; }
-    }
-    const number = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(text.slice(index));
-    if (!number) throw new Error("invalid JSON");
-    index += number[0].length;
-  };
-  value(0);
-  whitespace();
-  if (index !== text.length) throw new Error("invalid JSON");
 }
 
 function boundedReviewPage(value) {

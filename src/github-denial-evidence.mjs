@@ -3,6 +3,7 @@ import AdmZip from "adm-zip";
 import { decodeUtf8 } from "./evidence-artifact.mjs";
 import { requireGitHubReadToken } from "./github-token.mjs";
 import { githubReleaseMarker, githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339, timestampAtOrBefore } from "./rfc3339.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
@@ -10,7 +11,7 @@ const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const NUMERIC = /^\d+$/;
 const SHA = /^[a-f0-9]{40}$/;
 const SERVICE = /^[a-z][a-z0-9-]{0,62}$/;
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/i;
 const MAX_JSON_RESPONSE = 1_000_000;
 const JOBS = {
   H1: "external-identity",
@@ -57,79 +58,6 @@ function captureBodyResponse(response, name) {
   } catch {
     throw new Error(`${name} primitives are invalid`);
   }
-}
-
-function rejectDuplicateJsonKeys(text) {
-  let index = 0;
-  const whitespace = () => { while (/[\t\n\r ]/.test(text[index] ?? "")) index += 1; };
-  const string = () => {
-    const start = index;
-    if (text[index] !== '"') throw new Error("invalid JSON");
-    index += 1;
-    for (;;) {
-      const character = text[index];
-      if (character === undefined || /[\u0000-\u001f]/u.test(character)) throw new Error("invalid JSON");
-      if (character === '"') {
-        index += 1;
-        return JSON.parse(text.slice(start, index));
-      }
-      if (character === "\\") {
-        index += 1;
-        if (!/["\\/bfnrtu]/.test(text[index] ?? "")) throw new Error("invalid JSON");
-        if (text[index] === "u") {
-          if (!/^[a-f0-9]{4}$/i.test(text.slice(index + 1, index + 5))) throw new Error("invalid JSON");
-          index += 4;
-        }
-      }
-      index += 1;
-    }
-  };
-  const value = (depth) => {
-    if (depth > 64) throw new Error("invalid JSON");
-    whitespace();
-    if (text[index] === "{") {
-      index += 1;
-      whitespace();
-      const keys = new Set();
-      if (text[index] === "}") { index += 1; return; }
-      for (;;) {
-        whitespace();
-        const key = string();
-        if (keys.has(key)) throw new Error("duplicate JSON key");
-        keys.add(key);
-        whitespace();
-        if (text[index] !== ":") throw new Error("invalid JSON");
-        index += 1;
-        value(depth + 1);
-        whitespace();
-        if (text[index] === "}") { index += 1; return; }
-        if (text[index] !== ",") throw new Error("invalid JSON");
-        index += 1;
-      }
-    }
-    if (text[index] === "[") {
-      index += 1;
-      whitespace();
-      if (text[index] === "]") { index += 1; return; }
-      for (;;) {
-        value(depth + 1);
-        whitespace();
-        if (text[index] === "]") { index += 1; return; }
-        if (text[index] !== ",") throw new Error("invalid JSON");
-        index += 1;
-      }
-    }
-    if (text[index] === '"') { string(); return; }
-    for (const literal of ["true", "false", "null"]) {
-      if (text.startsWith(literal, index)) { index += literal.length; return; }
-    }
-    const number = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(text.slice(index));
-    if (!number) throw new Error("invalid JSON");
-    index += number[0].length;
-  };
-  value(0);
-  whitespace();
-  if (index !== text.length) throw new Error("invalid JSON");
 }
 
 async function readBoundedBody({ reader, length }, limit, name) {
