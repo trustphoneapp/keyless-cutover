@@ -34,8 +34,21 @@ test("evidence artifacts are canonical, bounded, credential-free, and digest-bou
     ...envelope,
     data: { value: "-----BEGIN PRIVATE KEY-----" },
   }), /credential/);
+  assert.throws(() => createEvidenceArtifact({
+    ...envelope,
+    data: { value: `github_pat_${"a".repeat(40)}` },
+  }), /credential/);
   assert.doesNotThrow(() => createEvidenceArtifact({ ...envelope, observed_at: "2026-08-13T12:00:00.123456789Z" }));
   assert.throws(() => createEvidenceArtifact({ ...envelope, observed_at: "2026-02-29T12:00:00Z" }), /observed_at/);
+
+  const duplicate = '{"version":1,"id":"E001","kind":"GITHUB_RUN","locator":"x","observed_at":"2026-08-13T12:00:00Z","data":{},"id":"E001"}\n';
+  const duplicateManifest = {
+    evidence: [{ id: "E001", kind: "GITHUB_RUN", locator: "x", observed_at: "2026-08-13T12:00:00Z",
+      sha256: createHash("sha256").update(duplicate).digest("hex") }],
+  };
+  const duplicateResult = await verifyEvidenceArtifacts(duplicateManifest, async () => duplicate);
+  assert.equal(duplicateResult.ok, false);
+  assert.match(duplicateResult.errors.join("\n"), /duplicate key|not JSON/);
 });
 
 test("canonical JSON rejects lone UTF-16 surrogates in keys and nested values", async () => {

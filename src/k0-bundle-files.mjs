@@ -4,13 +4,17 @@ import { join } from "node:path";
 
 import { canonicalJson } from "./evidence-artifact.mjs";
 import { verifyK0Bundle } from "./k0-bundle.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const MAX_MANIFEST = 1_000_000;
 const MAX_ARTIFACT = 512_000;
 const MAX_ARTIFACTS = 5_000_000;
 
 export async function readBoundedFile(path, limit) {
-  const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  if (!Number.isInteger(constants.O_NOFOLLOW) || !Number.isInteger(constants.O_NONBLOCK)) {
+    throw new Error("bounded file no-follow open is unavailable");
+  }
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const stat = await handle.stat();
     if (!stat.isFile() || stat.size > limit) throw new Error("bounded file is invalid");
@@ -32,7 +36,7 @@ export async function readExactArtifactDirectory(directory, evidence) {
   const files = await readdir(directory, { withFileTypes: true });
   const expected = [...new Set((evidence ?? []).map(({ id }) => `${id}.json`))].sort();
   const actual = files.map(({ name }) => name).sort();
-  if (files.some((entry) => !entry.isFile()) || actual.length !== expected.length
+  if (files.some((entry) => entry.isSymbolicLink() || !entry.isFile()) || actual.length !== expected.length
       || actual.some((name, index) => name !== expected[index])) {
     throw new Error("bundle artifacts do not exactly match the manifest");
   }
@@ -59,7 +63,9 @@ export async function readK0BundleDirectory(directory) {
   const manifestBytes = await readBoundedFile(join(directory, "manifest.json"), MAX_MANIFEST);
   let manifest;
   try {
-    manifest = JSON.parse(manifestBytes.toString("utf8"));
+    const text = manifestBytes.toString("utf8");
+    rejectDuplicateJsonKeys(text);
+    manifest = JSON.parse(text);
   } catch {
     throw new Error("bundle manifest is not JSON");
   }

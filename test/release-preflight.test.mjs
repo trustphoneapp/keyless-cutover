@@ -87,6 +87,17 @@ test("legacy baseline deploy is dispatch-only while H4 still watches release mar
   assert.match(hostile, /hostile=H4/);
 });
 
+test("CI workflow stays read-only with clean-install and high audit gates", async () => {
+  const source = await readFile(new URL("ci.yml", workflowDirectory), "utf8");
+  assert.match(source, /^permissions:\n\s+contents: read\n/m);
+  assert.doesNotMatch(source, /pull_request_target:/);
+  assert.doesNotMatch(source, /permissions:\s*write-all|contents:\s*write|id-token:\s*write/);
+  assert.match(source, /npm ci --legacy-peer-deps --ignore-scripts/);
+  assert.match(source, /npm audit --omit=dev --audit-level=high/);
+  assert.match(source, /^\s+- run: npm test$/m);
+  assert.match(source, /node-version: 24/);
+});
+
 test("workflow and template action pins cover every external uses entry", async () => {
   const roots = [
     new URL("../.github/workflows/", import.meta.url),

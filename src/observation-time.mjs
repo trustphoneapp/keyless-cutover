@@ -120,7 +120,10 @@ export function parseAuthenticatedTransportObservation(response, options = {}) {
   if (!Array.isArray(sourceEventTimes) || sourceEventTimes.length > 100) {
     throw new Error("authenticated transport source times are invalid");
   }
-  const observedAt = parsed.toISOString();
+  const observedAt = `${String(year).padStart(4, "0")}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}.000Z`;
+  if (!isRfc3339(observedAt) || timestampNanoseconds(observedAt) !== BigInt(milliseconds) * 1_000_000n) {
+    throw new Error("authenticated transport Date header is invalid");
+  }
   const observed = timestampNanoseconds(observedAt);
   for (const eventTime of sourceEventTimes) {
     if (!isRfc3339(eventTime) || timestampNanoseconds(eventTime) > observed) {
