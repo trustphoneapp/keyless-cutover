@@ -1,6 +1,7 @@
 import { requireGitHubReadToken } from "./github-token.mjs";
 import { boundedGitHubPage, isGitHubHostedJob } from "./github-denial-evidence.mjs";
 import { githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339 } from "./rfc3339.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
@@ -27,6 +28,7 @@ async function json(url, token, fetchImpl) {
   if (!response.ok) throw new Error(`GitHub evidence lookup failed with HTTP ${response.status}`);
   const body = await response.text();
   if (body.length > MAX_RESPONSE_BYTES) throw new Error("GitHub evidence response is too large");
+  rejectDuplicateJsonKeys(body);
   return JSON.parse(body);
 }
 
@@ -102,7 +104,7 @@ export async function fetchGitHubProofObservation({
     run_attempt: exact(String(run.run_attempt), RUN_ID, "run_attempt"),
     actor_id: actorId,
     triggering_actor: exact(run?.triggering_actor?.login, /^[A-Za-z0-9-]{1,39}$/, "triggering_actor"),
-    event_name: exact(run.event, /^[a-z_]+$/, "event_name"),
+    event_name: exact(run.event, /^workflow_dispatch$/, "event_name"),
     ref,
     environment,
     runner_environment: "github-hosted",

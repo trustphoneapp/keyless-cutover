@@ -122,3 +122,28 @@ test("GitHub observer requires one bounded authoritative GitHub-hosted ProofV2 j
     }));
   }
 });
+
+test("GitHub observer refuses push events and duplicate JSON keys", async () => {
+  await assert.rejects(fetchGitHubProofObservation({
+    ...input,
+    fetchImpl: async (url) => {
+      if (url.includes("/actions/runs/") && !url.includes("/jobs") && !url.includes("/approvals")) {
+        return { ok: true, status: 200, text: async () => JSON.stringify({ ...run, event: "push" }) };
+      }
+      return fetchFixture()(url);
+    },
+  }), /event_name/);
+  await assert.rejects(fetchGitHubProofObservation({
+    ...input,
+    fetchImpl: async (url) => {
+      if (url.includes("/actions/runs/") && !url.includes("/jobs") && !url.includes("/approvals")) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '{"id":456789123,"id":456789123,"event":"workflow_dispatch"}',
+        };
+      }
+      return fetchFixture()(url);
+    },
+  }), /duplicate JSON key/);
+});

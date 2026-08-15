@@ -124,7 +124,7 @@ function baselineFixture({ mutate = () => {}, headers = { date: "Thu, 13 Aug 202
       encoding: "base64", content: legacyTemplate.toString("base64"),
       sha: "62ec226833a2ac44913044ab665a01b0f0f271db",
     },
-    release: { encoding: "base64", content: Buffer.from("legacy-1\n").toString("base64") },
+    release: { encoding: "base64", content: Buffer.from("legacy-1\n").toString("base64"), sha: "f812d757b68999535b363515a96b4ec8e6462e9d" },
   };
   mutate(values);
   const reply = (value) => new Response(JSON.stringify(value), { status: 200, headers });

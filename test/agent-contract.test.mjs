@@ -53,6 +53,8 @@ test("ADK Taskmaster has no mutation tools and strict bounded outputs", () => {
     "key AIzaSyAabcdefghijklmnopqrstuvwxyz012345",
     'json {"private_key":"x"}',
     "Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789",
+    `AKIA${"A".repeat(16)}`,
+    `xoxb-${"a".repeat(12)}-${"b".repeat(24)}`,
   ]) {
     assert.throws(() => validateRedactedEvidenceBundle({
       evidence: [{ id: "E001", text }],

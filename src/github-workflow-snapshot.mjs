@@ -21,7 +21,8 @@ export function githubWorkflowSnapshot(content) {
 }
 
 export function githubReleaseMarker(content) {
-  if (content?.encoding !== "base64" || typeof content.content !== "string") {
+  if (content?.encoding !== "base64" || typeof content.content !== "string"
+      || !/^[a-f0-9]{40}$/.test(content.sha ?? "")) {
     throw new Error("GitHub release marker content is invalid");
   }
   const decoded = Buffer.from(content.content.replace(/\s/g, ""), "base64").toString("utf8");

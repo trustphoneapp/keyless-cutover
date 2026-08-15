@@ -23,4 +23,13 @@ test("release marker allows one trailing newline and rejects multiline payloads"
   assert.throws(() => githubReleaseMarker(encoded("legacy-2\nwif-1\n")), /invalid/);
   assert.throws(() => githubReleaseMarker(encoded("BAD")), /invalid/);
   assert.throws(() => githubReleaseMarker(encoded("legacy-2\0")), /invalid/);
+  assert.throws(() => githubReleaseMarker({
+    encoding: "base64",
+    content: Buffer.from("wif-3").toString("base64"),
+  }), /invalid/);
+  assert.throws(() => githubReleaseMarker({
+    encoding: "base64",
+    content: Buffer.from("wif-3").toString("base64"),
+    sha: "A".repeat(40),
+  }), /invalid/);
 });

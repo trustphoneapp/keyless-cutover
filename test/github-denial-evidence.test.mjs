@@ -75,7 +75,7 @@ function fixture(options = {}) {
     if (url.endsWith("/actions/jobs/77/logs")) return response(302, "", { location: "https://objects.githubusercontent.com/job.txt" });
     if (url.endsWith("artifact.zip")) return response(200, zip.toBuffer(), { "content-length": String(zip.toBuffer().length) });
     if (url.endsWith("job.txt")) return response(200, log, { "content-length": String(log.length) });
-    if (url.includes("/contents/demo/release.txt")) return response(200, { encoding: "base64", content: Buffer.from("wif-1\n").toString("base64") });
+    if (url.includes("/contents/demo/release.txt")) return response(200, { encoding: "base64", content: Buffer.from("wif-1\n").toString("base64"), sha: "ac4c6a186fec14ee42a4fd8c23d4a3374f74ca2e" });
     if (url.includes("/contents/")) return response(200, { encoding: "base64", content: Buffer.from(workflow).toString("base64"), sha: "c".repeat(40) });
     throw new Error(`unexpected URL ${url}`);
   };
@@ -112,7 +112,7 @@ function h2Fixture() {
     if (url.endsWith("/actions/jobs/82/logs")) return response(302, "", { location: "https://objects.githubusercontent.com/h2.txt" });
     if (url.endsWith("h2.zip")) return response(200, zip.toBuffer(), { "content-length": String(zip.toBuffer().length) });
     if (url.endsWith("h2.txt")) return response(200, log, { "content-length": String(log.length) });
-    if (url.includes("/contents/demo/release.txt")) return response(200, { encoding: "base64", content: Buffer.from("external\n").toString("base64") });
+    if (url.includes("/contents/demo/release.txt")) return response(200, { encoding: "base64", content: Buffer.from("external\n").toString("base64"), sha: "e9895c1844dcba54a6e1c07f19209d42720d4e22" });
     if (url.includes("/contents/")) return response(200, { encoding: "base64", content: Buffer.from(workflow).toString("base64"), sha: "d".repeat(40) });
     throw new Error(`unexpected URL ${url}`);
   };

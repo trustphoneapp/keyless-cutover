@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **281** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **282** tests.
 
 ## Findings remediations already landed
 
@@ -28,6 +28,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 18. Eval prediction envelope gates; WIF control/leading-zero refuse; agent policy+size refuse.
 19. Cutover NUL/dup-key; live-issuer pending dup-key; legacy baseline RFC3339/dup-key; console AKIA/Slack + isRfc3339.
 20. Checkpoint latest-time RFC3339; denial requires job started_at; sealed runner score-shaped attempts.
+21. Agent AKIA/Slack; ProofV2 observer dispatch+dup-key; release marker blob sha.
 
 ## Hard stops held
 

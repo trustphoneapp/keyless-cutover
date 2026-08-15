@@ -327,7 +327,7 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
       return response(content(workflowBytes), "Thu, 13 Aug 2026 12:14:00 GMT");
     }
     if (path.includes("/contents/demo/release.txt")) {
-      return response({ encoding: "base64", content: Buffer.from("wif-2\n").toString("base64") },
+      return response({ encoding: "base64", content: Buffer.from("wif-2\n").toString("base64"), sha: "a0edac1ca398917d44f52651419451d90f8d67ac" },
         "Thu, 13 Aug 2026 12:14:00 GMT");
     }
     if (path.includes(`/services/${scope.allowed_service}/revisions/${fragment.revisions.wif_2}`)) {

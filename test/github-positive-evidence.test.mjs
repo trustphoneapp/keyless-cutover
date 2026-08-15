@@ -210,10 +210,14 @@ function fixture({
       user: { id: selfReview ? 10 : 11 },
       environments: [{ name: "production" }],
     }]);
-    if (url.includes("/contents/demo/release.txt")) return response({
-      encoding: "base64",
-      content: Buffer.from(`${releaseMarker}\n`).toString("base64"),
-    });
+    if (url.includes("/contents/demo/release.txt")) {
+      const releaseBytes = Buffer.from(`${releaseMarker}\n`);
+      return response({
+        encoding: "base64",
+        content: releaseBytes.toString("base64"),
+        sha: createHash("sha1").update(`blob ${releaseBytes.length}\0`).update(releaseBytes).digest("hex"),
+      });
+    }
     if (url.includes("/contents/")) return response({
       encoding: "base64",
       content: Buffer.from(workflow).toString("base64"),
