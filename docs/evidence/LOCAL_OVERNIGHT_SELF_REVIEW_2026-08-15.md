@@ -54,6 +54,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 44. Require Content-Length + byteLength caps on shared GitHub JSON, ProofV2 observer, draft-PR, x509, and legacy Google key text paths.
 45. Agent evidence/final-text budgets use `Buffer.byteLength`; credential-shaped gains `authorization: bearer` parity.
 46. Observed GitHub body/download/checkpoint readers require Content-Length (no chunked fail-open).
+47. Credential-scan keeps word boundaries; parity test pins agreement with `credential-shaped` samples.
 
 ## Hard stops held
 
