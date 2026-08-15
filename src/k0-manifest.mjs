@@ -284,6 +284,8 @@ function validatePreDisableFragment(fragment, evidenceItems, errors) {
   fail(baseline.fresh_runner === true && baseline.outcome === "SUCCEEDED", "legacy baseline did not succeed freshly");
   fail(baseline.revision === revisions.legacy_1, "legacy baseline revision does not match legacy_1");
   fail(exact(baseline.release_marker, /^[a-z0-9][a-z0-9-]{0,19}$/), "legacy baseline release marker is invalid");
+  fail(baseline.release_marker !== cutover.wif_1_release_marker,
+    "legacy baseline and wif-1 release markers must be distinct");
   requireSources(baseline.source_ids,
     ["GITHUB_RUN", "GITHUB_ENVIRONMENT_REVIEW", "GCP_IAM_KEY", "CLOUD_RUN_REVISION"], "legacy baseline");
   fail(baseline.source_ids?.length === 4, "legacy baseline requires exactly four sources");
@@ -360,6 +362,9 @@ export function verifyK0Manifest(manifest) {
   fail(post.fresh_runner === true && post.outcome === "SUCCEEDED", "post-disable WIF did not succeed freshly");
   fail(post.revision === revisions.wif_2, "post-disable revision does not match wif_2");
   fail(exact(post.release_marker, /^[a-z0-9][a-z0-9-]{0,19}$/), "post-disable release marker is invalid");
+  fail(post.release_marker !== manifest.legacy_baseline?.release_marker
+    && post.release_marker !== manifest.cutover?.wif_1_release_marker,
+  "post-disable release marker must be distinct from legacy baseline and wif-1");
   requireSources(post.source_ids, ["GITHUB_RUN", "GITHUB_ENVIRONMENT_REVIEW", "GCP_WIF_AUDIT_LOG", "CLOUD_RUN_REVISION"], "post-disable WIF");
   fail(post.source_ids?.length === 4, "post-disable WIF requires exactly four sources");
 

@@ -516,6 +516,8 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
     && timestampBefore(wif1Run?.started_at, revision.create_time)
     && timestampBefore(revision.create_time, entry?.observed_at)),
   "wif-1 revision does not match its authoritative run window and release marker");
+  fail(manifest.legacy_baseline.release_marker !== manifest.cutover.wif_1_release_marker,
+    "legacy baseline and wif-1 release markers must be distinct");
 
   const parity = entryOfKind(manifest.wif.source_ids, "GCP_WIF_PARITY");
   fail(parity.some(({ entry, data }) => data?.mode === manifest.wif.mode
@@ -831,6 +833,9 @@ export async function verifyK0EvidenceSemantics(manifest, readArtifact) {
     && timestampBefore(manifest.disable.audit_timestamp, run?.started_at)
     && postReviews.some((review) => reviewMatches(review, run)));
   fail(Boolean(postRun), "post-disable WIF GitHub run does not match or predates key disable");
+  fail(manifest.post_disable.release_marker !== manifest.legacy_baseline.release_marker
+    && manifest.post_disable.release_marker !== manifest.cutover.wif_1_release_marker,
+  "post-disable release marker must be distinct from legacy baseline and wif-1");
   fail(Boolean(legacyResult) && Boolean(postRun)
     && timestampBefore(legacyResult.rejected_at, postRun.started_at),
   "fresh legacy denial must strictly precede post-disable WIF run");

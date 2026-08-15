@@ -1,0 +1,15 @@
+---
+description: Overnight local-only coding mode for keyless-cutover
+alwaysApply: true
+---
+
+# Local-only overnight mode
+
+While working overnight on this repo:
+
+- Do **not** call GitHub (`gh`), push, open/merge PRs, request reviews, or comment for `cherala2002`.
+- Do **not** dispatch workflows, rotate secrets, disable keys, deploy, or call KMS.
+- Do **not** use Cloud Agents / Automations / paid API cloud runs.
+- Code, test, and **commit locally** on `agent/local-overnight-hardening` only.
+- Leave protected PR review and live K0 to humans in the morning.
+- Prefer fail-closed tests and false-safe hardening over new live features.

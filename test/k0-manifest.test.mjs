@@ -815,3 +815,53 @@ test("bundle verification rejects artifact bytes outside the manifest ledger", a
   const digest = createHash("sha256").update(changed).digest("hex");
   assert.notEqual(digest, first.sha256);
 });
+
+test("release markers for legacy baseline, wif-1, and wif-2 must be pairwise distinct", async () => {
+  const collideBaselineWif1 = validK0BundleInput();
+  collideBaselineWif1.manifest.legacy_baseline.release_marker = collideBaselineWif1.manifest.cutover.wif_1_release_marker;
+  collideBaselineWif1.manifest.revisions.legacy_1 = `keyless-demo-${collideBaselineWif1.manifest.legacy_baseline.release_marker}`;
+  evidenceByKind(collideBaselineWif1, "GITHUB_RUN", "legacy-baseline").data.release_marker =
+    collideBaselineWif1.manifest.legacy_baseline.release_marker;
+  evidenceByKind(collideBaselineWif1, "CLOUD_RUN_REVISION", "legacy-baseline-revision").data.release_marker =
+    collideBaselineWif1.manifest.legacy_baseline.release_marker;
+  evidenceByKind(collideBaselineWif1, "CLOUD_RUN_REVISION", "legacy-baseline-revision").data.revision =
+    collideBaselineWif1.manifest.revisions.legacy_1;
+  refreshCheckpointReceipt(collideBaselineWif1);
+  refreshFinalCredentialScan(collideBaselineWif1);
+  await assert.rejects(
+    () => assembleK0Bundle(collideBaselineWif1),
+    /legacy baseline and wif-1 release markers must be distinct/,
+  );
+
+  const collidePostWif1 = validK0BundleInput();
+  collidePostWif1.manifest.post_disable.release_marker = collidePostWif1.manifest.cutover.wif_1_release_marker;
+  collidePostWif1.manifest.revisions.wif_2 = `keyless-demo-${collidePostWif1.manifest.post_disable.release_marker}`;
+  evidenceByKind(collidePostWif1, "GITHUB_RUN", "wif-2").data.release_marker =
+    collidePostWif1.manifest.post_disable.release_marker;
+  evidenceByKind(collidePostWif1, "CLOUD_RUN_REVISION", "wif-2-revision").data.release_marker =
+    collidePostWif1.manifest.post_disable.release_marker;
+  evidenceByKind(collidePostWif1, "CLOUD_RUN_REVISION", "wif-2-revision").data.revision =
+    collidePostWif1.manifest.revisions.wif_2;
+  refreshFinalCredentialScan(collidePostWif1);
+  await assert.rejects(
+    () => assembleK0Bundle(collidePostWif1),
+    /post-disable release marker must be distinct/,
+  );
+
+  const collidePostBaseline = validK0BundleInput();
+  collidePostBaseline.manifest.post_disable.release_marker =
+    collidePostBaseline.manifest.legacy_baseline.release_marker;
+  collidePostBaseline.manifest.revisions.wif_2 =
+    `keyless-demo-${collidePostBaseline.manifest.post_disable.release_marker}`;
+  evidenceByKind(collidePostBaseline, "GITHUB_RUN", "wif-2").data.release_marker =
+    collidePostBaseline.manifest.post_disable.release_marker;
+  evidenceByKind(collidePostBaseline, "CLOUD_RUN_REVISION", "wif-2-revision").data.release_marker =
+    collidePostBaseline.manifest.post_disable.release_marker;
+  evidenceByKind(collidePostBaseline, "CLOUD_RUN_REVISION", "wif-2-revision").data.revision =
+    collidePostBaseline.manifest.revisions.wif_2;
+  refreshFinalCredentialScan(collidePostBaseline);
+  await assert.rejects(
+    () => assembleK0Bundle(collidePostBaseline),
+    /post-disable release marker must be distinct/,
+  );
+});
