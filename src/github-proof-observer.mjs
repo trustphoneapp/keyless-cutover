@@ -4,6 +4,7 @@ import { githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339, timestampAtOrBefore } from "./rfc3339.mjs";
 import { CREDENTIAL_SHAPED as CREDENTIAL } from "./credential-shaped.mjs";
+import { decodeUtf8 } from "./evidence-artifact.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -17,28 +18,76 @@ function exact(value, pattern, name) {
 }
 
 async function json(url, token, fetchImpl) {
-  const response = await fetchImpl(url, {
-    headers: {
-      accept: "application/vnd.github+json",
-      authorization: `Bearer ${token}`,
-      "x-github-api-version": "2022-11-28",
-    },
-    redirect: "error",
-    signal: AbortSignal.timeout(5_000),
-  });
-  if (!response.ok) throw new Error(`GitHub evidence lookup failed with HTTP ${response.status}`);
-  const declared = response.headers?.get?.("content-length") ?? null;
-  if (declared === null || typeof declared !== "string" || declared.length > 16
-      || !/^\d+$/.test(declared) || Number(declared) > MAX_RESPONSE_BYTES) {
-    throw new Error(declared === null
-      ? "GitHub evidence response is missing Content-Length"
-      : "GitHub evidence response is too large");
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      headers: {
+        accept: "application/vnd.github+json",
+        authorization: `Bearer ${token}`,
+        "x-github-api-version": "2022-11-28",
+      },
+      redirect: "error",
+      signal: AbortSignal.timeout(5_000),
+    });
+  } catch {
+    throw new Error("GitHub evidence transport failed");
   }
-  const body = await response.text();
-  if (Buffer.byteLength(body) > MAX_RESPONSE_BYTES) throw new Error("GitHub evidence response is too large");
-  if (Buffer.byteLength(body) !== Number(declared)) {
-    throw new Error("GitHub evidence response length does not match Content-Length");
+  let ok;
+  let status;
+  let declared;
+  let reader;
+  try {
+    ok = response?.ok;
+    status = response?.status;
+    declared = response?.headers?.get?.("content-length") ?? null;
+    reader = response?.body?.getReader?.();
+  } catch {
+    throw new Error("GitHub evidence response primitives are invalid");
   }
+  if (!ok) throw new Error(`GitHub evidence lookup failed with HTTP ${status}`);
+  if (declared !== null && (typeof declared !== "string" || declared.length > 16
+      || !/^\d+$/.test(declared) || Number(declared) > MAX_RESPONSE_BYTES)) {
+    throw new Error("GitHub evidence response is too large");
+  }
+  let bytes;
+  if (reader) {
+    const chunks = [];
+    let total = 0;
+    try {
+      for (;;) {
+        const part = await reader.read();
+        if (!part || typeof part !== "object" || typeof part.done !== "boolean") throw new Error("invalid body");
+        if (part.done) break;
+        if (!(part.value instanceof Uint8Array)) throw new Error("invalid body");
+        const chunk = Buffer.from(part.value);
+        total += chunk.length;
+        if (total > MAX_RESPONSE_BYTES) throw new Error("too large");
+        chunks.push(chunk);
+      }
+    } catch {
+      try { await reader.cancel(); } catch { /* static failure below */ }
+      throw new Error("GitHub evidence response body is invalid or too large");
+    }
+    if (declared !== null && total !== Number(declared)) {
+      throw new Error("GitHub evidence response length does not match Content-Length");
+    }
+    bytes = Buffer.concat(chunks, total);
+  } else {
+    if (declared === null) throw new Error("GitHub evidence response body is unavailable");
+    let body;
+    try {
+      body = await response.text();
+      if (typeof body !== "string") throw new Error("invalid body");
+    } catch { throw new Error("GitHub evidence response body is invalid"); }
+    bytes = Buffer.from(body);
+    if (bytes.length > MAX_RESPONSE_BYTES || bytes.length !== Number(declared)) {
+      throw new Error(bytes.length > MAX_RESPONSE_BYTES
+        ? "GitHub evidence response is too large"
+        : "GitHub evidence response length does not match Content-Length");
+    }
+  }
+  let body;
+  try { body = decodeUtf8(bytes); } catch { throw new Error("GitHub evidence response is not valid UTF-8"); }
   if (CREDENTIAL.test(body)) throw new Error("GitHub evidence response contains credential-shaped material");
   try {
     rejectDuplicateJsonKeys(body);

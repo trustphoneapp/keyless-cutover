@@ -97,6 +97,35 @@ test("GitHub observer rebuilds proof context from completed run, blob, and indep
   });
 });
 
+test("GitHub observer accepts a streamed API response without Content-Length", async () => {
+  const base = fetchFixture();
+  const observed = await fetchGitHubProofObservation({
+    ...input,
+    fetchImpl: async (url, options) => {
+      const response = await base(url, options);
+      const text = await response.text();
+      return {
+        ...response,
+        headers: { get: (name) => name.toLowerCase() === "content-length" ? null : response.headers.get(name) },
+        body: {
+          getReader() {
+            let used = false;
+            return {
+              async read() {
+                if (used) return { done: true, value: undefined };
+                used = true;
+                return { done: false, value: Buffer.from(text) };
+              },
+              async cancel() {},
+            };
+          },
+        },
+      };
+    },
+  });
+  assert.equal(observed.run_id, "456789123");
+});
+
 test("GitHub observer fails closed on wrong workflow or self-approval", async () => {
   await assert.rejects(
     fetchGitHubProofObservation({ ...input, fetchImpl: fetchFixture({ path: ".github/workflows/other.yml" }) }),
