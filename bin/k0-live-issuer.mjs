@@ -10,7 +10,7 @@ import { canonicalJson, decodeUtf8 } from "../src/evidence-artifact.mjs";
 import { readBoundedFile } from "../src/k0-bundle-files.mjs";
 import { verifyK0Bundle } from "../src/k0-bundle.mjs";
 import { createKmsSigningRequest } from "../src/k0-kms.mjs";
-import { issueK0Live } from "../src/k0-live-issuer.mjs";
+import { issueK0Live, parseK0LiveRecollectionPlan } from "../src/k0-live-issuer.mjs";
 import { verifyK0Receipt } from "../src/k0-receipt.mjs";
 import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
 
@@ -245,6 +245,7 @@ async function main(argv) {
   if (argv.length !== 2) throw new Error("invalid command");
   const outputBasename = requireOutputBasename(argv[1]);
   const planBytes = await readBoundedFile(resolve(argv[0]), MAX_PLAN);
+  parseK0LiveRecollectionPlan(planBytes);
   const reservation = await reserveOutput(outputBasename);
   let closed = false;
   const closeOutput = async () => {

@@ -668,8 +668,7 @@ globalThis.fetch = async () => { mark(); throw new Error("unexpected fetch"); };
 
   const invalidResidue = join(directory, "invalid-plan.json");
   assertCliFailed(await runCli([badPlan, "invalid-plan.json"], guardEnv, directory));
-  assert.equal((await stat(invalidResidue)).size, 0);
-  assert.equal((await stat(invalidResidue)).mode & 0o777, 0o600);
+  await assert.rejects(() => lstat(invalidResidue));
 
   await writeFile(join(directory, "existing.json"), "occupied");
   await symlink(join(directory, "existing.json"), join(directory, "linked-output.json"));

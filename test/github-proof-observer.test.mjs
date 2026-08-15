@@ -37,6 +37,8 @@ function fetchFixture({ approved = true, path = run.path, reviewerId = 444, muta
     name: "proof",
     status: "completed",
     conclusion: "success",
+    started_at: "2026-08-13T12:00:01.123456789Z",
+    completed_at: "2026-08-13T12:01:00Z",
     runner_group_name: "GitHub Actions",
     labels: ["ubuntu-latest"],
   }] };
@@ -146,4 +148,23 @@ test("GitHub observer refuses push events and duplicate JSON keys", async () => 
       return fetchFixture()(url);
     },
   }), /duplicate JSON key/);
+  await assert.rejects(fetchGitHubProofObservation({
+    ...input,
+    fetchImpl: fetchFixture({
+      mutateJobs: (page) => { delete page.jobs[0].started_at; },
+    }),
+  }), /timeline/);
+  await assert.rejects(fetchGitHubProofObservation({
+    ...input,
+    fetchImpl: async (url) => {
+      if (url.includes("/actions/runs/") && !url.includes("/jobs") && !url.includes("/approvals")) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ ...run, note: `AKIA${"A".repeat(16)}` }),
+        };
+      }
+      return fetchFixture()(url);
+    },
+  }), /credential-shaped/);
 });

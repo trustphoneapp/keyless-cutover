@@ -123,6 +123,7 @@ function githubFixture(proof, {
     }] : []);
     if (url.includes("/jobs?")) return response(200, { total_count: 1, jobs: [{
       id: 77, name: "proof", status: "completed", conclusion: "success",
+      started_at: "2026-08-13T23:20:31Z", completed_at: "2026-08-13T23:20:50Z",
       runner_group_name: "GitHub Actions", labels: ["ubuntu-latest"],
     }] });
     if (url.includes("/artifacts?")) {

@@ -2,13 +2,14 @@ import { requireGitHubReadToken } from "./github-token.mjs";
 import { boundedGitHubPage, isGitHubHostedJob } from "./github-denial-evidence.mjs";
 import { githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
-import { isRfc3339 } from "./rfc3339.mjs";
+import { isRfc3339, timestampAtOrBefore } from "./rfc3339.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const RUN_ID = /^\d+$/;
 const WORKFLOW_PATH = /^\.github\/workflows\/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,62}\/)*[A-Za-z0-9][A-Za-z0-9._-]{0,62}\.ya?ml$/;
 const MAX_RESPONSE_BYTES = 512_000;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 function exact(value, pattern, name) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);
@@ -28,8 +29,14 @@ async function json(url, token, fetchImpl) {
   if (!response.ok) throw new Error(`GitHub evidence lookup failed with HTTP ${response.status}`);
   const body = await response.text();
   if (body.length > MAX_RESPONSE_BYTES) throw new Error("GitHub evidence response is too large");
-  rejectDuplicateJsonKeys(body);
-  return JSON.parse(body);
+  if (CREDENTIAL.test(body)) throw new Error("GitHub evidence response contains credential-shaped material");
+  try {
+    rejectDuplicateJsonKeys(body);
+    return JSON.parse(body);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("GitHub evidence response contains duplicate JSON keys");
+    throw new Error("GitHub evidence response is not valid JSON");
+  }
 }
 
 function workflowSource(content) {
@@ -85,13 +92,17 @@ export async function fetchGitHubProofObservation({
       || !isGitHubHostedJob(jobs[0])) {
     throw new Error("ProofV2 job is not an authoritative hosted success");
   }
+  if (!isRfc3339(run.run_started_at) || !isRfc3339(jobs[0].started_at) || !isRfc3339(jobs[0].completed_at)
+      || !timestampAtOrBefore(run.run_started_at, jobs[0].started_at)
+      || !timestampAtOrBefore(jobs[0].started_at, jobs[0].completed_at)) {
+    throw new Error("ProofV2 job timeline is invalid");
+  }
   const actorId = exact(String(run?.actor?.id), RUN_ID, "actor_id");
   const approval = approvedEnvironment(reviews, environment, actorId);
   if (!approval) {
     throw new Error("independent environment approval is missing");
   }
   const ref = `refs/heads/${exact(run.head_branch, /^[A-Za-z0-9._/-]+$/, "head_branch")}`;
-  if (!isRfc3339(run.run_started_at)) throw new Error("run_started_at is invalid");
   return {
     owner_id: exact(String(run?.repository?.owner?.id), RUN_ID, "owner_id"),
     repository_id: exact(String(run?.repository?.id), RUN_ID, "repository_id"),
