@@ -3,7 +3,6 @@ import { readFile } from "node:fs/promises";
 
 import {
   boundedGitHubPage,
-  downloadGitHubBytes,
   downloadGitHubBytesObserved,
   extractSingleJsonArtifact,
   fetchGitHubJson,
