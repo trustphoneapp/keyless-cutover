@@ -440,3 +440,23 @@ test("read-only ProofV2 recollection rejects nested, inherited, accessor, and Pr
   }
   assert.equal(accessorReads, 0);
 });
+
+test("ProofV2 issue refuses non-dispatch or non-production scopes", async () => {
+  const store = new FirestoreChallengeStore({ firestore: new MemoryFirestore(), now: () => now });
+  await assert.rejects(() => issueProofV2({
+    challengeStore: store,
+    scope: { ...scope, event_name: "push" },
+  }), /issue scope/);
+  await assert.rejects(() => issueProofV2({
+    challengeStore: store,
+    scope: { ...scope, ref: "refs/heads/feature" },
+  }), /issue scope/);
+  await assert.rejects(() => issueProofV2({
+    challengeStore: store,
+    scope: { ...scope, environment: "staging" },
+  }), /issue scope/);
+  const issued = await issueProofV2({ challengeStore: store, scope });
+  assert.equal(issued.challenge.event_name, "workflow_dispatch");
+  assert.equal(issued.challenge.ref, "refs/heads/main");
+  assert.equal(issued.challenge.environment, "production");
+});

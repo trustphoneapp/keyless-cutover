@@ -154,9 +154,26 @@ export function proofV2DispatchInputs(challenge) {
   };
 }
 
+function requireProofV2IssueScope(scope) {
+  if (!scope || typeof scope !== "object" || Array.isArray(scope)) {
+    throw new Error("ProofV2 issue scope is invalid");
+  }
+  if (scope.event_name !== "workflow_dispatch"
+      || scope.ref !== "refs/heads/main"
+      || scope.environment !== "production"
+      || !bounded(scope.migration_id)
+      || !bounded(scope.owner_id, RUN_ID)
+      || !bounded(scope.repository_id, RUN_ID)
+      || !bounded(scope.workflow_path, WORKFLOW)
+      || !bounded(scope.client_email, SERVICE_ACCOUNT)) {
+    throw new Error("ProofV2 issue scope is invalid");
+  }
+  return scope;
+}
+
 export async function issueProofV2({ challengeStore, scope }) {
   if (typeof challengeStore?.issue !== "function") throw new Error("an authoritative challenge store is required");
-  const challenge = await challengeStore.issue(scope);
+  const challenge = await challengeStore.issue(requireProofV2IssueScope(scope));
   return { challenge, dispatch_inputs: proofV2DispatchInputs(challenge) };
 }
 
