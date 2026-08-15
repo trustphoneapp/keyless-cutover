@@ -155,7 +155,7 @@ function checkpointStatus(bytes, checkpoint) {
     ],
     blockers: [
       "The historical transaction has no canonical v3 pre-disable archive checkpoint completed before key disable.",
-      "Publish the protected RC, repair and read back required linear history, then authorize a fresh disposable key transaction.",
+      "Pin an unused release marker, confirm the GitHub secret matches the fresh enabled key, then authorize the remaining live v3 sequence.",
       "Never re-enable the historical key to resume K0; preserve its evidence as historical readiness only.",
     ],
     sources: [
