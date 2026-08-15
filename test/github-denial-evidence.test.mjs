@@ -260,6 +260,14 @@ test("unobserved GitHub JSON transport refuses credentials and duplicate keys", 
     ),
     /duplicate JSON keys/,
   );
+  await assert.rejects(
+    () => fetchGitHubJson(
+      "https://api.github.com/example",
+      installationToken,
+      async () => response(200, '{"ok":true}', { "content-length": "2" }),
+    ),
+    /Content-Length/,
+  );
 });
 
 test("denial zip artifact refuses duplicate JSON keys", () => {

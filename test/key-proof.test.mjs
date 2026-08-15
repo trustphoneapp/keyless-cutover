@@ -138,6 +138,20 @@ test("Google certificate lookup is bounded and keyed by the exact key ID", async
     ),
     /duplicate JSON keys/,
   );
+  await assert.rejects(
+    verifyGoogleKeyProof(
+      proof,
+      expected,
+      async () => ({
+        ok: true,
+        status: 200,
+        headers: { get: (name) => name === "content-length" ? "2" : null },
+        text: async () => JSON.stringify({ [privateKeyId]: publicKeyPem }),
+      }),
+      new Date("2026-08-12T12:01:00Z"),
+    ),
+    /Content-Length/,
+  );
 });
 
 test("protocol consumes one authoritative challenge exactly once", async () => {

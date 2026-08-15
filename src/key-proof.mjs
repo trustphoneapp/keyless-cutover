@@ -225,8 +225,16 @@ export async function verifyGoogleKeyProof(proof, expected, fetchImpl = fetch, n
     signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) throw new Error(`Google public-key lookup failed with HTTP ${response.status}`);
+  const declared = response.headers?.get?.("content-length") ?? null;
+  if (declared !== null && (typeof declared !== "string" || declared.length > 16
+      || !/^\d+$/.test(declared) || Number(declared) > 256_000)) {
+    throw new Error("Google public-key lookup response is too large");
+  }
   const body = await response.text();
   if (body.length > 256_000) throw new Error("Google public-key lookup response is too large");
+  if (declared !== null && Buffer.byteLength(body) !== Number(declared)) {
+    throw new Error("Google public-key lookup response length does not match Content-Length");
+  }
   let certificates;
   try {
     rejectDuplicateJsonKeys(body);

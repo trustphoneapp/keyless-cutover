@@ -27,8 +27,16 @@ async function json(url, token, fetchImpl) {
     signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) throw new Error(`GitHub evidence lookup failed with HTTP ${response.status}`);
+  const declared = response.headers?.get?.("content-length") ?? null;
+  if (declared !== null && (typeof declared !== "string" || declared.length > 16
+      || !/^\d+$/.test(declared) || Number(declared) > MAX_RESPONSE_BYTES)) {
+    throw new Error("GitHub evidence response is too large");
+  }
   const body = await response.text();
   if (body.length > MAX_RESPONSE_BYTES) throw new Error("GitHub evidence response is too large");
+  if (declared !== null && Buffer.byteLength(body) !== Number(declared)) {
+    throw new Error("GitHub evidence response length does not match Content-Length");
+  }
   if (CREDENTIAL.test(body)) throw new Error("GitHub evidence response contains credential-shaped material");
   try {
     rejectDuplicateJsonKeys(body);

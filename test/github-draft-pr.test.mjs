@@ -110,6 +110,21 @@ test("GitHub adapter refuses duplicate JSON keys before mutation", async () => {
   assert.equal(requests.some(({ method }) => method === "POST" || method === "PUT"), false);
 });
 
+test("GitHub adapter refuses credential-shaped response bodies before mutation", async () => {
+  const { fetchImpl, requests } = createFetch();
+  const hostile = async (url, options) => {
+    if (url.includes("/repos/") && options.method === "GET" && !url.includes("/contents/") && !url.includes("/git/")) {
+      return {
+        status: 200,
+        text: async () => JSON.stringify({ id: 1, full_name: "trustphoneapp/keyless-cutover", note: `AKIA${"A".repeat(16)}` }),
+      };
+    }
+    return fetchImpl(url, options);
+  };
+  await assert.rejects(() => openDraftCutoverPr({ ...input, fetchImpl: hostile }), /credential-shaped/);
+  assert.equal(requests.some(({ method }) => method === "POST" || method === "PUT"), false);
+});
+
 test("GitHub adapter refuses repository identity drift before mutation", async () => {
   const { fetchImpl, requests } = createFetch({ repositoryId: 999 });
   await assert.rejects(openDraftCutoverPr({ ...input, fetchImpl }), /repository identity/);

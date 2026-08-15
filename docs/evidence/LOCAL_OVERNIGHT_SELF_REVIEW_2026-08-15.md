@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **289** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **290** tests.
 
 ## Findings remediations already landed
 
@@ -37,6 +37,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 27. Checkpoint/baseline/observer CREDENTIAL; ProofV2 job timeline; Content-Length match; live CLI validates before reserve.
 28. GCP parity Content-Length exact match; workflow/manifest bearer+ya29; live/semantic/archive dup-key parses.
 29. Live WIF audit projection + checkpoint archive artifact JSON duplicate-key refuse.
+30. GCP non-parity requestWithResponse Content-Length exact match.
 
 ## Hard stops held
 

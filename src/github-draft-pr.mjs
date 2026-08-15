@@ -10,6 +10,7 @@ const NUMERIC = /^\d+$/;
 const SHA = /^[a-f0-9]{40}$/;
 const MIGRATION = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const MAX_RESPONSE = 512_000;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 function exact(value, pattern, name) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);
@@ -46,6 +47,7 @@ function client({ token, fetchImpl }) {
     });
     const text = await response.text();
     if (text.length > MAX_RESPONSE) throw new Error("GitHub response is too large");
+    if (CREDENTIAL.test(text)) throw new Error("GitHub response contains credential-shaped material");
     if (text) rejectDuplicateJsonKeys(text);
     const value = text ? JSON.parse(text) : null;
     if (!allowed.includes(response.status)) {
