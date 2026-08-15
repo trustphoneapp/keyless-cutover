@@ -508,10 +508,18 @@ export function createGcpEvidenceReader({
   };
   const requestWithResponse = async (method, url, body, expectedStatus) => {
     const response = await authenticatedFetch(method, url, body);
+    const declared = response.headers?.get?.("content-length") ?? null;
+    if (declared !== null && (typeof declared !== "string" || declared.length > 16
+        || !/^\d+$/.test(declared) || Number(declared) > 1_000_000)) {
+      throw new Error("Google API response is too large");
+    }
     const bytes = typeof response.arrayBuffer === "function"
       ? Buffer.from(await response.arrayBuffer())
       : Buffer.from(await response.text(), "utf8");
     if (bytes.length > 1_000_000) throw new Error("Google API response is too large");
+    if (declared !== null && bytes.length !== Number(declared)) {
+      throw new Error("Google API response length does not match Content-Length");
+    }
     if (!response.ok || (expectedStatus !== undefined && response.status !== expectedStatus)) {
       throw new Error(`Google API ${method} failed with HTTP ${response.status}`);
     }

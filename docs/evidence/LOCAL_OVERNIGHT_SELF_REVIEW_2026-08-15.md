@@ -36,6 +36,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 26. ProofV2 observed zip download; CLI path parity; SA/verify/manifest dup-key; ns consume bump.
 27. Checkpoint/baseline/observer CREDENTIAL; ProofV2 job timeline; Content-Length match; live CLI validates before reserve.
 28. GCP parity Content-Length exact match; workflow/manifest bearer+ya29; live/semantic/archive dup-key parses.
+29. Live WIF audit projection + checkpoint archive artifact JSON duplicate-key refuse.
 
 ## Hard stops held
 
