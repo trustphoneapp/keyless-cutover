@@ -19,3 +19,20 @@ test("cutover compiler emits only the exact approved same-path WIF bytes", () =>
   assert.throws(() => buildCutoverPlan(current, `${template}\n# credentials_json:\n`), /exact WIF/);
   assert.throws(() => buildCutoverPlan(current, template, ".github/workflows/other.yml"), /unsupported/);
 });
+
+test("cutover compiler refuses credential retention, privilege widening, and hostile-job drift", () => {
+  assert.throws(() => buildCutoverPlan(current, template.replace("id-token: write", "contents: write")), /exact WIF/);
+  assert.throws(() => buildCutoverPlan(current, template.replace("branches: [main, keyless-h3]", "branches: [main]")), /missing/);
+  assert.throws(() => buildCutoverPlan(current, template.replace("h8-forbidden-resource:", "h8-disabled:")), /missing/);
+  assert.throws(() => buildCutoverPlan(current, `${template}\npull_request_target:\n`), /forbidden/);
+  assert.throws(() => buildCutoverPlan(current, `${template}\n    runs-on: self-hosted\n`), /forbidden/);
+  assert.throws(() => buildCutoverPlan(current.replace("credentials_json:", "token:"), template), /legacy authentication/);
+  assert.throws(() => buildCutoverPlan(`${current}\npermissions:\n  id-token: write\n`, template), /legacy authentication/);
+
+  const plan = buildCutoverPlan(current, template);
+  assert.throws(() => applyCutoverPlan(current, template.replace("name: K0 deploy", "name: K0 other"), plan), /does not match|workflow name/);
+  assert.throws(
+    () => applyCutoverPlan(current, template, { ...plan, plan_digest: "0".repeat(64) }),
+    /does not match/,
+  );
+});

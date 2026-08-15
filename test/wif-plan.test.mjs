@@ -33,3 +33,28 @@ test("WIF compiler binds immutable GitHub identity and exact workflow context", 
   assert.equal(verifyWifPlan({ ...input, repository_id: "223" }, plan), false);
   assert.throws(() => buildWifPlan({ ...input, repository: "bad'repo" }), /invalid/);
 });
+
+test("WIF compiler refuses malformed, widening, or identity-ambiguous inputs", () => {
+  const attacks = [
+    ["empty project id", { ...input, project_id: "" }],
+    ["uppercase project id", { ...input, project_id: "Keyless-K0-Demo" }],
+    ["non-numeric owner id", { ...input, owner_id: "abc" }],
+    ["non-numeric repository id", { ...input, repository_id: "2.2" }],
+    ["owner path injection", { ...input, owner: "trust/phone" }],
+    ["repository path injection", { ...input, repository: "../escape" }],
+    ["broad service account", { ...input, service_account: "deploy@example.com" }],
+    ["pool id too short", { ...input, pool_id: "ab" }],
+    ["provider id with slash", { ...input, provider_id: "git/hub" }],
+  ];
+  for (const [label, value] of attacks) {
+    assert.throws(() => buildWifPlan(value), /invalid/, label);
+  }
+
+  const plan = buildWifPlan(input);
+  assert.equal(verifyWifPlan({ ...input, owner_id: "112" }, plan), false);
+  assert.equal(verifyWifPlan({ ...input, service_account: "other@keyless-k0-demo.iam.gserviceaccount.com" }, plan), false);
+  assert.equal(verifyWifPlan({ ...input, pool_id: "other-pool" }, plan), false);
+  assert.doesNotMatch(plan.attribute_condition, /event_name=='workflow_dispatch'/);
+  assert.doesNotMatch(plan.attribute_condition, /\|\|/);
+  assert.match(plan.impersonation_binding.member, /attribute\.repo_id\/222$/);
+});
