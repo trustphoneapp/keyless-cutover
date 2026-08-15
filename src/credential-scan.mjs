@@ -14,6 +14,8 @@ const MAX_JSON_NODES = MAX_CANDIDATES * 2;
 const MAX_JSON_STRINGS = MAX_CANDIDATES * 4;
 const UTF8 = new TextDecoder("utf-8", { fatal: true });
 const DISALLOWED_TEXT = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u;
+// Keep shape families aligned with credential-shaped.mjs; word boundaries stay scan-only
+// so decimal IDs adjacent to tokens are not false-safe escapes for encoded payloads.
 const PATTERNS = [
   /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----/i,
   /["']?private[_-]?key["']?\s*[:=]/i,
