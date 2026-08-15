@@ -11,8 +11,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { isRfc3339, timestampBefore, timestampNanoseconds } from "./rfc3339.mjs";
+
 const DOMAIN = "keyless-cutover/key-proof/v2";
 const MAX_CHALLENGE_LIFETIME_MS = 5 * 60 * 1000;
+const MAX_CHALLENGE_LIFETIME_NS = BigInt(MAX_CHALLENGE_LIFETIME_MS) * 1_000_000n;
 const SERVICE_ACCOUNT_EMAIL = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
 const REPOSITORY_ID = /^\d+$/;
@@ -180,16 +183,18 @@ export function verifyKeyProof(proof, publicKeyPem, expected, now = new Date()) 
   try {
     const message = canonicalMessage(proof);
     if (message !== canonicalMessage(expected)) return false;
-    const issuedAt = Date.parse(proof.issued_at);
-    const expiresAt = Date.parse(proof.expires_at);
-    const observedAt = now.getTime();
+    if (!isRfc3339(proof.issued_at) || !isRfc3339(proof.expires_at)) return false;
+    const issuedAt = timestampNanoseconds(proof.issued_at);
+    const expiresAt = timestampNanoseconds(proof.expires_at);
+    const observedAt = timestampNanoseconds(now.toISOString());
     if (
-      !Number.isFinite(issuedAt) ||
-      !Number.isFinite(expiresAt) ||
-      expiresAt <= issuedAt ||
-      expiresAt - issuedAt > MAX_CHALLENGE_LIFETIME_MS ||
-      observedAt < issuedAt ||
-      observedAt >= expiresAt
+      issuedAt === null
+      || expiresAt === null
+      || observedAt === null
+      || !timestampBefore(proof.issued_at, proof.expires_at)
+      || expiresAt - issuedAt > MAX_CHALLENGE_LIFETIME_NS
+      || observedAt < issuedAt
+      || observedAt >= expiresAt
     ) {
       return false;
     }

@@ -177,3 +177,30 @@ test("Firestore challenge observation rejects malformed state, metadata, scope, 
     assert.equal(firestore.updates, 0);
   }
 });
+
+test("Firestore get/consume refuse offset timestamps and extra ISSUED fields", async () => {
+  const firestore = new MemoryFirestore();
+  const store = new FirestoreChallengeStore({
+    firestore,
+    now: () => new Date("2026-08-13T12:00:00Z"),
+  });
+  const challenge = await store.issue(scope);
+  firestore.documents.set(challenge.challenge_id, {
+    ...firestore.documents.get(challenge.challenge_id),
+    issued_at: "2026-08-13T12:00:00+00:00",
+  });
+  await assert.rejects(() => store.get(challenge.challenge_id), /invalid/);
+
+  const clean = await store.issue({ ...scope, migration_id: "migration-002" });
+  firestore.documents.set(clean.challenge_id, {
+    ...firestore.documents.get(clean.challenge_id),
+    unexpected: true,
+  });
+  await assert.rejects(() => store.get(clean.challenge_id), /invalid/);
+  await assert.rejects(() => store.consume({
+    challenge_id: clean.challenge_id,
+    expected_status: "ISSUED",
+    consumed_status: "CONSUMED",
+    proof_digest: "d".repeat(64),
+  }), /invalid/);
+});

@@ -11,6 +11,11 @@ const REF = /^refs\/[A-Za-z0-9._/-]+$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const NONCE = /^[A-Za-z0-9_-]{43}$/;
 const COLLECTION = "keyProofChallenges";
+const ISSUED_FIELDS = new Set([
+  "status", "migration_id", "challenge_id", "nonce", "issued_at", "expires_at",
+  "owner_id", "repository_id", "workflow_path", "event_name", "ref", "environment",
+  "client_email",
+]);
 const CONSUMED_FIELDS = new Set([
   "status", "migration_id", "challenge_id", "nonce", "issued_at", "expires_at",
   "owner_id", "repository_id", "workflow_path", "event_name", "ref", "environment",
@@ -22,14 +27,46 @@ function valid(value, pattern, name) {
   return value;
 }
 
-function validStoredChallenge(value, challengeId) {
-  if (!value || value.challenge_id !== challengeId || !["ISSUED", "CONSUMED"].includes(value.status)) {
+function exactChallengeObject(value, fields) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype
+    && Object.keys(value).length === fields.size
+    && Object.keys(value).every((field) => fields.has(field));
+}
+
+function validIssuedChallenge(value, challengeId) {
+  if (!exactChallengeObject(value, ISSUED_FIELDS)
+      || value.status !== "ISSUED" || value.challenge_id !== challengeId
+      || !bounded(value.migration_id) || !bounded(value.nonce, NONCE)
+      || !bounded(value.owner_id, NUMERIC) || !bounded(value.repository_id, NUMERIC)
+      || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name)
+      || !bounded(value.ref, REF) || !bounded(value.environment)
+      || !bounded(value.client_email, SERVICE_ACCOUNT)
+      || !isRfc3339(value.issued_at) || !isRfc3339(value.expires_at)
+      || !timestampBefore(value.issued_at, value.expires_at)) {
     throw new Error("stored challenge is invalid");
   }
-  if (!Number.isFinite(Date.parse(value.issued_at)) || !Number.isFinite(Date.parse(value.expires_at))) {
-    throw new Error("stored challenge timestamps are invalid");
-  }
   return value;
+}
+
+function validStoredChallenge(value, challengeId) {
+  if (value?.status === "ISSUED") return validIssuedChallenge(value, challengeId);
+  if (value?.status === "CONSUMED") {
+    if (!exactChallengeObject(value, CONSUMED_FIELDS)
+        || value.challenge_id !== challengeId
+        || !bounded(value.migration_id) || !bounded(value.nonce, NONCE)
+        || !bounded(value.owner_id, NUMERIC) || !bounded(value.repository_id, NUMERIC)
+        || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name)
+        || !bounded(value.ref, REF) || !bounded(value.environment)
+        || !bounded(value.client_email, SERVICE_ACCOUNT) || !bounded(value.proof_digest, SHA256)
+        || !isRfc3339(value.issued_at) || !isRfc3339(value.expires_at) || !isRfc3339(value.consumed_at)
+        || !timestampBefore(value.issued_at, value.consumed_at)
+        || !timestampBefore(value.consumed_at, value.expires_at)) {
+      throw new Error("stored challenge is invalid");
+    }
+    return value;
+  }
+  throw new Error("stored challenge is invalid");
 }
 
 function bounded(value, pattern) {
@@ -129,12 +166,19 @@ export class FirestoreChallengeStore {
       const snapshot = await transaction.get(reference);
       if (!snapshot.exists) return false;
       const challenge = validStoredChallenge(snapshot.data(), challengeId);
-      const now = this.now();
-      if (challenge.status !== "ISSUED" || now.getTime() >= Date.parse(challenge.expires_at)) return false;
+      if (challenge.status !== "ISSUED") return false;
+      const nowAt = this.now().toISOString();
+      let consumedAt = nowAt;
+      if (!timestampBefore(challenge.issued_at, consumedAt)) {
+        const issuedMs = Date.parse(challenge.issued_at);
+        if (!Number.isFinite(issuedMs)) return false;
+        consumedAt = new Date(issuedMs + 1).toISOString();
+      }
+      if (!timestampBefore(consumedAt, challenge.expires_at)) return false;
       transaction.update(reference, {
         status: "CONSUMED",
         proof_digest: proofDigest,
-        consumed_at: now.toISOString(),
+        consumed_at: consumedAt,
       });
       return true;
     });

@@ -25,3 +25,15 @@ test("allows a bounded GitHub OAuth token only for read-side operator evidence",
   assert.throws(() => requireGitHubInstallationToken(oauth), /installation token/);
   assert.throws(() => requireGitHubReadToken(`gho_${"a".repeat(35)}`), /read token/);
 });
+
+test("refuses write and user PAT token shapes for installation and read helpers", () => {
+  for (const value of [
+    `ghp_${"a".repeat(36)}`,
+    `ghu_${"a".repeat(36)}`,
+    `ghr_${"a".repeat(36)}`,
+    `github_pat_${"a".repeat(40)}`,
+  ]) {
+    assert.throws(() => requireGitHubInstallationToken(value), /invalid/);
+    assert.throws(() => requireGitHubReadToken(value), /invalid/);
+  }
+});

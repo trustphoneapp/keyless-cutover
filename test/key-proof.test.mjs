@@ -66,6 +66,8 @@ test("tampered proof fails closed", () => {
   assert.equal(verifyKeyProof({ ...proof, signature: "not-a-signature" }, publicKeyPem, expected, now), false);
   assert.equal(verifyKeyProof(proof, publicKeyPem, { ...expected, nonce: "wrong" }, now), false);
   assert.equal(verifyKeyProof(proof, publicKeyPem, expected, new Date("2026-08-12T12:05:00Z")), false);
+  assert.equal(verifyKeyProof({ ...proof, issued_at: "2026-08-12T12:00:00+00:00" }, publicKeyPem, expected, now), false);
+  assert.equal(verifyKeyProof({ ...proof, expires_at: "2026-08-12T12:05:00.000+00:00" }, publicKeyPem, expected, now), false);
 });
 
 test("malformed input is rejected before signing", () => {

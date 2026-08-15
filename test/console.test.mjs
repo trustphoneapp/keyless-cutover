@@ -150,6 +150,20 @@ test("console rejects a self-asserted success checkpoint instead of falling back
   assert.equal(status.cutover_verified, false);
 });
 
+test("console rejects github_pat credential shapes in checkpoint input", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "keyless-console-pat-"));
+  const path = join(directory, "checkpoint.json");
+  await writeFile(path, JSON.stringify({
+    version: 1,
+    status: "NO_GO_INCOMPLETE",
+    note: `token github_pat_${"a".repeat(40)}`,
+  }), { mode: 0o600 });
+  const status = await loadConsoleStatus({ checkpointPath: path });
+  assert.equal(status.status, "NO_GO_VERIFICATION_FAILED");
+  assert.equal(status.release_ready, false);
+  assert.doesNotMatch(JSON.stringify(status), /github_pat_/);
+});
+
 test("checkpoint FIFO fails closed without blocking, output, or fallback", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "keyless-console-fifo-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
