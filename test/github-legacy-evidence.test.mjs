@@ -19,7 +19,11 @@ function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
   return new Response(bytes, {
     status,
-    headers: { date: "Thu, 13 Aug 2026 12:10:00 GMT", ...extraHeaders },
+    headers: {
+      "content-length": String(bytes.length),
+      date: "Thu, 13 Aug 2026 12:10:00 GMT",
+      ...extraHeaders,
+    },
   });
 }
 
@@ -188,7 +192,10 @@ test("legacy collector rejects authenticated observations before the completed j
       if (!url.includes("/contents/")) return original;
       return new Response(await original.arrayBuffer(), {
         status: original.status,
-        headers: { date: "Thu, 13 Aug 2026 12:03:00 GMT" },
+        headers: {
+          date: "Thu, 13 Aug 2026 12:03:00 GMT",
+          "content-length": original.headers.get("content-length"),
+        },
       });
     },
   }), /after collection/);

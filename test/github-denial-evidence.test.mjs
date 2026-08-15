@@ -360,7 +360,7 @@ test("observed JSON transport rejects hostile content-length values without coer
         headers: { get: (name) => name === "date" ? "Thu, 13 Aug 2026 11:10:00 GMT" : length },
         body: { getReader: () => reader },
       }),
-    ), marker, /invalid or too large/);
+    ), marker, /missing Content-Length|invalid or too large/);
   }
   await assertStaticFailure(() => fetchGitHubJsonObserved(
     "https://api.github.com/example",
@@ -410,7 +410,7 @@ test("observed JSON transport snapshots hostile stream results inside a static-e
       async () => ({
         status: 200,
         ok: true,
-        headers: { get: (name) => name === "date" ? "Thu, 13 Aug 2026 11:10:00 GMT" : null },
+        headers: { get: (name) => name === "date" ? "Thu, 13 Aug 2026 11:10:00 GMT" : "1" },
         body: { getReader: () => reader },
       }),
     ), marker, /body is invalid/);
@@ -461,7 +461,7 @@ test("observed JSON transport enforces its actual streaming cap and cancels over
     await assert.rejects(() => fetchGitHubJsonObserved(
       "https://api.github.com/example", installationToken,
       async () => new Response(body, { status: 200, headers }),
-    ), /too large/);
+    ), declared === undefined ? /missing Content-Length/ : /too large|invalid or too large/);
     assert.equal(cancelled, true);
   }
   await assert.rejects(() => fetchGitHubJsonObserved(
@@ -577,7 +577,10 @@ test("observed download replaces transport-controlled exception text with static
       return {
         status: 200,
         ok: true,
-        headers: new Headers({ date: "Thu, 13 Aug 2026 11:10:00 GMT" }),
+        headers: new Headers({
+          date: "Thu, 13 Aug 2026 11:10:00 GMT",
+          "content-length": "1",
+        }),
         body: { getReader: () => ({
           read: async () => { throw new Error(`reader leaked ${marker}`); },
           cancel: async () => { throw new Error(`cancel leaked ${marker}`); },
@@ -657,7 +660,7 @@ test("observed download enforces the actual cap, cancels overflow, and does not 
     };
     await assert.rejects(() => downloadGitHubBytesObserved(
       "https://api.github.com/download", installationToken, fetchImpl, 8,
-    ), /too large/);
+    ), declared === undefined ? /missing Content-Length/ : /too large|invalid or too large/);
     assert.equal(cancelled, true);
   }
 
@@ -678,7 +681,11 @@ test("observed download enforces the actual cap, cancels overflow, and does not 
 });
 
 test("observed JSON transport snapshots response primitives before reading the body", async () => {
-  const responseHeaders = new Headers({ date: "Thu, 13 Aug 2026 11:10:00 GMT" });
+  const payload = '{"safe":true}';
+  const responseHeaders = new Headers({
+    date: "Thu, 13 Aug 2026 11:10:00 GMT",
+    "content-length": String(Buffer.byteLength(payload)),
+  });
   let status = 200;
   let bodyReads = 0;
   let reads = 0;
@@ -688,7 +695,7 @@ test("observed JSON transport snapshots response primitives before reading the b
       status = 500;
       responseHeaders.set("date", "invalid-after-capture");
       return reads === 1
-        ? { done: false, value: Buffer.from('{"safe":true}') }
+        ? { done: false, value: Buffer.from(payload) }
         : { done: true, value: undefined };
     },
     cancel: async () => {},
@@ -718,7 +725,10 @@ test("collectors reject response time earlier than the authoritative job event",
       if (url.includes("/contents/demo/release.txt")) {
         return new Response(await reply.arrayBuffer(), {
           status: reply.status,
-          headers: { date: "Thu, 13 Aug 2026 11:00:00 GMT" },
+          headers: {
+            date: "Thu, 13 Aug 2026 11:00:00 GMT",
+            "content-length": reply.headers.get("content-length"),
+          },
         });
       }
       return reply;

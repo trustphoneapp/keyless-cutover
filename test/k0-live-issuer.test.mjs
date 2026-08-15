@@ -48,7 +48,14 @@ function content(bytes, path) {
 
 function response(value, date, { status = 200, headers = {} } = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
-  return new Response(bytes, { status, headers: { ...(date ? { date } : {}), ...headers } });
+  return new Response(bytes, {
+    status,
+    headers: {
+      "content-length": String(bytes.length),
+      ...(date ? { date } : {}),
+      ...headers,
+    },
+  });
 }
 
 function plan(overrides = {}) {

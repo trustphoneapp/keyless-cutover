@@ -61,11 +61,14 @@ function captureBodyResponse(response, name) {
 }
 
 async function readBoundedBody({ reader, length }, limit, name) {
-  const invalidLength = length !== null && (typeof length !== "string" || length.length > 16
-    || !/^\d+$/.test(length) || Number(length) > limit);
+  const invalidLength = length === null || length === undefined
+    || typeof length !== "string" || length.length > 16
+    || !/^\d+$/.test(length) || Number(length) > limit;
   if (!reader || invalidLength) {
     try { await reader?.cancel(); } catch { /* static failure below */ }
-    throw new Error(`${name} is invalid or too large`);
+    throw new Error(length === null || length === undefined
+      ? `${name} is missing Content-Length`
+      : `${name} is invalid or too large`);
   }
   const chunks = [];
   let total = 0;
@@ -97,7 +100,7 @@ async function readBoundedBody({ reader, length }, limit, name) {
     }
     chunks.push(chunk);
   }
-  if (length !== null && total !== Number(length)) {
+  if (total !== Number(length)) {
     throw new Error(`${name} length does not match Content-Length`);
   }
   return Buffer.concat(chunks, total);
@@ -265,13 +268,15 @@ export async function downloadGitHubBytes(url, token, fetchImpl, limit) {
   }
   if (!response.ok) throw new Error(`GitHub download failed with HTTP ${response.status}`);
   const declared = response.headers.get("content-length");
-  if (declared !== null && (typeof declared !== "string" || declared.length > 16
-      || !/^\d+$/.test(declared) || Number(declared) > limit)) {
-    throw new Error("GitHub download is too large");
+  if (declared === null || typeof declared !== "string" || declared.length > 16
+      || !/^\d+$/.test(declared) || Number(declared) > limit) {
+    throw new Error(declared === null
+      ? "GitHub download is missing Content-Length"
+      : "GitHub download is too large");
   }
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length > limit) throw new Error("GitHub download is too large");
-  if (declared !== null && bytes.length !== Number(declared)) {
+  if (bytes.length !== Number(declared)) {
     throw new Error("GitHub download length does not match Content-Length");
   }
   if (CREDENTIAL.test(bytes.toString("utf8"))) throw new Error("GitHub evidence contains credential-shaped material");

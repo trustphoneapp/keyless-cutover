@@ -94,10 +94,12 @@ async function cancelCheckpointReader(captured) {
 
 async function readCheckpointBody(captured) {
   const { length, reader, read } = captured;
-  if (!reader || (length !== null && (length.length > 16 || !/^\d+$/.test(length)
-      || Number(length) > MAX_CHECKPOINT_RESPONSE))) {
+  if (!reader || length === null || length === undefined || length.length > 16 || !/^\d+$/.test(length)
+      || Number(length) > MAX_CHECKPOINT_RESPONSE) {
     await cancelCheckpointReader(captured);
-    throw new Error("GitHub API response is too large or invalid");
+    throw new Error(length === null || length === undefined
+      ? "GitHub API response is missing Content-Length"
+      : "GitHub API response is too large or invalid");
   }
   const chunks = [];
   let total = 0;
@@ -133,7 +135,7 @@ async function readCheckpointBody(captured) {
     }
     chunks.push(chunk);
   }
-  if (length !== null && total !== Number(length)) {
+  if (total !== Number(length)) {
     await cancelCheckpointReader(captured);
     throw new Error("GitHub API response length does not match Content-Length");
   }

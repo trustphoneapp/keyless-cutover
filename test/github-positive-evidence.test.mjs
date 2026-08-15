@@ -257,7 +257,11 @@ async function rejectsCheckpointWithoutDisclosure(fetchImpl) {
   }
 }
 
-function checkpointBoundaryHeaders(get = (name) => name === "date" ? "Thu, 13 Aug 2026 12:18:00 GMT" : null) {
+function checkpointBoundaryHeaders(get = (name) => {
+  if (name === "date") return "Thu, 13 Aug 2026 12:18:00 GMT";
+  if (name === "content-length") return "2";
+  return null;
+}) {
   return { get };
 }
 
@@ -730,7 +734,11 @@ test("GitHub checkpoint transport snapshots the authenticated Date before body a
     },
   }, { highWaterMark: 0 });
   retained = new Response(body, {
-    status: 200, headers: { date: "Thu, 13 Aug 2026 12:18:00 GMT" },
+    status: 200,
+    headers: {
+      date: "Thu, 13 Aug 2026 12:18:00 GMT",
+      "content-length": String(bytes.length),
+    },
   });
   const collected = await collectCheckpoint(async (url) =>
     url.endsWith(protectionUrl) ? retained : base(url));

@@ -53,6 +53,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 43. Live K0 issuer CLI requires `KEYLESS_ALLOW_LIVE=1`; docs note the live footgun gate.
 44. Require Content-Length + byteLength caps on shared GitHub JSON, ProofV2 observer, draft-PR, x509, and legacy Google key text paths.
 45. Agent evidence/final-text budgets use `Buffer.byteLength`; credential-shaped gains `authorization: bearer` parity.
+46. Observed GitHub body/download/checkpoint readers require Content-Length (no chunked fail-open).
 
 ## Hard stops held
 
