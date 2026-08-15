@@ -2,10 +2,12 @@ import { GoogleAuth } from "google-auth-library";
 
 import { decodeUtf8 } from "./evidence-artifact.mjs";
 import { parseAuthenticatedTransportObservation, rejectDuplicateJsonKeys } from "./observation-time.mjs";
+import { isRfc3339 } from "./rfc3339.mjs";
 
 const SERVICE_ACCOUNT_EMAIL = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
 const MAX_KEY_RESPONSE = 64_000;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 function exact(value, pattern, name) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);
@@ -74,6 +76,7 @@ async function readObservedKeyResponse(response) {
   }
   let text;
   try { text = decodeUtf8(Buffer.concat(chunks, total)); } catch { throw new Error("Google key response is not valid UTF-8"); }
+  if (CREDENTIAL.test(text)) throw new Error("Google key response contains credential-shaped material");
   let value;
   try {
     rejectDuplicateJsonKeys(text);
@@ -172,6 +175,7 @@ export function createGoogleKeyReader({
         || !/^\d+$/.test(length) || Number(length) !== Buffer.byteLength(body))) {
       throw new Error("Google key response length does not match Content-Length");
     }
+    if (CREDENTIAL.test(body)) throw new Error("Google key response contains credential-shaped material");
     let key;
     try {
       rejectDuplicateJsonKeys(body);
@@ -186,6 +190,9 @@ export function createGoogleKeyReader({
         || key.name !== name || key.keyType !== "USER_MANAGED" || key.keyAlgorithm !== "KEY_ALG_RSA_2048"
         || (key.disabled !== undefined && typeof key.disabled !== "boolean")) {
       throw new Error("Google key identity, state, type, or algorithm is invalid");
+    }
+    if (key.validAfterTime !== undefined && !isRfc3339(key.validAfterTime)) {
+      throw new Error("Google key validAfterTime is invalid");
     }
     return {
       name,

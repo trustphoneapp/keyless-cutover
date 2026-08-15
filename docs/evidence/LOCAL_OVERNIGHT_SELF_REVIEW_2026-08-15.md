@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **291** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **293** tests.
 
 ## Findings remediations already landed
 
@@ -39,6 +39,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 29. Live WIF audit projection + checkpoint archive artifact JSON duplicate-key refuse.
 30. GCP non-parity requestWithResponse Content-Length exact match.
 31. Unobserved/baseline/observer/x509 Content-Length; draft-PR CREDENTIAL refuse.
+32. Draft-PR Content-Length + workflow CREDENTIAL; Google key validAfterTime/CREDENTIAL; x509 CREDENTIAL.
 
 ## Hard stops held
 

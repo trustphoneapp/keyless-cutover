@@ -27,6 +27,7 @@ function decodeContent(value) {
   }
   const decoded = Buffer.from(value.content.replace(/\s/g, ""), "base64").toString("utf8");
   if (!decoded || Buffer.byteLength(decoded) > 64 * 1024) throw new Error("GitHub workflow content size is invalid");
+  if (CREDENTIAL.test(decoded)) throw new Error("GitHub workflow content contains credential-shaped material");
   return decoded;
 }
 
@@ -47,6 +48,14 @@ function client({ token, fetchImpl }) {
     });
     const text = await response.text();
     if (text.length > MAX_RESPONSE) throw new Error("GitHub response is too large");
+    const declared = response.headers?.get?.("content-length") ?? null;
+    if (declared !== null && (typeof declared !== "string" || declared.length > 16
+        || !/^\d+$/.test(declared) || Number(declared) > MAX_RESPONSE)) {
+      throw new Error("GitHub response is too large");
+    }
+    if (declared !== null && Buffer.byteLength(text) !== Number(declared)) {
+      throw new Error("GitHub response length does not match Content-Length");
+    }
     if (CREDENTIAL.test(text)) throw new Error("GitHub response contains credential-shaped material");
     if (text) rejectDuplicateJsonKeys(text);
     const value = text ? JSON.parse(text) : null;

@@ -193,6 +193,46 @@ test("legacy Google key reader rejects duplicate JSON keys", async () => {
   }), /duplicate/);
 });
 
+test("legacy Google key reader refuses invalid validAfterTime and credential bodies", async () => {
+  const auth = { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) };
+  const invalidTime = createGoogleKeyReader({
+    auth,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({
+        name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+        disabled: false,
+        validAfterTime: "invalid",
+      }),
+    }),
+  });
+  await assert.rejects(() => invalidTime({
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
+  }), /validAfterTime/);
+  const credential = createGoogleKeyReader({
+    auth,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({
+        name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+        disabled: false,
+        note: `AKIA${"A".repeat(16)}`,
+      }),
+    }),
+  });
+  await assert.rejects(() => credential({
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
+  }), /credential-shaped/);
+});
+
 test("observed Google key transport returns only static errors for hostile boundaries", async () => {
   const marker = `google-key-marker-${"x".repeat(32)}`;
   const assertStatic = async (reader, pattern) => {

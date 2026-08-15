@@ -19,6 +19,7 @@ const MAX_CHALLENGE_LIFETIME_MS = 5 * 60 * 1000;
 const MAX_CHALLENGE_LIFETIME_NS = BigInt(MAX_CHALLENGE_LIFETIME_MS) * 1_000_000n;
 const SERVICE_ACCOUNT_EMAIL = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 const REPOSITORY_ID = /^\d+$/;
 const GIT_SHA = /^[a-f0-9]{40,64}$/;
 const GITHUB_PATH = /^\.github\/workflows\/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,62}\/)*[A-Za-z0-9][A-Za-z0-9._-]{0,62}\.ya?ml$/;
@@ -235,6 +236,7 @@ export async function verifyGoogleKeyProof(proof, expected, fetchImpl = fetch, n
   if (declared !== null && Buffer.byteLength(body) !== Number(declared)) {
     throw new Error("Google public-key lookup response length does not match Content-Length");
   }
+  if (CREDENTIAL.test(body)) throw new Error("Google public-key lookup response contains credential-shaped material");
   let certificates;
   try {
     rejectDuplicateJsonKeys(body);
