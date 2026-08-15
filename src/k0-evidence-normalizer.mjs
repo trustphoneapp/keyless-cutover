@@ -6,6 +6,10 @@ import { isRfc3339, timestampNanoseconds } from "./rfc3339.mjs";
 const SHA1 = /^[a-f0-9]{40}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const NUMERIC = /^\d+$/;
+const PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
+const REGION = /^[a-z]+-[a-z]+\d$/;
+const SERVICE = /^[a-z][a-z0-9-]{0,62}$/;
+const UNIQUE_ID = /^\d{10,30}$/;
 const PROVIDER = /^projects\/\d+\/locations\/global\/workloadIdentityPools\/[a-z0-9-]+\/providers\/[a-z0-9-]+$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const RUN_FIELDS = new Set([
@@ -15,6 +19,9 @@ const RUN_FIELDS = new Set([
 ]);
 const REVISION_FIELDS = new Set([
   "project_id", "region", "service", "revision", "create_time", "release_marker", "image_digest",
+]);
+const KEY_SCOPE_FIELDS = new Set([
+  "project_id", "project_number", "service_account_email", "service_account_unique_id",
 ]);
 const RESPONSE_FIELDS = new Set(["entries"]);
 const ENTRY_FIELDS = new Set(["insertId", "timestamp", "protoPayload", "resource"]);
@@ -223,7 +230,9 @@ export function parseGitHubEvidenceCheckpointReceipt(receiptBytes) {
 }
 
 export function normalizeCloudRunObservation(value) {
-  if (!exactObject(value, REVISION_FIELDS) || !isRfc3339(value.create_time)
+  if (!exactObject(value, REVISION_FIELDS) || !PROJECT_ID.test(value.project_id ?? "")
+      || !REGION.test(value.region ?? "") || !SERVICE.test(value.service ?? "")
+      || !SERVICE.test(value.revision ?? "") || !isRfc3339(value.create_time)
       || !/^[a-z0-9][a-z0-9-]{0,19}$/.test(value.release_marker)
       || !/^sha256:[a-f0-9]{64}$/.test(value.image_digest)) {
     throw new Error("Cloud Run collector output is invalid");
@@ -233,8 +242,22 @@ export function normalizeCloudRunObservation(value) {
 
 export function normalizeGoogleKeyEvidence({ key, scope }) {
   const keyId = key?.name?.split("/").at(-1);
-  if (!SHA1.test(keyId ?? "") || !scope || key?.keyType !== "USER_MANAGED"
-      || key?.keyAlgorithm !== "KEY_ALG_RSA_2048" || typeof key.disabled !== "boolean") {
+  const approvedScope = scope && typeof scope === "object" && !Array.isArray(scope) ? {
+    project_id: scope.project_id,
+    project_number: scope.project_number,
+    service_account_email: scope.service_account_email,
+    service_account_unique_id: scope.service_account_unique_id,
+  } : null;
+  if (!SHA1.test(keyId ?? "") || !exactObject(approvedScope, KEY_SCOPE_FIELDS)
+      || !PROJECT_ID.test(approvedScope.project_id) || !NUMERIC.test(approvedScope.project_number)
+      || !SERVICE_ACCOUNT.test(approvedScope.service_account_email)
+      || !UNIQUE_ID.test(approvedScope.service_account_unique_id)
+      || key?.keyType !== "USER_MANAGED" || key?.keyAlgorithm !== "KEY_ALG_RSA_2048"
+      || typeof key.disabled !== "boolean"
+      || ![
+        `projects/${approvedScope.project_id}/serviceAccounts/${approvedScope.service_account_email}/keys/${keyId}`,
+        `projects/-/serviceAccounts/${approvedScope.service_account_email}/keys/${keyId}`,
+      ].includes(key.name)) {
     throw new Error("Google key collector output is invalid");
   }
   return {
@@ -243,9 +266,9 @@ export function normalizeGoogleKeyEvidence({ key, scope }) {
     key_type: key.keyType,
     algorithm: key.keyAlgorithm,
     disabled: key.disabled,
-    project_id: scope.project_id,
-    project_number: scope.project_number,
-    service_account_email: scope.service_account_email,
-    service_account_unique_id: scope.service_account_unique_id,
+    project_id: approvedScope.project_id,
+    project_number: approvedScope.project_number,
+    service_account_email: approvedScope.service_account_email,
+    service_account_unique_id: approvedScope.service_account_unique_id,
   };
 }

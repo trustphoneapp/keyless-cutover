@@ -16,7 +16,6 @@ const PROVIDER = /^projects\/\d+\/locations\/global\/workloadIdentityPools\/[a-z
 const PROVIDER_PARTS = /^projects\/(\d+)\/locations\/global\/workloadIdentityPools\/([a-z0-9-]+)\/providers\/([a-z0-9-]+)$/;
 const KEY_RESOURCE = /^projects\/(-|[a-z][a-z0-9-]{4,28}[a-z0-9])\/serviceAccounts\/([a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com|\d{10,30})\/keys\/([a-f0-9]{40})$/;
 const UNIQUE_ID = /^\d{10,30}$/;
-const ACTOR = /^[^@\s]+@[^@\s]+$/;
 const HUMAN_ACTOR = /^(?=.{3,254}$)(?=[^@]{1,64}@)[a-z0-9](?:[a-z0-9_+-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_+-]*[a-z0-9])?)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
 const STS_REQUEST_FIELDS = new Set(["@type", "grantType"]);
 const POLICY_FIELDS = new Set(["version", "etag", "bindings"]);
@@ -791,8 +790,12 @@ export function createGcpEvidenceReader({
         throw new Error("Cloud Run revision release marker is missing or ambiguous");
       }
       const image = containers[0].image;
-      const imageDigest = typeof image === "string" ? image.match(/@((?:sha256:)[a-f0-9]{64})$/)?.[1] : undefined;
+      const imageDigest = immutableImageDigest(image);
       if (!imageDigest) throw new Error("Cloud Run revision image digest is missing");
+      const expectedRevision = `${service}-${releases[0]}`;
+      if (!SERVICE.test(expectedRevision) || revision !== expectedRevision) {
+        throw new Error("Cloud Run revision does not match its service and release marker");
+      }
       return {
         project_id: projectId,
         region,
@@ -960,7 +963,7 @@ export function createGcpEvidenceReader({
       exact(projectId, PROJECT_ID, "project ID");
       exact(projectNumber, /^\d+$/, "project number");
       exact(keyResource, KEY_RESOURCE, "key resource");
-      exact(humanActor, ACTOR, "human actor");
+      exact(humanActor, HUMAN_ACTOR, "human actor");
       if (!isRfc3339(startTime) || !isRfc3339(endTime)) throw new Error("audit time is invalid");
       const start = timestampNanoseconds(startTime);
       const end = timestampNanoseconds(endTime);

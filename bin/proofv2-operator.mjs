@@ -8,6 +8,11 @@ import { collectProofV2, issueProofV2, verifyAndConsumeProofV2 } from "../src/pr
 
 const COMMANDS = new Set(["issue", "verify"]);
 const PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
+const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
+const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
+const RUN_ID = /^\d+$/;
+const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
+const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const ALLOWED = {
   issue: new Set(["project-id", "migration-id", "owner-id", "repository-id", "workflow-path", "client-email"]),
   verify: new Set(["project-id", "owner", "repository", "run-id", "workflow-path"]),
@@ -25,44 +30,72 @@ function argumentsFor(argv) {
     values[option.slice(2)] = rest[index + 1];
   }
   for (const name of ALLOWED[command]) {
-    if (!values[name]) throw new Error(`--${name} is required`);
+    if (values[name] === undefined) throw new Error(`--${name} is required`);
   }
   return { command, values };
 }
 
+function requireBounded(value, name, pattern) {
+  if (typeof value !== "string" || value.length < 1 || value.length > 512
+      || /[\r\n]/.test(value) || value.trim() !== value || (pattern && !pattern.test(value))) {
+    throw new Error(`--${name} is invalid`);
+  }
+  return value;
+}
+
+function validateIssueArguments(values) {
+  requireBounded(values["project-id"], "project-id", PROJECT_ID);
+  requireBounded(values["migration-id"], "migration-id");
+  requireBounded(values["owner-id"], "owner-id", RUN_ID);
+  requireBounded(values["repository-id"], "repository-id", RUN_ID);
+  requireBounded(values["workflow-path"], "workflow-path", WORKFLOW);
+  requireBounded(values["client-email"], "client-email", SERVICE_ACCOUNT);
+  return values;
+}
+
+function validateVerifyArguments(values) {
+  requireBounded(values["project-id"], "project-id", PROJECT_ID);
+  requireBounded(values.owner, "owner", OWNER);
+  requireBounded(values.repository, "repository", REPOSITORY);
+  requireBounded(values["run-id"], "run-id", RUN_ID);
+  requireBounded(values["workflow-path"], "workflow-path", WORKFLOW);
+  return values;
+}
+
 function store(projectId) {
-  if (!PROJECT_ID.test(projectId)) throw new Error("--project-id is invalid");
   return new FirestoreChallengeStore({ firestore: new Firestore({ projectId }) });
 }
 
 async function main() {
   const { command, values } = argumentsFor(process.argv.slice(2));
   if (command === "issue") {
+    const approved = validateIssueArguments(values);
     const result = await issueProofV2({
-      challengeStore: store(values["project-id"]),
+      challengeStore: store(approved["project-id"]),
       scope: {
-        migration_id: values["migration-id"],
-        owner_id: values["owner-id"],
-        repository_id: values["repository-id"],
-        workflow_path: values["workflow-path"],
+        migration_id: approved["migration-id"],
+        owner_id: approved["owner-id"],
+        repository_id: approved["repository-id"],
+        workflow_path: approved["workflow-path"],
         event_name: "workflow_dispatch",
         ref: "refs/heads/main",
         environment: "production",
-        client_email: values["client-email"],
+        client_email: approved["client-email"],
       },
     });
     process.stdout.write(`${JSON.stringify(result.dispatch_inputs, null, 2)}\n`);
     return;
   }
 
+  const approved = validateVerifyArguments(values);
   const token = process.env.KEYLESS_GITHUB_TOKEN;
   if (!token) throw new Error("KEYLESS_GITHUB_TOKEN is required and must never be passed as an argument");
-  const challengeStore = store(values["project-id"]);
+  const challengeStore = store(approved["project-id"]);
   const collected = await collectProofV2({
-    owner: values.owner,
-    repository: values.repository,
-    runId: values["run-id"],
-    workflowPath: values["workflow-path"],
+    owner: approved.owner,
+    repository: approved.repository,
+    runId: approved["run-id"],
+    workflowPath: approved["workflow-path"],
     environment: "production",
     token,
   });

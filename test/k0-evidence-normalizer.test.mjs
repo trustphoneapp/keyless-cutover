@@ -81,6 +81,24 @@ test("GCP normalizers emit exact scoped revision and key shapes", () => {
     release_marker: "wif-2",
     image_digest: `sha256:${"a".repeat(64)}`,
   });
+  assert.throws(() => normalizeCloudRunObservation({
+    project_id: "Example Project",
+    region: "us-central1",
+    service: "keyless-demo",
+    revision: "keyless-demo-wif-2",
+    create_time: "2026-08-13T12:13:45Z",
+    release_marker: "wif-2",
+    image_digest: `sha256:${"a".repeat(64)}`,
+  }), /Cloud Run collector output is invalid/);
+  assert.throws(() => normalizeCloudRunObservation({
+    project_id: "example-project",
+    region: "uscentral1",
+    service: "keyless-demo",
+    revision: "keyless-demo-wif-2",
+    create_time: "2026-08-13T12:13:45Z",
+    release_marker: "wif-2",
+    image_digest: `sha256:${"a".repeat(64)}`,
+  }), /Cloud Run collector output is invalid/);
   const scope = {
     project_id: "example-project",
     project_number: "3",
@@ -98,4 +116,31 @@ test("GCP normalizers emit exact scoped revision and key shapes", () => {
   });
   assert.equal(key.project_id, scope.project_id);
   assert.equal(key.key_id, "a".repeat(40));
+  assert.throws(() => normalizeGoogleKeyEvidence({
+    key: {
+      name: `projects/other-project/serviceAccounts/${scope.service_account_email}/keys/${"a".repeat(40)}`,
+      keyType: "USER_MANAGED",
+      keyAlgorithm: "KEY_ALG_RSA_2048",
+      disabled: true,
+    },
+    scope,
+  }), /Google key collector output is invalid/);
+  assert.throws(() => normalizeGoogleKeyEvidence({
+    key: {
+      name: `projects/example-project/serviceAccounts/other@example.iam.gserviceaccount.com/keys/${"a".repeat(40)}`,
+      keyType: "USER_MANAGED",
+      keyAlgorithm: "KEY_ALG_RSA_2048",
+      disabled: true,
+    },
+    scope,
+  }), /Google key collector output is invalid/);
+  assert.throws(() => normalizeGoogleKeyEvidence({
+    key: {
+      name: `projects/example-project/serviceAccounts/${scope.service_account_email}/keys/${"a".repeat(40)}`,
+      keyType: "USER_MANAGED",
+      keyAlgorithm: "KEY_ALG_RSA_2048",
+      disabled: true,
+    },
+    scope: { ...scope, project_number: "not-numeric" },
+  }), /Google key collector output is invalid/);
 });

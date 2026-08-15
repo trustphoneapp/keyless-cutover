@@ -1488,6 +1488,74 @@ test("Cloud Run revision readback requires a resolved image digest", async () =>
   }), /image digest/);
 });
 
+test("Cloud Run revision readback rejects hostile digests and marker skew", async () => {
+  const hostileImages = [
+    `us-docker.pkg.dev/example/app@sha256:${"a".repeat(64)}@sha256:${"b".repeat(64)}`,
+    `BAD_REGISTRY/example/app@sha256:${"a".repeat(64)}`,
+    `us-docker.pkg.dev/example/app@SHA256:${"a".repeat(64)}`,
+  ];
+  for (const image of hostileImages) {
+    const reader = createGcpEvidenceReader({
+      auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+      fetchImpl: async (url) => ({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify(url.includes("/revisions/") ? {
+          name: "projects/keyless-k0-demo/locations/us-central1/services/keyless-demo/revisions/keyless-demo-wif-2",
+          createTime: "2026-08-13T12:13:45Z",
+          containers: [{ image, env: [{ name: "RELEASE", value: "wif-2" }] }],
+        } : { latestReadyRevision: "keyless-demo-wif-2" }),
+      }),
+    });
+    await assert.rejects(reader.readCloudRunRevision({
+      projectId: "keyless-k0-demo", region: "us-central1", service: "keyless-demo",
+    }), /image digest/);
+  }
+
+  const skewed = createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async (url) => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(url.includes("/revisions/") ? {
+        name: "projects/keyless-k0-demo/locations/us-central1/services/keyless-demo/revisions/keyless-demo-wif-2",
+        createTime: "2026-08-13T12:13:45Z",
+        containers: [{
+          image: `us-docker.pkg.dev/example/app@sha256:${"a".repeat(64)}`,
+          env: [{ name: "RELEASE", value: "legacy-1" }],
+        }],
+      } : { latestReadyRevision: "keyless-demo-wif-2" }),
+    }),
+  });
+  await assert.rejects(skewed.readCloudRunRevision({
+    projectId: "keyless-k0-demo", region: "us-central1", service: "keyless-demo",
+  }), /service and release marker/);
+});
+
+test("disable audit reader rejects filter-unsafe human actors before authentication", async () => {
+  let authCalls = 0;
+  const reader = createGcpEvidenceReader({
+    auth: { getClient: async () => { authCalls += 1; throw new Error("must not authenticate"); } },
+  });
+  for (const humanActor of [
+    "Operator@example.com",
+    "operator@example",
+    "operator\"@example.com",
+    "operator@example.com\" OR true",
+    "operator\n@example.com",
+  ]) {
+    await assert.rejects(reader.readDisableAuditEntry({
+      projectId: "keyless-k0-demo",
+      projectNumber: plan.project_number,
+      keyResource: `projects/keyless-k0-demo/serviceAccounts/${plan.service_account}/keys/${"a".repeat(40)}`,
+      humanActor,
+      startTime: "2026-08-13T12:00:00Z",
+      endTime: "2026-08-13T12:05:00Z",
+    }), /human actor/);
+  }
+  assert.equal(authCalls, 0);
+});
+
 test("Cloud Run revision readback rejects ambiguous containers", async () => {
   const reader = createGcpEvidenceReader({
     auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
