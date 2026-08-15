@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **296** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **298** tests.
 
 ## Findings remediations already landed
 
