@@ -329,11 +329,9 @@ export async function collectGitHubDenialEvidence({
       || !isGitHubHostedJob(jobs[0])) {
     throw new Error("GitHub hostile job is missing or unsuccessful");
   }
-  if (!isRfc3339(run.run_started_at) || !isRfc3339(jobs[0].completed_at)
-      || !timestampAtOrBefore(run.run_started_at, jobs[0].completed_at)
-      || (jobs[0].started_at !== undefined && (!isRfc3339(jobs[0].started_at)
-        || !timestampAtOrBefore(run.run_started_at, jobs[0].started_at)
-        || !timestampAtOrBefore(jobs[0].started_at, jobs[0].completed_at)))) {
+  if (!isRfc3339(run.run_started_at) || !isRfc3339(jobs[0].started_at) || !isRfc3339(jobs[0].completed_at)
+      || !timestampAtOrBefore(run.run_started_at, jobs[0].started_at)
+      || !timestampAtOrBefore(jobs[0].started_at, jobs[0].completed_at)) {
     throw new Error("GitHub hostile timeline is invalid");
   }
   const requiredName = `Require ${["H1", "H2"].includes(hostileId) ? "external identity" : hostileId} denial`;

@@ -12,7 +12,7 @@ import { verifyK0PreDisableArchive } from "./k0-predisable-archive.mjs";
 import { githubReleaseMarker, githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
 import { requireGitHubReadToken } from "./github-token.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
-import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
+import { isRfc3339, timestampAtOrBefore, timestampBefore, timestampNanoseconds } from "./rfc3339.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -186,8 +186,13 @@ function boundedReviewPage(value) {
 }
 
 function latestResponseTime(responses) {
-  return responses.map(({ observedAt }) => observedAt)
-    .reduce((latest, value) => Date.parse(value) > Date.parse(latest) ? value : latest);
+  const times = responses.map(({ observedAt }) => observedAt);
+  if (times.some((value) => !isRfc3339(value))) {
+    throw new Error("GitHub observation time is invalid");
+  }
+  return times.reduce((latest, value) => (
+    timestampNanoseconds(value) > timestampNanoseconds(latest) ? value : latest
+  ));
 }
 
 function exactContentsBytes(value, path, name, maximum) {

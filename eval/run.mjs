@@ -1,6 +1,8 @@
 import { sealedCases } from "./cases.mjs";
 
-export async function runSealedEvaluation({ evidenceInvoker, recoveryInvoker, repeats = 3, clock = () => Date.now() }) {
+const INVOCATION_REJECTED = Object.freeze({ status: "INVOCATION_REJECTED" });
+
+export async function runSealedEvaluation({ evidenceInvoker, recoveryInvoker, repeats = 3 }) {
   if (typeof evidenceInvoker !== "function" || typeof recoveryInvoker !== "function" || repeats !== 3) {
     throw new Error("sealed evaluation requires two invokers and exactly three repeats");
   }
@@ -8,15 +10,14 @@ export async function runSealedEvaluation({ evidenceInvoker, recoveryInvoker, re
   for (const testCase of sealedCases) {
     const attempts = [];
     for (let repeat = 1; repeat <= repeats; repeat += 1) {
-      const started = clock();
       try {
         const output = await (testCase.lane === "evidence" ? evidenceInvoker : recoveryInvoker)(testCase.bundle);
-        attempts.push({ repeat, latency_ms: Math.max(0, clock() - started), output });
+        attempts.push({ repeat, output });
       } catch {
-        attempts.push({ repeat, latency_ms: Math.max(0, clock() - started), error: "INVOCATION_REJECTED" });
+        attempts.push({ repeat, output: structuredClone(INVOCATION_REJECTED) });
       }
     }
-    predictions.push({ id: testCase.id, lane: testCase.lane, attempts });
+    predictions.push({ id: testCase.id, attempts });
   }
   return predictions;
 }
