@@ -10,6 +10,10 @@ const PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const RESOURCE_ID = /^[a-z][a-z0-9-]{3,31}$/;
 const REPO_PART = /^[A-Za-z0-9_.-]{1,100}$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
+const INPUT_FIELDS = new Set([
+  "project_id", "project_number", "pool_id", "provider_id", "owner_id", "repository_id",
+  "owner", "repository", "service_account",
+]);
 
 function exact(value, name, pattern) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);
@@ -21,6 +25,12 @@ function digest(value) {
 }
 
 export function buildWifPlan(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)
+      || Object.getPrototypeOf(input) !== Object.prototype
+      || Object.keys(input).length !== INPUT_FIELDS.size
+      || Object.keys(input).some((key) => !INPUT_FIELDS.has(key))) {
+    throw new Error("WIF plan input is invalid");
+  }
   const projectNumber = exact(input.project_number, "project_number", NUMBER);
   const projectId = exact(input.project_id, "project_id", PROJECT_ID);
   const poolId = exact(input.pool_id, "pool_id", RESOURCE_ID);

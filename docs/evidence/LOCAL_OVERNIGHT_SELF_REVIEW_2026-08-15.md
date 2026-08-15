@@ -4,19 +4,22 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits `16e1865`…`bbfe9c2` plus the follow-up claim-honesty fix for unused-marker wording.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **258** tests.
 
-## Findings
+## Findings remediations already landed
 
-1. **Medium (fixed):** Docs briefly overclaimed that occupied release markers cannot assemble a fresh v3 transaction. Offline verification only enforces pairwise-distinct markers inside one manifest. Docs/tests now state unused markers as an operator/runbook live gate.
-2. **No credential leakage** in added evidence; public key IDs and repo metadata only.
-3. **No new live authorization path** (no workflow/KMS/dispatch/secret changes that auto-approve sensitive actions).
-4. Console, documentation, pin, and compiler tests stay fail-closed (`NO-GO`, `release_ready: false`).
+1. Unused-marker overclaim softened to operator/runbook gate (not offline denylist).
+2. Eval scorer treats credential-shaped and incomplete attempt sets as forbidden.
+3. Console HTML requires fail-closed status tuples; refuses `GO`/`AUTHORIZED` headlines.
+4. Credential inventory covers `bin/`, `k0/`, `.github/`, and `docs/evidence`.
+5. Firestore ISSUED/CONSUMED exact RFC3339 field sets; GitHub write-token denylist; key-proof Zulu times.
+6. ProofV2 issue requires `workflow_dispatch` / `main` / `production`.
+7. Evidence/artifact `github_pat` + duplicate-key refuse; bundle `O_NOFOLLOW`; CI/package script locks.
+8. Google key Content-Length match; draft PR refuses non-draft/merged responses; agent invoker credential/duplicate refuse.
 
-## Local gates run
+## Hard stops held
 
-- Clean-dir `npm ci --legacy-peer-deps --ignore-scripts`, `npm audit --omit=dev --audit-level=high`, full `npm test` → pass (243).
-- Independent security subagent review of the branch diff → one medium finding; remediated in this follow-up.
+No `gh`, push, merge, dispatch, secrets, keys, KMS, Cloud Agents, or reviewer pings.
 
 ## Remaining human morning work
 
