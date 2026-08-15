@@ -77,6 +77,9 @@ export function parseK0LiveRecollectionPlan(planBytes) {
   }
   exact(plan.github.legacy_run_id, NUMERIC, "legacy run ID");
   exact(plan.github.wif2_run_id, NUMERIC, "wif-2 run ID");
+  if (plan.github.legacy_run_id === plan.github.wif2_run_id) {
+    throw new Error("legacy and wif-2 run IDs must be distinct");
+  }
   evidencePath(plan.github.receipt_path, "checkpoint receipt path");
   evidencePath(plan.github.archive_path, "checkpoint archive path");
   if (plan.github.receipt_path === plan.github.archive_path) throw new Error("checkpoint evidence paths must differ");

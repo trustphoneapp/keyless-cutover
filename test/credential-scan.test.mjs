@@ -47,10 +47,14 @@ test("credential scan rejects raw, escaped, URL-encoded, and bounded base64 vari
     fineGrainedGithubToken,
     googleToken,
     googleApiKey,
+    `AKIA${"A".repeat(16)}`,
+    `xoxb-${"a".repeat(12)}-${"b".repeat(24)}`,
+    `xapp-1-${"c".repeat(12)}-${"d".repeat(24)}`,
     `Authorization: Bearer ${"d".repeat(24)}`,
     Buffer.from(privateKey).toString("base64"),
     `prefix:${Buffer.from(githubToken).toString("base64")}:suffix`,
     Buffer.from(encodeURIComponent(googleToken)).toString("base64url"),
+    Buffer.from(`AKIA${"B".repeat(16)}`).toString("base64"),
   ];
   for (const value of variants) {
     assert.throws(

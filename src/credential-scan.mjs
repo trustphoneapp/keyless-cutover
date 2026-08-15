@@ -20,6 +20,9 @@ const PATTERNS = [
   /\bgithub_pat_[A-Za-z0-9_]{20,255}\b/,
   /\bya29\.[A-Za-z0-9._-]{20,512}\b/,
   /\bAIza[0-9A-Za-z_-]{35}\b/,
+  /\bAKIA[0-9A-Z]{16}\b/,
+  /\bxox[baprs]-[A-Za-z0-9-]{10,255}\b/,
+  /\bxapp-[0-9]+-[A-Za-z0-9-]{10,255}\b/,
   /\bauthorization["']?\s*[:=]\s*["']?bearer\s+[A-Za-z0-9._~+/=-]{8,512}/i,
   /\bbearer\s+[A-Za-z0-9._~+/=-]{20,512}\b/i,
 ];

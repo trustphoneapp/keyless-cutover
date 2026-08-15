@@ -22,6 +22,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 12. Console duplicate-JSON + numeric ProofV2 run_id; bounded-file hardlink/size integrity.
 13. Normalizers bind key names/project patterns; Cloud Run digests; ProofV2 CLI; eval basename docs.
 14. Console GET-only 405; frozen KMS signing requests; refuse Bearer/whitespace GitHub tokens.
+15. Credential scan AKIA/Slack; distinct live-issuer run IDs; demo Dockerfile /healthz HEALTHCHECK.
 
 ## Hard stops held
 
