@@ -105,8 +105,8 @@ const EMAIL = /^[^@\s]+@[^@\s]+$/;
 const WORKFLOW_PATH = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
 const REGION = /^[a-z]+-[a-z]+\d$/;
 const SERVICE = /^[a-z][a-z0-9-]{0,62}$/;
-const LEGACY_BASELINE_BLOB_SHA = "6937dc83913a337ac3a878c55cf186f67fdc6b03";
-const LEGACY_BASELINE_SHA256 = "956306e602c4ee88d639570602f70954ab37fc7a81c62a6226a351878e82be4b";
+const LEGACY_BASELINE_BLOB_SHA = "62ec226833a2ac44913044ab665a01b0f0f271db";
+const LEGACY_BASELINE_SHA256 = "efa494890963b2744b031a54f78f13df5575b948eec9fa2ec452342fda6feebf";
 
 function present(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 2048 && !/[\r\n]/.test(value);

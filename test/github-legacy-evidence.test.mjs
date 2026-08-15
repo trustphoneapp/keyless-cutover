@@ -118,11 +118,11 @@ function baselineFixture({ mutate = () => {}, headers = { date: "Thu, 13 Aug 202
     },
     reviewedContent: {
       encoding: "base64", content: legacyTemplate.toString("base64"),
-      sha: "6937dc83913a337ac3a878c55cf186f67fdc6b03",
+      sha: "62ec226833a2ac44913044ab665a01b0f0f271db",
     },
     runContent: {
       encoding: "base64", content: legacyTemplate.toString("base64"),
-      sha: "6937dc83913a337ac3a878c55cf186f67fdc6b03",
+      sha: "62ec226833a2ac44913044ab665a01b0f0f271db",
     },
     release: { encoding: "base64", content: Buffer.from("legacy-1\n").toString("base64") },
   };
@@ -239,11 +239,12 @@ test("legacy baseline collector accepts only the reviewed inactive workflow fixt
   assert.equal(result.githubRun.event, "workflow_dispatch");
   assert.equal(result.observedAt, "2026-08-13T12:18:00Z");
   assert.equal(result.githubRun.release_marker, "legacy-1");
-  assert.equal(result.githubRun.workflow_sha256, "956306e602c4ee88d639570602f70954ab37fc7a81c62a6226a351878e82be4b");
+  assert.equal(result.githubRun.workflow_sha256, "efa494890963b2744b031a54f78f13df5575b948eec9fa2ec452342fda6feebf");
   assert.equal(result.workflowApproval.workflow_sha256, result.githubRun.workflow_sha256);
   assert.equal(result.environmentReview.reviewer_id, "11");
   const text = legacyTemplate.toString("utf8");
   assert.match(text, /workflow_dispatch:/);
+  assert.match(text, /github\.ref == 'refs\/heads\/main'/);
   assert.match(text, /credentials_json: \$\{\{ secrets\.GCP_SERVICE_ACCOUNT_KEY \}\}/);
   assert.doesNotMatch(text, /id-token|GCP_WIF_PROVIDER|GCP_FORBIDDEN_SERVICE/);
 

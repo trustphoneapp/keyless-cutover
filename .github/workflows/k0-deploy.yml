@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   deploy:
-    if: vars.KEYLESS_K0_ENABLED == 'true'
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     steps:
