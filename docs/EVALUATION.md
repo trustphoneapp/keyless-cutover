@@ -6,7 +6,7 @@ Security outcomes use deterministic or external oracles. Gemini never judges aut
 
 ## K0 live gates
 
-- Real `legacy-1`, `wif-1`, and post-disable `wif-2` revisions.
+- Real `legacy-1`, `wif-1`, and post-disable `wif-2` revisions with pairwise-distinct unused release markers; occupied historical suffixes such as `wif-1` cannot assemble a fresh v3 transaction.
 - ProofV2 exact-key verification and atomic one-time challenge consumption.
 - Reviewed provider/binding readback exactly matches approved configuration.
 - No downstream role/resource widening.

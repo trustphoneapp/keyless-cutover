@@ -6,14 +6,14 @@ This file is the authoritative current plan. [ADR 0002](adr/0002-TASKMASTER_SCOP
 
 By August 31, 2026, demonstrate one real GitHub Actions → Google Cloud WIF cutover with exact-key proof, no added downstream privilege, human separation of duties, eight hostile tests, post-disable continuity, a served ADK/Gemini Taskmaster, and reconstructable evidence.
 
-Current checkpoint on August 14: the live Google/GitHub substrate, legacy deployment, WIF readback, ProofV2 replay rejection, served private ADK/Gemini path, passing sealed agent evaluation, protected WIF cutover, H1–H8 denial matrix, public fail-closed evidence console, and exact human key disable exist. They are historical readiness evidence only: the key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged, so that transaction cannot satisfy v3 and must never be resumed by re-enabling the key. Local v3 bundle assembly, exact loading, authenticated read-only pending issuance, pending-receipt reconstruction, public signature verification, and false-safe tests pass, but the RC is not committed/published and none of that is new live evidence. Overall status remains **NO-GO** pending a separately authorized fresh disposable key transaction.
+Current checkpoint on August 15: PRs #18 and #19 are merged on protected `main`, `required_linear_history: true` is enforced, and the complete branch/environment protection tuple was read back. The live Google/GitHub substrate, historical WIF cutover, ProofV2, H1–H8, public evidence console, and exact historical key disable remain historical readiness only: that key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged, so that transaction cannot satisfy v3 and must never be resumed by re-enabling the key. Local v3 bundle assembly, exact loading, authenticated read-only pending issuance, pending-receipt reconstruction, public signature verification, and false-safe tests are published, but none of that is a completed live v3 transaction. A fresh enabled disposable key exists and is not yet a K0 result. Overall status remains **NO-GO** pending the separately authorized fresh key transaction.
 
 For the 48-hour gate, the verifier selects the earliest authoritative occurrence time, checkpoint-receipt `recorded_at`, or checkpoint event time across the final evidence and requires `manifest.assembled_at`—the latest authenticated final collection—to be no more than 48 hours later. Archive or checkpoint sealing and later recollection cannot reset, backdate, or extend that window.
 
 ## Fresh v3 execution order
 
-1. Publish the protected RC, repair `required_linear_history: true`, and read the protection back.
-2. Under separate authorization, collect a fresh legacy baseline, ProofV2, WIF-1 parity, and H1–H8 including H2 for one new disposable key transaction.
+1. Publish the protected RC, repair `required_linear_history: true`, and read the protection back. **Done:** PRs #18/#19 and the 2026-08-15 protection read-back.
+2. Under separate authorization, pin unused pairwise-distinct release markers, then collect a fresh legacy baseline, ProofV2, WIF-1 parity, and H1–H8 including H2 for one new disposable key transaction.
 3. Review and merge the canonical pre-disable archive checkpoint while that key is still enabled.
 4. Have the human key operator disable the exact fresh key and independently read back key state plus Admin Activity.
 5. Prove fresh legacy denial before deploying and reading back `wif-2`.

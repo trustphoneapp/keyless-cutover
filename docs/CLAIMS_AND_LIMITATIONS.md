@@ -4,7 +4,7 @@
 
 After all release gates pass, Keyless may claim that it migrated one supported GitHub Actions workflow from one repository-scoped Google service-account JSON secret to a narrowly bound WIF path with no added downstream permissions for one existing Cloud Run service. The target claim includes a human-reviewed PR, one authorized path and eight scoped hostile paths, an independently reviewed canonical archive checkpoint completed while the fresh key remained enabled, human disable of that exact key, a fresh legacy authentication failure before post-disable WIF deployment, authenticated issuance of the exact pending receipt, a scoped real signature verified against pinned trust, and a separate human release decision. The signature does not itself authorize release.
 
-Today the complete claim remains unproven. The recorded `legacy-1`, ProofV2, WIF/provider and IAM read-back, `wif-1`, H1–H8 denials, unchanged forbidden revision, and human key disable are historical readiness evidence only. That key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged, so the transaction cannot satisfy v3 and must not be resumed by re-enabling the key. Local v3 bundle/receipt verification and the read-only pending issuer are implemented and tested but are not authenticated live evidence. A separately authorized fresh disposable transaction must complete the exact archive-before-disable order, authenticated pending issuance, scoped signature verification, and separate human release decision.
+Today the complete claim remains unproven. The recorded `legacy-1`, ProofV2, WIF/provider and IAM read-back, `wif-1`, H1–H8 denials, unchanged forbidden revision, and human key disable are historical readiness evidence only. That key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged, so the transaction cannot satisfy v3 and must not be resumed by re-enabling the key. Published v3 bundle/receipt verification and the read-only pending issuer are implemented and tested but are not authenticated live evidence. A separately authorized fresh disposable transaction must complete the exact archive-before-disable order, authenticated pending issuance, scoped signature verification, and separate human release decision.
 
 ## What the claim requires
 
@@ -30,6 +30,7 @@ If any condition is absent, use a narrower claim or state that the evidence is p
 - Does not automatically migrate Terraform/Pulumi/CDK-owned identity configuration.
 - Does not replace GitHub's official OIDC token, Google's STS/WIF, or the official `google-github-actions/auth` action; those are trusted primitives.
 - Does not offer compliance certification, penetration-testing coverage, or multi-tenant production readiness.
+- Does not treat an occupied Cloud Run revision suffix as a fresh release marker; legacy, `wif-1`, and `wif-2` markers in one transaction must be pairwise distinct and unused.
 
 ## Claim ledger
 

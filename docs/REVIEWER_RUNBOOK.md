@@ -80,9 +80,11 @@ Stop on expiry, multiple matching artifacts, absent/self approval, wrong workflo
 
 ### 1. Protected release candidate
 
-Publish this local RC through a new protected PR. The independent reviewer runs `npm ci --legacy-peer-deps --ignore-scripts`, `npm test`, the dependency and credential scans, and verifies the exact final head. No one pushes after approval. Merge only while the required `test` check is green.
+Completed. PR #18 published the fail-closed K0 evidence pipeline and PR #19 replaced the canonical workflow with the inactive legacy-baseline template. Independent review by `cherala2002` applied to each exact head before merge. Required `test` was green.
 
-Repair branch protection so `required_linear_history: true` is enforced, then independently read back CI strictness, one approval, stale-review dismissal, last-push approval, admin enforcement, and linear history. Stop before any fresh transaction action if the read-back differs.
+Live read-back at `2026-08-15T06:02:22Z` confirmed CI strictness, one approval, stale-review dismissal, last-push approval, admin enforcement, and `required_linear_history: true`. The `production` environment still requires `cherala2002`, prevents self-review, and allows protected branches only. Credential-free record: `docs/evidence/REPOSITORY_PROTECTION_2026-08-15.md`.
+
+Stop before any fresh transaction action if a later read-back differs.
 
 ### 2. Fresh disposable transaction
 
@@ -105,7 +107,7 @@ A workflow syntax error, missing environment approval, network failure, or failu
 
 ## Live K0 order
 
-1. Merge the protected RC, repair `required_linear_history: true`, and independently read back the complete branch and environment protection tuple.
+1. Merge the protected RC, repair `required_linear_history: true`, and independently read back the complete branch and environment protection tuple. **Done** at `2026-08-15T06:02:22Z`; see `docs/evidence/REPOSITORY_PROTECTION_2026-08-15.md`.
 2. Under separate authorization, create the fresh disposable key transaction and collect its successful legacy baseline.
 3. Run fresh ProofV2, deploy/read back `wif-1`, prove exact provider/IAM parity, and execute H1–H8 including a real H2 at their documented controls; verify the forbidden service remains unchanged.
 4. Build the canonical pre-disable archive, commit it through a protected PR, obtain independent review of its exact head, merge it, and read back the exact archive bytes while the fresh key is still enabled. Any missing source stops the transaction.

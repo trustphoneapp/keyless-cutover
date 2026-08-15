@@ -23,7 +23,7 @@ The prior checked transaction is historical readiness only. Its key was disabled
 
 ### Required fresh v3 sequence
 
-- [ ] Protected RC is independently reviewed/merged; `required_linear_history: true` and the complete branch/environment protection tuple are read back.
+- [x] Protected RC is independently reviewed/merged; `required_linear_history: true` and the complete branch/environment protection tuple are read back.
 - [ ] A separately authorized fresh disposable key transaction produces a successful baseline plus fresh ProofV2, WIF-1/parity, and H1–H8 including H2.
 - [ ] The exact canonical pre-disable archive checkpoint is independently reviewed, merged, and reread while the fresh key is enabled.
 - [ ] Human operator disables—not deletes—the exact fresh key; key state and one exact Admin Activity entry agree.
