@@ -323,6 +323,9 @@ test("read-only ProofV2 recollection rejects receipt, state, proof, run, key, an
     receiptBytes: Buffer.from(canonicalJson({ ...fixture.receipt, version: 1 })),
   }), /receipt/);
   await assert.rejects(() => collect({ receiptBytes: Buffer.concat([Buffer.from(" "), fixture.receiptBytes]) }), /canonical/);
+  await assert.rejects(() => collect({
+    receiptBytes: Buffer.from(fixture.receiptBytes.toString("utf8").replace('"version":2', '"version":2,"version":2')),
+  }), /duplicate JSON keys/);
   await assert.rejects(() => collect({ state: { ...fixture.state, proof_digest: "f".repeat(64) } }), /state/);
   await assert.rejects(() => collect({ state: { ...fixture.state, owner_id: "999" } }), /state/);
   await assert.rejects(() => collect({ proof: { ...fixture.proof, run_id: "999" } }), /receipt/);

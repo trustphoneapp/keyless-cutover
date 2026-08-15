@@ -129,7 +129,7 @@ test("receipt rejects absent, malformed, noncanonical, changed, or mismatched ma
   await assert.rejects(() => verifyK0Receipt({ receiptBytes: surrogateReceipt, ...bundle }), /Unicode surrogate/);
 });
 
-test("36 deterministic bundle, receipt, signature, and trust mutations all fail closed", async () => {
+test("37 deterministic bundle, receipt, signature, and trust mutations all fail closed", async () => {
   const input = validK0BundleInput();
   const bundle = await assembleK0Bundle(input);
   const { receipt, receiptBytes } = await createK0Receipt(bundle);
@@ -235,6 +235,11 @@ test("36 deterministic bundle, receipt, signature, and trust mutations all fail 
       value.extra = true;
     }), signer.trustAnchor)],
     ["noncanonical sidecar", () => verifyKmsSignature(receiptBytes, Buffer.concat([sidecar, Buffer.from(" ")]), signer.trustAnchor)],
+    ["duplicate sidecar JSON keys", () => verifyKmsSignature(
+      receiptBytes,
+      Buffer.from(sidecar.toString("utf8").replace('"version":1', '"version":1,"version":1')),
+      signer.trustAnchor,
+    )],
     ["wrong public key", () => verifyKmsSignature(receiptBytes, sidecar, {
       ...signer.trustAnchor, public_key: secondSigner.trustAnchor.public_key,
     })],
@@ -252,7 +257,7 @@ test("36 deterministic bundle, receipt, signature, and trust mutations all fail 
     }],
     ["invalid request key version", () => createKmsSigningRequest(receiptBytes, "cryptoKeyVersions/1")],
   ];
-  assert.equal(mutations.length, 36);
+  assert.equal(mutations.length, 37);
   for (const [label, mutate] of mutations) await assert.rejects(async () => mutate(), undefined, label);
 });
 

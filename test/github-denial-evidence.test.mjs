@@ -6,6 +6,7 @@ import {
   collectGitHubDenialEvidence,
   downloadGitHubBytes,
   downloadGitHubBytesObserved,
+  extractSingleJsonArtifact,
   fetchGitHubJson,
   fetchGitHubJsonObserved,
 } from "../src/github-denial-evidence.mjs";
@@ -257,6 +258,15 @@ test("unobserved GitHub JSON transport refuses credentials and duplicate keys", 
       installationToken,
       async () => response(200, '{"ok":true,"ok":false}'),
     ),
+    /duplicate JSON keys/,
+  );
+});
+
+test("denial zip artifact refuses duplicate JSON keys", () => {
+  const zip = new AdmZip();
+  zip.addFile("k0-external.json", Buffer.from('{"id":"H1","id":"H2"}'));
+  assert.throws(
+    () => extractSingleJsonArtifact(zip.toBuffer(), "k0-external.json"),
     /duplicate JSON keys/,
   );
 });

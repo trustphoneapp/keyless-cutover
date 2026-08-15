@@ -265,8 +265,17 @@ export function extractSingleJsonArtifact(zipBytes, expectedName) {
     throw new Error("GitHub denial artifact archive is invalid");
   }
   const bytes = entries[0].getData();
-  if (bytes.length > 64_000 || CREDENTIAL.test(bytes.toString("utf8"))) throw new Error("GitHub denial artifact is unsafe");
-  return JSON.parse(bytes.toString("utf8"));
+  const text = bytes.toString("utf8");
+  if (bytes.length > 64_000 || CREDENTIAL.test(text)) throw new Error("GitHub denial artifact is unsafe");
+  try {
+    rejectDuplicateJsonKeys(text);
+    return JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("GitHub denial artifact contains duplicate JSON keys");
+    }
+    throw new Error("GitHub denial artifact is unsafe");
+  }
 }
 
 function classifyLog(log, hostileId) {

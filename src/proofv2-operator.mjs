@@ -12,6 +12,7 @@ import { fetchGitHubProofObservation } from "./github-proof-observer.mjs";
 import { requireGitHubReadToken } from "./github-token.mjs";
 import { keyProofDigest, verifyGoogleKeyProofAuthority } from "./key-proof.mjs";
 import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -95,8 +96,13 @@ function parseOperatorReceipt(receiptBytes) {
   }
   let receipt;
   try {
-    receipt = JSON.parse(decodeUtf8(receiptBytes));
-  } catch {
+    const text = decodeUtf8(receiptBytes);
+    rejectDuplicateJsonKeys(text);
+    receipt = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("ProofV2 operator receipt contains duplicate JSON keys");
+    }
     throw new Error("ProofV2 operator receipt bytes are invalid");
   }
   if (!receiptBytes.equals(Buffer.from(canonicalJson(receipt), "utf8"))) {

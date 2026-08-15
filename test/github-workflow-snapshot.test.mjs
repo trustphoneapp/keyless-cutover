@@ -15,6 +15,9 @@ test("workflow snapshot rejects credential-shaped workflow bytes", () => {
   assert.equal(snapshot.workflow_sha256, createHash("sha256").update("name: demo\n").digest("hex"));
   assert.throws(() => githubWorkflowSnapshot(encoded("-----BEGIN PRIVATE KEY-----\n")), /invalid/);
   assert.throws(() => githubWorkflowSnapshot(encoded(`token ghp_${"a".repeat(36)}\n`)), /invalid/);
+  assert.throws(() => githubWorkflowSnapshot(encoded(`env: AKIA${"A".repeat(16)}\n`)), /invalid/);
+  assert.throws(() => githubWorkflowSnapshot(encoded("token: xoxb-1234567890-abcdefghij\n")), /invalid/);
+  assert.throws(() => githubWorkflowSnapshot(encoded(`key: AIza${"a".repeat(35)}\n`)), /invalid/);
 });
 
 test("release marker allows one trailing newline and rejects multiline payloads", () => {

@@ -2,6 +2,7 @@ import { createHash, verify } from "node:crypto";
 
 import { canonicalJson } from "./evidence-artifact.mjs";
 import { parseK0ReceiptBytes } from "./k0-receipt.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const K0_KMS_ALGORITHM = "RSA_SIGN_PKCS1_2048_SHA256";
 
@@ -56,8 +57,11 @@ export function verifyKmsSignature(receiptBytes, sidecarBytes, pinnedTrustAnchor
   }
   let sidecar;
   try {
-    sidecar = JSON.parse(sidecarBytes.toString("utf8"));
-  } catch {
+    const text = sidecarBytes.toString("utf8");
+    rejectDuplicateJsonKeys(text);
+    sidecar = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("KMS signature sidecar contains duplicate JSON keys");
     throw new Error("KMS signature sidecar is not JSON");
   }
   const expectedDigest = digest(receiptBytes).toString("base64");

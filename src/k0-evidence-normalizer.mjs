@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { canonicalJson } from "./evidence-artifact.mjs";
 import { isRfc3339, timestampNanoseconds } from "./rfc3339.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const SHA1 = /^[a-f0-9]{40}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -114,8 +115,11 @@ export function parseWifAuditEvidence(auditLog) {
   }
   let parsed;
   try {
-    parsed = JSON.parse(auditLog.toString("utf8"));
-  } catch {
+    const text = auditLog.toString("utf8");
+    rejectDuplicateJsonKeys(text);
+    parsed = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("WIF audit evidence contains duplicate JSON keys");
     throw new Error("WIF audit evidence is not JSON");
   }
   if (auditLog.toString("utf8") !== canonicalJson(parsed) || !exactObject(parsed, RESPONSE_FIELDS)
@@ -203,8 +207,13 @@ export function parseGitHubEvidenceCheckpointReceipt(receiptBytes) {
   }
   let parsed;
   try {
-    parsed = JSON.parse(receiptBytes.toString("utf8"));
-  } catch {
+    const text = receiptBytes.toString("utf8");
+    rejectDuplicateJsonKeys(text);
+    parsed = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("GitHub evidence checkpoint receipt contains duplicate JSON keys");
+    }
     throw new Error("GitHub evidence checkpoint receipt is not JSON");
   }
   if (receiptBytes.toString("utf8") !== canonicalJson(parsed)

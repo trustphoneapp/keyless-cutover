@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   normalizeCloudRunObservation,
   normalizeGoogleKeyEvidence,
+  parseGitHubEvidenceCheckpointReceipt,
   parseWifAuditEvidence,
 } from "../src/k0-evidence-normalizer.mjs";
 import { canonicalJson } from "../src/evidence-artifact.mjs";
@@ -34,6 +35,14 @@ test("WIF parser accepts only the bounded documented STS and IAM audit variants"
     input.manifest.wif.mapped_principal);
 
   assert.throws(() => parseWifAuditEvidence(Buffer.from("arbitrary text")), /JSON/);
+  assert.throws(
+    () => parseWifAuditEvidence(Buffer.from(auditLog.toString("utf8").replace('"entries":', '"entries":[],"entries":'))),
+    /duplicate JSON keys/,
+  );
+  assert.throws(
+    () => parseGitHubEvidenceCheckpointReceipt(Buffer.from('{"version":1,"version":1}')),
+    /duplicate JSON keys/,
+  );
   for (const mutate of [
     (value) => { value.extra = true; },
     (value) => { value.entries = [value.entries[0], structuredClone(value.entries[0])]; },
