@@ -7,6 +7,12 @@ export function githubWorkflowSnapshot(content) {
   }
   const bytes = Buffer.from(content.content.replace(/\s/g, ""), "base64");
   if (!bytes.length || bytes.length > 64 * 1024) throw new Error("GitHub workflow size is invalid");
+  const text = bytes.toString("utf8");
+  if (text.includes("\0") || /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(text)
+      || /\bgh[pousr]_[A-Za-z0-9_]{20,}/.test(text)
+      || /\bgithub_pat_[A-Za-z0-9_]{20,}/.test(text)) {
+    throw new Error("GitHub workflow content is invalid");
+  }
   return {
     bytes,
     workflow_blob_sha: content.sha,
@@ -18,7 +24,14 @@ export function githubReleaseMarker(content) {
   if (content?.encoding !== "base64" || typeof content.content !== "string") {
     throw new Error("GitHub release marker content is invalid");
   }
-  const value = Buffer.from(content.content.replace(/\s/g, ""), "base64").toString("utf8").trim();
-  if (!/^[a-z0-9][a-z0-9-]{0,19}$/.test(value)) throw new Error("GitHub release marker is invalid");
+  const decoded = Buffer.from(content.content.replace(/\s/g, ""), "base64").toString("utf8");
+  if (decoded.includes("\0")) throw new Error("GitHub release marker is invalid");
+  const normalized = decoded.replace(/^\uFEFF/, "");
+  const value = /\r?\n$/.test(normalized) && !/\r?\n.+\r?\n$/s.test(normalized)
+    ? normalized.replace(/\r?\n$/, "")
+    : normalized;
+  if (!value || /[\r\n]/.test(value) || !/^[a-z0-9][a-z0-9-]{0,19}$/.test(value)) {
+    throw new Error("GitHub release marker is invalid");
+  }
   return value;
 }
