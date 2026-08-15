@@ -34,6 +34,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 24. Credential-scan/key-proof/live-plan/receipt-manifest dup-key; legacy job started_at required.
 25. Workflow path regexes refuse `.` / `..` segments across proof/Firestore/evidence.
 26. ProofV2 observed zip download; CLI path parity; SA/verify/manifest dup-key; ns consume bump.
+27. Checkpoint/baseline/observer CREDENTIAL; ProofV2 job timeline; Content-Length match; live CLI validates before reserve.
 
 ## Hard stops held
 
