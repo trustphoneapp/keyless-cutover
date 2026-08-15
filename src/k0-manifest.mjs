@@ -94,7 +94,7 @@ const LEGACY_FIELDS = new Set([
 const POST_FIELDS = new Set(["run_id", "run_attempt", "head_sha", "fresh_runner", "outcome", "revision", "release_marker", "source_ids"]);
 const LEAK_FIELDS = new Set(["outcome", "source_ids"]);
 const EVIDENCE_FIELDS = new Set(["id", "kind", "locator", "observed_at", "sha256", "public_url"]);
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,})/i;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 const SHA256 = /^[a-f0-9]{64}$/;
 const SOURCE_ID = /^E[0-9]{3}$/;
 const NUMERIC_ID = /^\d+$/;

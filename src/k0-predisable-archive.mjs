@@ -243,7 +243,9 @@ export async function verifyK0PreDisableArchive(archiveBytes) {
     async (id) => preArtifacts.get(id),
   );
   if (!semantic.ok) throw new Error("pre-disable archive fragment evidence is invalid");
-  const scanArtifact = JSON.parse(decodeUtf8(artifacts.get(scanId)));
+  const scanArtifactText = decodeUtf8(artifacts.get(scanId));
+  rejectDuplicateJsonKeys(scanArtifactText);
+  const scanArtifact = JSON.parse(scanArtifactText);
   if (!exactObject(scanArtifact.data, SCAN_DATA_FIELDS)
       || canonicalJson(scanArtifact.data) !== canonicalJson(createCredentialScan(archive.scope, preArtifacts))) {
     throw new Error("pre-disable archive credential scan is invalid");
@@ -258,7 +260,9 @@ export async function verifyK0PreDisableArchive(archiveBytes) {
 
 async function expandArchiveSnapshot(captured) {
   await verifyK0PreDisableArchive(captured);
-  const archive = JSON.parse(decodeUtf8(captured));
+  const archiveText = decodeUtf8(captured);
+  rejectDuplicateJsonKeys(archiveText);
+  const archive = JSON.parse(archiveText);
   const archiveScanId = archive.credential_scan.source_id;
   const storedArtifacts = new Map(archive.artifacts.map((encoded) => [encoded.id, decodeArtifact(encoded)]));
   const evidence = freezeJson(structuredClone(archive.evidence));

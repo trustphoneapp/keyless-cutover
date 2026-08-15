@@ -585,6 +585,9 @@ export function createGcpEvidenceReader({
       }
       chunks.push(chunk);
     }
+    if (length !== null && total !== Number(length)) {
+      throw new Error("Google API response length does not match Content-Length");
+    }
     let text;
     try {
       text = decodeUtf8(Buffer.concat(chunks, total));

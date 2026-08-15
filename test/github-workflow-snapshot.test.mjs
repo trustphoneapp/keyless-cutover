@@ -18,6 +18,8 @@ test("workflow snapshot rejects credential-shaped workflow bytes", () => {
   assert.throws(() => githubWorkflowSnapshot(encoded(`env: AKIA${"A".repeat(16)}\n`)), /invalid/);
   assert.throws(() => githubWorkflowSnapshot(encoded("token: xoxb-1234567890-abcdefghij\n")), /invalid/);
   assert.throws(() => githubWorkflowSnapshot(encoded(`key: AIza${"a".repeat(35)}\n`)), /invalid/);
+  assert.throws(() => githubWorkflowSnapshot(encoded("token: ya29.a0AfH6SMC" + "x".repeat(20) + "\n")), /invalid/);
+  assert.throws(() => githubWorkflowSnapshot(encoded("Authorization: Bearer abcdefghijklmnopqrstuvwxyz012345\n")), /invalid/);
 });
 
 test("release marker allows one trailing newline and rejects multiline payloads", () => {

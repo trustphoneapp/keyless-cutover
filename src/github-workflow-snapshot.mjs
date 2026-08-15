@@ -9,12 +9,15 @@ export function githubWorkflowSnapshot(content) {
   if (!bytes.length || bytes.length > 64 * 1024) throw new Error("GitHub workflow size is invalid");
   const text = bytes.toString("utf8");
   if (text.includes("\0") || /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(text)
+      || /"private_key"\s*:/.test(text)
+      || /\bya29\.[A-Za-z0-9._-]{20,}/.test(text)
       || /\bgh[pousr]_[A-Za-z0-9_]{20,}/.test(text)
       || /\bgithub_pat_[A-Za-z0-9_]{20,}/.test(text)
       || /\bAKIA[0-9A-Z]{16}\b/.test(text)
       || /\bxox[baprs]-[A-Za-z0-9-]{10,}/.test(text)
       || /\bxapp-[0-9]+-[A-Za-z0-9-]{10,}/.test(text)
-      || /\bAIza[0-9A-Za-z_-]{35}\b/.test(text)) {
+      || /\bAIza[0-9A-Za-z_-]{35}\b/.test(text)
+      || /\bbearer\s+[A-Za-z0-9._~+/=-]{20,}/i.test(text)) {
     throw new Error("GitHub workflow content is invalid");
   }
   return {

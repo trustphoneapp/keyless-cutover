@@ -5,6 +5,7 @@ import { createCredentialScan } from "./credential-scan.mjs";
 import { computePreexistingWifParityHash } from "./gcp-evidence.mjs";
 import { parseGitHubEvidenceCheckpointReceipt, parseWifAuditEvidence } from "./k0-evidence-normalizer.mjs";
 import { verifyK0PreDisableFragment } from "./k0-manifest.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339, timestampAtOrBefore, timestampBefore, timestampNanoseconds } from "./rfc3339.mjs";
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -617,7 +618,9 @@ async function snapshotArtifacts(evidence, readArtifact) {
 function parsedArtifacts(evidence, snapshots, fail) {
   const artifacts = new Map();
   for (const entry of evidence) {
-    const parsed = JSON.parse(snapshots.get(entry.id).toString("utf8"));
+    const text = snapshots.get(entry.id).toString("utf8");
+    rejectDuplicateJsonKeys(text);
+    const parsed = JSON.parse(text);
     artifacts.set(entry.id, parsed);
     validateArtifactData(entry.kind, parsed.data, fail, entry.id);
   }

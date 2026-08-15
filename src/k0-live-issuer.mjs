@@ -137,7 +137,9 @@ function latestTime(values) {
 }
 
 function parseArtifact(bytes) {
-  return JSON.parse(decodeUtf8(bytes));
+  const text = decodeUtf8(bytes);
+  rejectDuplicateJsonKeys(text);
+  return JSON.parse(text);
 }
 
 function allocateId(used, reserved) {

@@ -136,7 +136,12 @@ test("shared pre-disable verifier accepts only the exact complete fragment", asy
 
 test("full manifest verifier refuses AKIA and Slack credential shapes", async () => {
   const full = await assembleK0Bundle(validK0BundleInput());
-  for (const planted of [`AKIA${"A".repeat(16)}`, "xoxb-1234567890-abcdefghij", "github_pat_abcdefghijklmnopqrst"]) {
+  for (const planted of [
+    `AKIA${"A".repeat(16)}`,
+    "xoxb-1234567890-abcdefghij",
+    "github_pat_abcdefghijklmnopqrst",
+    "Bearer abcdefghijklmnopqrstuvwxyz012345",
+  ]) {
     const hostile = structuredClone(full.manifest);
     hostile.limitations = [...hostile.limitations, `note:${planted}`];
     const result = verifyK0Manifest(hostile);
