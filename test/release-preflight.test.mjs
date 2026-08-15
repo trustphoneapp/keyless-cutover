@@ -84,3 +84,34 @@ test("legacy baseline deploy is dispatch-only while H4 still watches release mar
   assert.match(hostile, /vars\.KEYLESS_K0_ENABLED == 'true'/);
   assert.match(hostile, /hostile=H4/);
 });
+
+test("workflow and template action pins cover every external uses entry", async () => {
+  const roots = [
+    new URL("../.github/workflows/", import.meta.url),
+    new URL("../k0/templates/", import.meta.url),
+  ];
+  for (const directory of roots) {
+    for (const file of await readdir(directory)) {
+      if (!/\.ya?ml$/.test(file)) continue;
+      const source = await readFile(new URL(file, directory), "utf8");
+      for (const match of source.matchAll(/^\s*-?\s*uses:\s+([^\s#]+)/gm)) {
+        if (match[1].startsWith("./")) continue;
+        assert.match(match[1], /^[^@\s]+@[a-f0-9]{40}$/, `${file} contains an unpinned action`);
+      }
+      assert.doesNotMatch(source, /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/);
+      assert.doesNotMatch(source, /\bgh[pousr]_[A-Za-z0-9_]{20,}/);
+      assert.doesNotMatch(source, /\bya29\.[A-Za-z0-9._-]{20,}/);
+      assert.doesNotMatch(source, /\bAIza[0-9A-Za-z_-]{35}\b/);
+    }
+  }
+});
+
+test("published credential-free evidence artifacts reject credential shapes", async () => {
+  const { assertCredentialFreeBytes } = await import("../src/credential-scan.mjs");
+  const evidenceDirectory = new URL("../docs/evidence/", import.meta.url);
+  for (const file of await readdir(evidenceDirectory)) {
+    if (!/\.(json|md)$/.test(file)) continue;
+    const bytes = await readFile(new URL(file, evidenceDirectory));
+    assert.doesNotThrow(() => assertCredentialFreeBytes(bytes), file);
+  }
+});
