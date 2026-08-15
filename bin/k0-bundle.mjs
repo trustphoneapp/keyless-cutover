@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 
 import { assembleK0Bundle } from "../src/k0-bundle.mjs";
 import { readBoundedFile, readK0BundleDirectory } from "../src/k0-bundle-files.mjs";
+import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
 
 const MAX_INPUT = 6_000_000;
 
@@ -41,8 +42,13 @@ async function main(argv) {
     const inputBytes = await readBoundedFile(resolve(paths[0]), MAX_INPUT);
     let input;
     try {
-      input = JSON.parse(inputBytes.toString("utf8"));
-    } catch {
+      const text = inputBytes.toString("utf8");
+      rejectDuplicateJsonKeys(text);
+      input = JSON.parse(text);
+    } catch (error) {
+      if (error?.message === "duplicate JSON key") {
+        throw new Error("bundle input contains duplicate JSON keys");
+      }
       throw new Error("bundle input is not JSON");
     }
     const bundle = await assembleK0Bundle(input);

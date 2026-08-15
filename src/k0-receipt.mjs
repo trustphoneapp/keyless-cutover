@@ -12,6 +12,12 @@ const RESULT_FIELDS = new Set([
   "proof", "cutover", "wif", "hostile_tests", "legacy_baseline", "disable", "legacy_after_disable", "post_disable", "leak_scan",
 ]);
 const EVIDENCE_FIELDS = new Set(["id", "kind", "sha256"]);
+const SCOPE_FIELDS = new Set([
+  "owner_id", "repository_id", "workflow_path", "proof_workflow_path", "legacy_workflow_path",
+  "h1_workflow_path", "h2_workflow_path", "h4_workflow_path",
+  "project_id", "project_number", "region",
+  "service_account_email", "service_account_unique_id", "key_id", "allowed_service", "forbidden_service",
+]);
 const SHA256 = /^[a-f0-9]{64}$/;
 
 function exactObject(value, fields) {
@@ -107,7 +113,7 @@ export function parseK0ReceiptBytes(receiptBytes) {
         || !/^E\d{3}$/.test(item.id) || typeof item.kind !== "string" || !item.kind || !SHA256.test(item.sha256))
       || new Set(receipt.evidence.map(({ id }) => id)).size !== receipt.evidence.length
       || receipt.evidence.some(({ id }, index) => index > 0 && receipt.evidence[index - 1].id >= id)
-      || !exactObject(receipt.scope, new Set(Object.keys(receipt.scope ?? {}))) || !Object.keys(receipt.scope).length
+      || !exactObject(receipt.scope, SCOPE_FIELDS)
       || !exactObject(receipt.verified_results, RESULT_FIELDS)
       || !Array.isArray(receipt.limitations) || !receipt.limitations.length
       || receipt.limitations.some((value) => typeof value !== "string" || !value || value.length > 2048 || /[\r\n]/.test(value))) {

@@ -3,15 +3,32 @@ import { verifyK0EvidenceSemantics } from "./k0-evidence-semantics.mjs";
 import { verifyK0Manifest } from "./k0-manifest.mjs";
 
 const INPUT_FIELDS = new Set(["manifest", "evidence"]);
-const EVIDENCE_FIELDS = new Set(["id", "kind", "locator", "observed_at", "public_url", "data"]);
+const EVIDENCE_REQUIRED = new Set(["id", "kind", "locator", "observed_at", "data"]);
+const EVIDENCE_OPTIONAL = new Set(["public_url"]);
+const EVIDENCE_FIELDS = new Set([...EVIDENCE_REQUIRED, ...EVIDENCE_OPTIONAL]);
 
 function exactObject(value, fields) {
   return value && typeof value === "object" && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype
+    && Object.keys(value).length === fields.size
     && Object.keys(value).every((key) => fields.has(key));
 }
 
+function evidenceEnvelope(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || Object.getPrototypeOf(value) !== Object.prototype) {
+    return false;
+  }
+  const keys = Object.keys(value);
+  if (![...EVIDENCE_REQUIRED].every((key) => keys.includes(key))) return false;
+  if (keys.some((key) => !EVIDENCE_FIELDS.has(key))) return false;
+  if (keys.includes("public_url")) return keys.length === EVIDENCE_FIELDS.size;
+  return keys.length === EVIDENCE_REQUIRED.size;
+}
+
 function plainObject(value) {
-  return value && typeof value === "object" && !Array.isArray(value);
+  return value && typeof value === "object" && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype;
 }
 
 export async function verifyK0Bundle({ manifest, artifacts }) {
@@ -40,7 +57,7 @@ export async function assembleK0Bundle(input) {
   const ledger = [];
   const byId = (left, right) => String(left?.id) < String(right?.id) ? -1 : String(left?.id) > String(right?.id) ? 1 : 0;
   for (const envelope of [...input.evidence].sort(byId)) {
-    if (!exactObject(envelope, EVIDENCE_FIELDS)) throw new Error("evidence input fields are invalid");
+    if (!evidenceEnvelope(envelope)) throw new Error("evidence input fields are invalid");
     const created = createEvidenceArtifact(envelope);
     if (artifacts.has(envelope.id)) throw new Error(`${envelope.id} evidence is duplicated`);
     artifacts.set(envelope.id, Buffer.from(created.artifact));

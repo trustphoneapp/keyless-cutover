@@ -278,4 +278,11 @@ test("KMS helpers refuse AUTHORIZED or release_ready receipts and never promote"
   if (authorizedSidecar) {
     assert.throws(() => verifyKmsSignature(authorized, authorizedSidecar, signer.trustAnchor));
   }
+
+  assert.throws(() => parseK0ReceiptBytes(changedReceipt(receipt, (value) => {
+    value.scope = { ...value.scope, authorization: "AUTHORIZED" };
+  })), /invalid/);
+  assert.throws(() => parseK0ReceiptBytes(changedReceipt(receipt, (value) => {
+    delete value.scope.key_id;
+  })), /invalid/);
 });

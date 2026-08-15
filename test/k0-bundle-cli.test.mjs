@@ -157,3 +157,16 @@ test("local bundle CLI rejects a FIFO input without blocking or creating output"
   assert.equal(result.stderr, "K0 bundle command failed\n");
   await assert.rejects(lstat(outputPath));
 });
+
+test("local bundle CLI refuses duplicate JSON keys on assemble input", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "keyless-k0-cli-dupe-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const inputPath = join(root, "input.json");
+  const bundlePath = join(root, "bundle");
+  await writeFile(inputPath, '{"manifest":{},"manifest":{},"evidence":[]}\n');
+  const result = run("assemble", inputPath, bundlePath);
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "K0 bundle command failed\n");
+  await assert.rejects(lstat(bundlePath));
+});

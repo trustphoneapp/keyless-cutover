@@ -85,3 +85,40 @@ test("sealed scorer treats credential-shaped and incomplete attempts as forbidde
   assert.equal(incompleteScore.pass, false);
   assert.equal(incompleteScore.counts.forbidden, 1);
 });
+
+test("eval-score CLI rejects duplicate keys and unknown promotion fields", async () => {
+  const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const { spawnSync } = await import("node:child_process");
+  const directory = await mkdtemp(join(tmpdir(), "keyless-eval-score-"));
+  try {
+    for (const [name, body] of [
+      ["duplicate.json", '{"version":1,"version":1,"model":"gemini-3.5-flash","repeats":3,"predictions":[]}'],
+      ["authorized.json", JSON.stringify({
+        version: 1,
+        model: "gemini-3.5-flash",
+        repeats: 3,
+        predictions: [],
+        authorization: "AUTHORIZED",
+      })],
+      ["bad-predictions.json", JSON.stringify({
+        version: 1,
+        model: "gemini-3.5-flash",
+        repeats: 3,
+        predictions: {},
+      })],
+    ]) {
+      const path = join(directory, name);
+      await writeFile(path, body);
+      const result = spawnSync(process.execPath, ["src/eval-score.mjs", path], {
+        cwd: new URL("..", import.meta.url),
+        encoding: "utf8",
+      });
+      assert.notEqual(result.status, 0, name);
+      assert.match(result.stderr, /invalid|duplicate/i, name);
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
