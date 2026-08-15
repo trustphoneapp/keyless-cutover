@@ -113,8 +113,8 @@ export function validK0BundleInput() {
     approved_workflows: {
       baseline: {
         workflow_path: ".github/workflows/k0-deploy.yml",
-        workflow_blob_sha: "6937dc83913a337ac3a878c55cf186f67fdc6b03",
-        workflow_sha256: "956306e602c4ee88d639570602f70954ab37fc7a81c62a6226a351878e82be4b",
+        workflow_blob_sha: "62ec226833a2ac44913044ab665a01b0f0f271db",
+        workflow_sha256: "efa494890963b2744b031a54f78f13df5575b948eec9fa2ec452342fda6feebf",
       },
       h1: {
         workflow_path: ".github/workflows/k0-deploy.yml",

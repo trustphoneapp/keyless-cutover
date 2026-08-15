@@ -622,7 +622,7 @@ test("legacy baseline must be fresh, checkpointed, and strictly before wif-1", a
 
 test("coherent active-WIF workflow substitution cannot satisfy the legacy baseline pin", async () => {
   const input = validK0BundleInput();
-  const activeBytes = await readFile(new URL("../.github/workflows/k0-deploy.yml", import.meta.url));
+  const activeBytes = await readFile(new URL("../k0/templates/k0-deploy.wif.yml", import.meta.url));
   const activeBlobSha = createHash("sha1")
     .update(Buffer.from(`blob ${activeBytes.length}\0`)).update(activeBytes).digest("hex");
   const activeSha256 = createHash("sha256").update(activeBytes).digest("hex");
