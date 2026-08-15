@@ -4,7 +4,7 @@ import { types as utilTypes } from "node:util";
 import { canonicalJson, decodeUtf8 } from "./evidence-artifact.mjs";
 import {
   boundedGitHubPage,
-  downloadGitHubBytes,
+  downloadGitHubBytesObserved,
   extractSingleJsonArtifact,
   fetchGitHubJson,
 } from "./github-denial-evidence.mjs";
@@ -213,7 +213,7 @@ export async function collectProofV2({
   if (artifacts.length !== 1 || !Number.isInteger(artifacts[0].id)) {
     throw new Error("ProofV2 artifact is missing or ambiguous");
   }
-  const zip = await downloadGitHubBytes(
+  const { bytes: zip } = await downloadGitHubBytesObserved(
     `${base}/actions/artifacts/${artifacts[0].id}/zip`,
     token,
     fetchImpl,

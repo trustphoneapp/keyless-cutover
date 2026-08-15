@@ -91,13 +91,10 @@ const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
 
 function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
-  return {
+  return new Response(bytes, {
     status,
-    ok: status >= 200 && status < 300,
-    headers: { get: (name) => extraHeaders[name.toLowerCase()] ?? null },
-    text: async () => bytes.toString("utf8"),
-    arrayBuffer: async () => bytes,
-  };
+    headers: { date: "Thu, 13 Aug 2026 23:21:00 GMT", ...extraHeaders },
+  });
 }
 
 function githubFixture(proof, {

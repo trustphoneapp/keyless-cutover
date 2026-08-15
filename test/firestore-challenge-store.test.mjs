@@ -119,6 +119,40 @@ test("Firestore challenge store issues once and atomically consumes once", async
   assert.equal(consumed.proof_digest, transition.proof_digest);
 });
 
+test("Firestore consume bumps sub-ms issued_at with nanosecond arithmetic", async () => {
+  const firestore = new MemoryFirestore();
+  const challengeId = "11111111-1111-4111-8111-111111111111";
+  const issuedAt = "2026-08-13T12:00:00.000000001Z";
+  const store = new FirestoreChallengeStore({
+    firestore,
+    now: () => new Date("2026-08-13T12:00:00.000Z"),
+  });
+  firestore.documents.set(challengeId, {
+    status: "ISSUED",
+    migration_id: scope.migration_id,
+    challenge_id: challengeId,
+    nonce: "A".repeat(43),
+    issued_at: issuedAt,
+    expires_at: "2026-08-13T12:05:00.000Z",
+    owner_id: scope.owner_id,
+    repository_id: scope.repository_id,
+    workflow_path: scope.workflow_path,
+    event_name: scope.event_name,
+    ref: scope.ref,
+    environment: scope.environment,
+    client_email: scope.client_email,
+  });
+  assert.equal(await store.consume({
+    challenge_id: challengeId,
+    expected_status: "ISSUED",
+    consumed_status: "CONSUMED",
+    proof_digest: "d".repeat(64),
+  }), true);
+  const consumed = await store.get(challengeId);
+  assert.equal(consumed.consumed_at, "2026-08-13T12:00:00.000000002Z");
+  assert.equal(consumed.proof_digest, "d".repeat(64));
+});
+
 test("Firestore challenge store rejects expired and malformed transitions", async () => {
   let now = new Date("2026-08-13T12:00:00Z");
   const store = new FirestoreChallengeStore({ firestore: new MemoryFirestore(), now: () => now });

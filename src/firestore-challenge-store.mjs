@@ -1,7 +1,7 @@
 import { Firestore } from "@google-cloud/firestore";
 
 import { issueKeyProofChallenge } from "./key-proof.mjs";
-import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
+import { isRfc3339, timestampAtOrBefore, timestampBefore, timestampNanoseconds, formatTimestampNanoseconds } from "./rfc3339.mjs";
 
 const CHALLENGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -172,9 +172,12 @@ export class FirestoreChallengeStore {
       const nowAt = this.now().toISOString();
       let consumedAt = nowAt;
       if (!timestampBefore(challenge.issued_at, consumedAt)) {
-        const issuedMs = Date.parse(challenge.issued_at);
-        if (!Number.isFinite(issuedMs)) return false;
-        consumedAt = new Date(issuedMs + 1).toISOString();
+        const issuedNs = timestampNanoseconds(challenge.issued_at);
+        if (issuedNs === null) return false;
+        consumedAt = formatTimestampNanoseconds(issuedNs + 1n);
+        if (consumedAt === null || !isRfc3339(consumedAt) || !timestampBefore(challenge.issued_at, consumedAt)) {
+          return false;
+        }
       }
       if (!timestampBefore(consumedAt, challenge.expires_at)) return false;
       transaction.update(reference, {

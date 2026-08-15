@@ -51,8 +51,12 @@ function privateKeyPem(value) {
 function parseServiceAccountKey(raw) {
   let key;
   try {
+    rejectDuplicateJsonKeys(raw);
     key = JSON.parse(raw);
-  } catch {
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("GCP_SERVICE_ACCOUNT_KEY contains duplicate JSON keys");
+    }
     throw new Error("GCP_SERVICE_ACCOUNT_KEY is not valid JSON");
   }
   if (key.type !== "service_account") {
@@ -363,8 +367,19 @@ async function generate(outPath) {
 }
 
 async function verifyFile(proofPath, expectedPath, certificatePath) {
-  const proof = JSON.parse(await readFile(resolve(proofPath), "utf8"));
-  const expected = JSON.parse(await readFile(resolve(expectedPath), "utf8"));
+  const proofText = await readFile(resolve(proofPath), "utf8");
+  const expectedText = await readFile(resolve(expectedPath), "utf8");
+  let proof;
+  let expected;
+  try {
+    rejectDuplicateJsonKeys(proofText);
+    proof = JSON.parse(proofText);
+    rejectDuplicateJsonKeys(expectedText);
+    expected = JSON.parse(expectedText);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("key-proof verify input contains duplicate JSON keys");
+    throw new Error("key-proof verify input is not valid JSON");
+  }
   const valid = certificatePath
     ? verifyKeyProof(proof, await readFile(resolve(certificatePath), "utf8"), expected)
     : await verifyGoogleKeyProof(proof, expected);

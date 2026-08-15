@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { isRfc3339 } from "./rfc3339.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const HOSTILE_CASES = {
   H1: ["WRONG_OWNER_ID", "WIF_PROVIDER_CONDITION"],
@@ -382,7 +383,15 @@ async function main(path) {
   if (!path) throw new Error("Usage: node src/k0-manifest.mjs <manifest.json>");
   const { verifyK0EvidenceSemantics } = await import("./k0-evidence-semantics.mjs");
   const manifestPath = resolve(path);
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const text = await readFile(manifestPath, "utf8");
+  let manifest;
+  try {
+    rejectDuplicateJsonKeys(text);
+    manifest = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("manifest contains duplicate JSON keys");
+    throw new Error("manifest is not valid JSON");
+  }
   const result = verifyK0Manifest(manifest);
   if (!result.ok) throw new Error(result.errors.join("\n"));
   const artifacts = await verifyK0EvidenceSemantics(

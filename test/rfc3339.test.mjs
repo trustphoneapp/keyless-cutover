@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isRfc3339, timestampAtOrBefore, timestampBefore } from "../src/rfc3339.mjs";
+import { formatTimestampNanoseconds, isRfc3339, timestampAtOrBefore, timestampBefore, timestampNanoseconds } from "../src/rfc3339.mjs";
 
 test("RFC3339 parser accepts canonical 0–9 fractional digits without calendar normalization", () => {
   for (const value of [
@@ -20,4 +20,9 @@ test("RFC3339 parser accepts canonical 0–9 fractional digits without calendar 
   ]) assert.equal(isRfc3339(value), false, value);
   assert.equal(timestampBefore("2026-08-13T12:00:00.000000001Z", "2026-08-13T12:00:00.000000002Z"), true);
   assert.equal(timestampAtOrBefore("2026-08-13T12:00:00.1Z", "2026-08-13T12:00:00.100000000Z"), true);
+  assert.equal(
+    formatTimestampNanoseconds(timestampNanoseconds("2026-08-13T12:00:00.000000001Z") + 1n),
+    "2026-08-13T12:00:00.000000002Z",
+  );
+  assert.equal(formatTimestampNanoseconds(timestampNanoseconds("2026-08-13T12:00:00Z")), "2026-08-13T12:00:00Z");
 });

@@ -42,6 +42,8 @@ test("ProofV2 CLI validates issue and verify arguments before Firestore", () => 
     [["--owner-id", "abc"], /owner-id is invalid/],
     [["--repository-id", " "], /repository-id is invalid/],
     [["--workflow-path", "workflows/k0-proof-v2.yml"], /workflow-path is invalid/],
+    [["--workflow-path", ".github/workflows/../k0-proof-v2.yml"], /workflow-path is invalid/],
+    [["--workflow-path", ".github/workflows/./k0-proof-v2.yml"], /workflow-path is invalid/],
     [["--client-email", "deploy@example.com"], /client-email is invalid/],
     [["--migration-id", " \t"], /migration-id is invalid/],
   ]) {

@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **286** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **288** tests.
 
 ## Findings remediations already landed
 
@@ -31,6 +31,8 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 21. Agent AKIA/Slack; ProofV2 observer dispatch+dup-key; release marker blob sha.
 22. Unobserved GitHub JSON + Cloud Run dup-key; manifest AKIA/Slack/PAT denylist.
 23. Denial zip, WIF/checkpoint, KMS sidecar, ProofV2 receipt dup-key; workflow AKIA/Slack/AIza.
+24. Credential-scan/key-proof/live-plan/receipt-manifest dup-key; legacy job started_at required.
+25. Workflow path regexes refuse `.` / `..` segments across proof/Firestore/evidence.
 
 ## Hard stops held
 

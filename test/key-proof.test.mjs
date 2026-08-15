@@ -63,6 +63,10 @@ test("key-proof workflow paths refuse dot and parent segments", () => {
     environment: context.environment,
     client_email: "keyless-demo@example-project.iam.gserviceaccount.com",
   }), /workflow_path/);
+  assert.throws(() => createKeyProof(
+    serviceAccountKey.replace('"type":"service_account"', '"type":"service_account","type":"service_account"'),
+    context,
+  ), /duplicate JSON keys/);
 });
 
 test("proof binds the exact key and workflow context without exporting the private key", () => {
