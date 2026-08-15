@@ -51,7 +51,7 @@ flowchart LR
     C["Public read-only evidence console"] --> E["Credential-free checkpoint or verified K0 bundle"]
 ```
 
-Firestore exists for one-time ProofV2 challenge consumption and evidence-derived operation state. The current local RC implements and tests authenticated read-only recollection and pending issuance, but it has not been committed, published, or run against the live 48-hour transaction. The live KMS key/signing call remains gated. Cloud Tasks, Pub/Sub, Agent Engine, Registry, Memory Bank, autonomous IAM mutation, and a multi-agent fleet are intentionally outside the hackathon build.
+Firestore exists for one-time ProofV2 challenge consumption and evidence-derived operation state. The published RC implements and tests authenticated read-only recollection and pending issuance, but it has not been run against an eligible live 48-hour transaction. The live KMS key/signing call remains gated. Cloud Tasks, Pub/Sub, Agent Engine, Registry, Memory Bank, autonomous IAM mutation, and a multi-agent fleet are intentionally outside the hackathon build.
 
 ## Safety contract
 
@@ -63,7 +63,7 @@ Firestore exists for one-time ProofV2 challenge consumption and evidence-derived
 - KMS proves receipt origin and tamper resistance, not that external events happened.
 - Disabling a key blocks fresh authentication but does not revoke access tokens minted earlier.
 
-## Current status — August 14, 2026
+## Current status — August 15, 2026
 
 Implemented locally:
 
@@ -109,13 +109,13 @@ Those key-transaction artifacts are historical readiness evidence only. The key 
 
 Not yet proven:
 
-- Publication and independent review of the current local RC; live branch-protection repair and read-back of `required_linear_history: true`; a separately authorized fresh disposable v3 transaction; authenticated pending issuance from that transaction; separately authorized scoped KMS signature verification; the separate human release decision; and the updated evidence-console deployment and video.
+- Publication of the current RC (PRs #18 and #19) and live read-back of `required_linear_history: true` are complete. Still unproven: a separately authorized fresh disposable v3 transaction; authenticated pending issuance from that transaction; separately authorized scoped KMS signature verification; the separate human release decision; and the updated evidence-console deployment and video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 
 ## 48-hour kill gate
 
-The fresh K0 order is fixed: merge the protected RC and repair/read back required linear history; collect a fresh legacy baseline, ProofV2, WIF-1 parity, and H1–H8 including H2; review and merge the canonical pre-disable archive checkpoint while the fresh key remains enabled; have a human disable the exact key and read it back; prove fresh legacy denial before deploying and reading back `wif-2`; run authenticated pending issuance; separately authorize and verify the scoped KMS signature; then leave release to a separate human decision. The signature does not replace that boundary, and local v3 reconstruction alone does not pass this gate.
+The fresh K0 order is fixed: the protected RC is merged and required linear history was read back; collect a fresh legacy baseline, ProofV2, WIF-1 parity, and H1–H8 including H2; review and merge the canonical pre-disable archive checkpoint while the fresh key remains enabled; have a human disable the exact key and read it back; prove fresh legacy denial before deploying and reading back `wif-2`; run authenticated pending issuance; separately authorize and verify the scoped KMS signature; then leave release to a separate human decision. The signature does not replace that boundary, and local v3 reconstruction alone does not pass this gate.
 
 The verifier selects the earliest authoritative occurrence time, checkpoint-receipt `recorded_at`, or checkpoint event time across the final evidence and requires `manifest.assembled_at`—the latest authenticated final collection—to be no more than 48 hours later. Archive or checkpoint sealing and later recollection cannot reset, backdate, or extend that window.
 
@@ -131,6 +131,7 @@ Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong
 - [Support and hostile-test matrix](docs/SUPPORT_MATRIX.md)
 - [Evaluation gates](docs/EVALUATION.md)
 - [Independent reviewer and K0 operator runbook](docs/REVIEWER_RUNBOOK.md)
+- [Protection read-back, 2026-08-15](docs/evidence/REPOSITORY_PROTECTION_2026-08-15.md)
 - [Four-minute demo](docs/DEMO_RUNBOOK.md)
 - [Devpost submission draft](docs/SUBMISSION_DRAFT.md)
 - [Release and submission checklist](docs/SUBMISSION_CHECKLIST.md)

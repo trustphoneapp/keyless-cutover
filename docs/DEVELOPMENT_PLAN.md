@@ -5,11 +5,11 @@
 - The public repository, protected `main`, private `production` environment, billed GCP project, ADC, live WIF, Cloud Run services, Firestore, and Vertex Gemini access exist.
 - Independent collaborator `cherala2002` provides protected PR and `production` review. The independently approved ProofV2 transaction passed; foreign-owner H1 and H2–H8 were reconstructed at their intended controls.
 - The recorded WIF cutover, `wif-1`, H1–H8, and exact key disable plus matching Admin Activity are historical readiness evidence. Because no canonical v3 archive checkpoint was reviewed and merged before disable, that transaction is terminal and its key must never be re-enabled to resume it.
-- The current RC implements the local read-only pending issuer, but a separately authorized fresh disposable key transaction remains human-gated from baseline through archive checkpoint, disable, legacy denial, `wif-2`, pending issuance, scoped signature verification, and separate human release.
+- The current published RC includes the local read-only pending issuer. A separately authorized fresh disposable key transaction remains human-gated from an unused release marker and secret confirmation through archive checkpoint, disable, legacy denial, `wif-2`, pending issuance, scoped signature verification, and separate human release.
 
 No valid v3 K0 transaction is currently in progress. Every fresh live action stays under the independent authority and ordering below; local v3 reconstruction and historical evidence cannot substitute for it.
 
-The exact independent-review, foreign-owner H1, archive-before-disable, verification, and rollback sequence is frozen in `docs/REVIEWER_RUNBOOK.md`. Historical PRs #11 and #3 are readiness evidence only. The next live change is the current RC through a new protected review; only after its merge and branch-protection read-back may a separately authorized fresh transaction begin.
+The exact independent-review, foreign-owner H1, archive-before-disable, verification, and rollback sequence is frozen in `docs/REVIEWER_RUNBOOK.md`. Historical PRs #11 and #3 are readiness evidence only. PRs #18 and #19 are merged and the 2026-08-15 protection tuple was read back. The next live change is a separately authorized fresh disposable key transaction; do not start it by changing `demo/release.txt` until the operator is ready for H4 plus baseline dispatch.
 
 ## C0 — repository and authority baseline, 2h
 
@@ -51,7 +51,7 @@ Stop if the exact key remains ambiguous, any replay wins twice, or private mater
 
 ## C3 — authoritative K0, 12h within 48 wall-clock hours
 
-1. Merge the protected RC, repair `required_linear_history: true`, and independently read back protection.
+1. Merge the protected RC, repair `required_linear_history: true`, and independently read back protection. **Done** (PRs #18/#19 and the 2026-08-15 read-back).
 2. Authorize a new disposable key transaction and collect a fresh legacy baseline, ProofV2, WIF-1/provider/IAM parity, and H1–H8 including H2; verify the forbidden target remains unchanged.
 3. Build the canonical pre-disable archive, independently review and merge its protected PR, and reread the exact bytes while the key is enabled.
 4. Have the separately authenticated human operator disable the exact fresh key, then reread key state and matching Admin Activity.
@@ -80,7 +80,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C8 | Repeat live harness and progressive evidence-derived console; local private-snapshot/FIFO controls are complete, hosted update remains | UI cannot synthesize `PASS` or release readiness; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current progress through August 14: the independently approved ProofV2, WIF workflow, `wif-1`, H1–H8, unchanged forbidden target, and exact key-disable audit exist only as historical readiness evidence. The absent pre-disable archive checkpoint makes that transaction ineligible for v3. The private ADK service, Vertex call, console, sealed evaluation, local v3 assembly, pending issuer, public signature verifier, and tamper tests remain useful implementation evidence. C3 must restart with a separately authorized fresh disposable transaction; overall status remains **NO-GO**.
+Current progress through August 15: the independently approved ProofV2, WIF workflow, `wif-1`, H1–H8, unchanged forbidden target, and exact key-disable audit exist only as historical readiness evidence. The absent pre-disable archive checkpoint makes that transaction ineligible for v3. The private ADK service, Vertex call, console, sealed evaluation, published v3 assembly, pending issuer, public signature verifier, and tamper tests remain useful implementation evidence. C3 must continue with a separately authorized fresh disposable transaction; overall status remains **NO-GO**.
 
 ## Calendar
 

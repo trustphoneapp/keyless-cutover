@@ -2,7 +2,7 @@
 
 ## Status
 
-This is the accepted Taskmaster architecture. The implementation includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, a private dual-authenticated Cloud Run agent, a public read-only evidence console, and a tested local authenticated read-only pending issuer. The recorded WIF cutover, H1–H8 matrix, and key disable are historical readiness only because no canonical v3 pre-disable archive checkpoint was reviewed and merged before disable. Never re-enable that key to resume the transaction. No separately authorized fresh disposable transaction or authenticated live pending-issuer output is evidenced; scoped signing and human release remain later separate gates.
+This is the accepted Taskmaster architecture. The implementation includes ProofV2 adapters, deterministic compilers, two tool-free ADK stages, a private dual-authenticated Cloud Run agent, a public read-only evidence console, and a published authenticated read-only pending issuer. The recorded WIF cutover, H1–H8 matrix, and key disable are historical readiness only because no canonical v3 pre-disable archive checkpoint was reviewed and merged before disable. Never re-enable that key to resume the transaction. No separately authorized fresh disposable transaction or authenticated live pending-issuer output is evidenced; scoped signing and human release remain later separate gates.
 
 ## Components
 
