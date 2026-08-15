@@ -13,6 +13,7 @@ import { githubReleaseMarker, githubWorkflowSnapshot } from "./github-workflow-s
 import { requireGitHubReadToken } from "./github-token.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339, timestampAtOrBefore, timestampBefore, timestampNanoseconds } from "./rfc3339.mjs";
+import { CREDENTIAL_SHAPED as CREDENTIAL } from "./credential-shaped.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -25,7 +26,6 @@ const REQUIRED_APP_ID = "15368";
 const REQUIRED_APP_SLUG = "github-actions";
 const MAX_CHECKPOINT_RESPONSE = 5 * 256 * 1024;
 const MAX_ARCHIVE = 700 * 1024;
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 function exact(value, pattern, name) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);

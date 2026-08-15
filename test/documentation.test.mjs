@@ -82,4 +82,18 @@ test("status docs stay fail-closed and reject stale RC-unpublished claims", asyn
   assert.doesNotMatch(protection, /\brelease_ready\s*:\s*true\b/);
   assert.doesNotMatch(readme, /\brelease_ready\s*:\s*true\b/);
   assert.doesNotMatch(master, /\brelease_ready\s*:\s*true\b/);
+
+  assert.match(readme, /37\/37 deterministic mutation matrix/);
+  assert.match(evaluation, /37\/37 deterministic/);
+  const receipts = await readFile(resolve(root, "docs/RECEIPTS.md"), "utf8");
+  const threat = await readFile(resolve(root, "docs/THREAT_MODEL.md"), "utf8");
+  const plan = await readFile(resolve(root, "docs/DEVELOPMENT_PLAN.md"), "utf8");
+  assert.match(receipts, /37\/37 named/);
+  assert.match(threat, /37\/37/);
+  assert.match(plan, /37\/37 deterministic mutations fail/);
+  assert.doesNotMatch(readme, /36\/36/);
+  assert.doesNotMatch(evaluation, /36\/36/);
+  assert.doesNotMatch(receipts, /36\/36/);
+  assert.doesNotMatch(threat, /36\/36/);
+  assert.doesNotMatch(plan, /36\/36/);
 });

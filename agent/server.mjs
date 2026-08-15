@@ -16,12 +16,22 @@ function authorized(request, apiToken) {
 }
 
 async function body(request) {
+  const declared = request.headers["content-length"];
+  if (declared !== undefined) {
+    if (typeof declared !== "string" || declared.length > 16 || !/^\d+$/.test(declared)
+        || Number(declared) > MAX_BODY_BYTES) {
+      throw new Error("request is too large");
+    }
+  }
   const chunks = [];
   let bytes = 0;
   for await (const chunk of request) {
     bytes += chunk.length;
     if (bytes > MAX_BODY_BYTES) throw new Error("request is too large");
     chunks.push(chunk);
+  }
+  if (declared !== undefined && bytes !== Number(declared)) {
+    throw new Error("request length does not match Content-Length");
   }
   const text = Buffer.concat(chunks).toString("utf8");
   if (textLooksLikeCredential(text)) throw new Error("request contains credential-shaped material");
@@ -52,8 +62,17 @@ export function createKeylessAgentServer({ evidenceInvoker, recoveryInvoker, api
     }
     const invoker = request.url === "/v1/evidence" ? evidenceInvoker
       : request.url === "/v1/recovery" ? recoveryInvoker : null;
-    if (request.method !== "POST" || !invoker) {
+    if (!invoker) {
       send(response, 404, { error: "not_found" });
+      return;
+    }
+    if (request.method !== "POST") {
+      response.writeHead(405, {
+        allow: "POST",
+        "content-type": "application/json",
+        "content-length": Buffer.byteLength('{"error":"method_not_allowed"}'),
+      });
+      response.end('{"error":"method_not_allowed"}');
       return;
     }
     if (!authorized(request, apiToken)) {

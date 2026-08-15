@@ -8,6 +8,7 @@ ENV NODE_ENV=production OTEL_SDK_DISABLED=true PORT=8080
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json ./
+COPY src ./src
 COPY agent ./agent
 RUN rm -rf -- \
   /usr/local/lib/node_modules/npm \

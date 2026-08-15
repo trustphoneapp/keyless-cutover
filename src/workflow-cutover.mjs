@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
+import { looksCredentialShaped } from "./credential-shaped.mjs";
 
 const WORKFLOW_PATH = ".github/workflows/k0-deploy.yml";
 const MAX_WORKFLOW_BYTES = 64 * 1024;
@@ -36,6 +37,9 @@ function validateWorkflows(current, template) {
   if (typeof current !== "string" || typeof template !== "string"
       || current.includes("\0") || template.includes("\0")) {
     throw new Error("workflow bytes contain a NUL");
+  }
+  if (looksCredentialShaped(current) || looksCredentialShaped(template)) {
+    throw new Error("workflow bytes contain credential-shaped material");
   }
   if (!Buffer.byteLength(current) || Buffer.byteLength(current) > MAX_WORKFLOW_BYTES) {
     throw new Error("current workflow size is invalid");

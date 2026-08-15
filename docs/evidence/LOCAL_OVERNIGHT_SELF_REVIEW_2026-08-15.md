@@ -42,6 +42,11 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 32. Draft-PR Content-Length + workflow CREDENTIAL; Google key validAfterTime/CREDENTIAL; x509 CREDENTIAL.
 33. GCP/parity + KMS sidecar + checkpoint archive artifact CREDENTIAL refuse.
 34. Compatibility downloadGitHubBytes Content-Length exact match.
+35. Shared `credential-shaped.mjs` across collectors; agent image copies `src/`.
+36. Agent Content-Length + POST-only 405; key-proof issue uses calendar-valid RFC3339.
+37. Docs/mutation claim 37/37; `verify:k0` → `bin/k0-bundle.mjs verify`.
+38. Live CLI footguns require `KEYLESS_ALLOW_LIVE=1` (ProofV2 operator + sealed eval).
+39. Google key `validBeforeTime` RFC3339 + ordering; cutover workflow credential refuse.
 
 ## Hard stops held
 

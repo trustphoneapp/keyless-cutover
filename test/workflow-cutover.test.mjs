@@ -30,6 +30,14 @@ test("cutover compiler refuses credential retention, privilege widening, and hos
   assert.throws(() => buildCutoverPlan(`${current}\npermissions:\n  id-token: write\n`, template), /legacy authentication/);
   assert.throws(() => buildCutoverPlan(`${current}\0`, template), /NUL/);
   assert.throws(() => buildCutoverPlan(current, `${template}\0`), /NUL/);
+  assert.throws(
+    () => buildCutoverPlan(`${current}\n# -----BEGIN DSA PRIVATE KEY-----\n`, template),
+    /credential-shaped/,
+  );
+  assert.throws(
+    () => buildCutoverPlan(current, `${template}\nbearer ${"a".repeat(24)}\n`),
+    /credential-shaped/,
+  );
 
   const plan = buildCutoverPlan(current, template);
   assert.throws(() => applyCutoverPlan(current, template.replace("name: K0 deploy", "name: K0 other"), plan), /does not match|workflow name/);

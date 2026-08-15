@@ -2,12 +2,12 @@ import { GoogleAuth } from "google-auth-library";
 
 import { decodeUtf8 } from "./evidence-artifact.mjs";
 import { parseAuthenticatedTransportObservation, rejectDuplicateJsonKeys } from "./observation-time.mjs";
-import { isRfc3339 } from "./rfc3339.mjs";
+import { isRfc3339, timestampBefore } from "./rfc3339.mjs";
+import { CREDENTIAL_SHAPED as CREDENTIAL } from "./credential-shaped.mjs";
 
 const SERVICE_ACCOUNT_EMAIL = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
 const MAX_KEY_RESPONSE = 64_000;
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 function exact(value, pattern, name) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);
@@ -88,10 +88,17 @@ async function readObservedKeyResponse(response) {
   try {
     observedAt = parseAuthenticatedTransportObservation(transport, {
       expectedStatus: 200,
-      sourceEventTimes: [value?.validAfterTime],
+      sourceEventTimes: [value?.validAfterTime].filter((time) => time !== undefined),
     });
   } catch {
     throw new Error("Google key timeline is invalid");
+  }
+  if (value?.validBeforeTime !== undefined && !isRfc3339(value.validBeforeTime)) {
+    throw new Error("Google key validBeforeTime is invalid");
+  }
+  if (typeof value?.validAfterTime === "string" && typeof value?.validBeforeTime === "string"
+      && !timestampBefore(value.validAfterTime, value.validBeforeTime)) {
+    throw new Error("Google key validBeforeTime does not follow validAfterTime");
   }
   return { value, observedAt };
 }
@@ -120,6 +127,7 @@ export function createGoogleKeyReaderObserved({
     }
     const { value: key, observedAt } = await readObservedKeyResponse(response);
     const validAfterTime = key?.validAfterTime;
+    const validBeforeTime = key?.validBeforeTime;
     const disabled = key?.disabled ?? false;
     if (!key || typeof key !== "object" || Array.isArray(key)
         || key.name !== name || key.keyType !== "USER_MANAGED" || key.keyAlgorithm !== "KEY_ALG_RSA_2048"
@@ -132,7 +140,8 @@ export function createGoogleKeyReaderObserved({
         keyType: key.keyType,
         keyAlgorithm: key.keyAlgorithm,
         disabled,
-        validAfterTime,
+        ...(typeof validAfterTime === "string" ? { validAfterTime } : {}),
+        ...(typeof validBeforeTime === "string" ? { validBeforeTime } : {}),
       },
       observedAt,
     };
@@ -194,12 +203,20 @@ export function createGoogleKeyReader({
     if (key.validAfterTime !== undefined && !isRfc3339(key.validAfterTime)) {
       throw new Error("Google key validAfterTime is invalid");
     }
+    if (key.validBeforeTime !== undefined && !isRfc3339(key.validBeforeTime)) {
+      throw new Error("Google key validBeforeTime is invalid");
+    }
+    if (typeof key.validAfterTime === "string" && typeof key.validBeforeTime === "string"
+        && !timestampBefore(key.validAfterTime, key.validBeforeTime)) {
+      throw new Error("Google key validBeforeTime does not follow validAfterTime");
+    }
     return {
       name,
       keyType: key.keyType,
       keyAlgorithm: key.keyAlgorithm,
       disabled: key.disabled ?? false,
       ...(typeof key.validAfterTime === "string" ? { validAfterTime: key.validAfterTime } : {}),
+      ...(typeof key.validBeforeTime === "string" ? { validBeforeTime: key.validBeforeTime } : {}),
     };
   };
 }

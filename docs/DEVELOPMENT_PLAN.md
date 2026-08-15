@@ -76,7 +76,7 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C4 | Typed JSON schemas, policy/compiler, plan digest, exact patch and refusal tests | All unknown/unsafe inputs hold; compilation is byte-identical |
 | C5 | One Cloud Run ADK Taskmaster using Vertex Gemini; evidence and recovery only | Ablation thresholds pass; model has no mutation/policy tools |
 | C6 | Selected-repo GitHub App creates compiler-owned draft PR | Real PR opens; no merge or IAM authority |
-| C7 | Local v3 bundle verifier, deterministic pending receipt, read-only pending issuer, inert KMS request, and pinned public verification are complete; authenticated live execution/evidence and a scoped real signature remain | Missing evidence or live provenance keeps `RECOLLECTION_REQUIRED`; 36/36 deterministic mutations fail |
+| C7 | Local v3 bundle verifier, deterministic pending receipt, read-only pending issuer, inert KMS request, and pinned public verification are complete; authenticated live execution/evidence and a scoped real signature remain | Missing evidence or live provenance keeps `RECOLLECTION_REQUIRED`; 37/37 deterministic mutations fail |
 | C8 | Repeat live harness and progressive evidence-derived console; local private-snapshot/FIFO controls are complete, hosted update remains | UI cannot synthesize `PASS` or release readiness; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 

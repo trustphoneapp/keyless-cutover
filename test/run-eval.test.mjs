@@ -22,6 +22,18 @@ test("eval runner accepts only safe basename outputs", () => {
   }
 });
 
+test("sealed eval CLI requires KEYLESS_ALLOW_LIVE before model work", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const cli = fileURLToPath(new URL("../src/run-eval.mjs", import.meta.url));
+  const result = spawnSync(process.execPath, [cli, "predictions.json"], {
+    encoding: "utf8",
+    env: { ...process.env, KEYLESS_ALLOW_LIVE: "" },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /KEYLESS_ALLOW_LIVE=1/);
+});
+
 test("eval runner refuses incomplete prediction documents before write", () => {
   const document = buildEvalDocument([{ id: "x" }], "2026-08-15T06:00:00.000Z");
   assert.equal(document.model, "gemini-3.5-flash");

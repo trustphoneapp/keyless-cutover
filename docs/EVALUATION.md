@@ -93,7 +93,7 @@ Models emit no CEL, IAM role, mutation, shell, resource identity, patch, authori
 - Missing required evidence cannot produce a verifier-passing pending receipt or release authorization.
 - Canonical JSON and the exact pinned KMS key version/algorithm are recorded.
 - A test-only signature verifies only against the pinned out-of-band public key; a second valid key cannot substitute.
-- The 36/36 deterministic bundle/artifact/receipt/signature/trust mutations fail.
+- The 37/37 deterministic bundle/artifact/receipt/signature/trust mutations fail.
 - External identifiers, object generations, policy etags, commit/run/revision IDs, retrieval times, and limitations are reconstructable.
 - The only locally representable receipt state is `K0_VERIFIED_RECEIPT_PENDING` with `RECOLLECTION_REQUIRED` and `release_ready: false`; no local release state exists.
 

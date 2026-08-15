@@ -67,3 +67,31 @@ test("ProofV2 CLI validates issue and verify arguments before Firestore", () => 
   assert.notEqual(verify.status, 0);
   assert.match(verify.stderr, /owner is invalid/);
 });
+
+test("ProofV2 CLI requires KEYLESS_ALLOW_LIVE before Firestore or network work", () => {
+  const issue = spawnSync(process.execPath, [
+    cli, "issue",
+    "--project-id", "keyless-k0-demo",
+    "--migration-id", "migration",
+    "--owner-id", "1",
+    "--repository-id", "2",
+    "--workflow-path", ".github/workflows/k0-proof-v2.yml",
+    "--client-email", "deploy@example.iam.gserviceaccount.com",
+  ], { encoding: "utf8", env: { ...process.env, KEYLESS_ALLOW_LIVE: "" } });
+  assert.notEqual(issue.status, 0);
+  assert.match(issue.stderr, /KEYLESS_ALLOW_LIVE=1/);
+
+  const verify = spawnSync(process.execPath, [
+    cli, "verify",
+    "--project-id", "keyless-k0-demo",
+    "--owner", "trustphoneapp",
+    "--repository", "keyless-cutover",
+    "--run-id", "123",
+    "--workflow-path", ".github/workflows/k0-proof-v2.yml",
+  ], {
+    encoding: "utf8",
+    env: { ...process.env, KEYLESS_ALLOW_LIVE: "", KEYLESS_GITHUB_TOKEN: `ghs_${"t".repeat(36)}` },
+  });
+  assert.notEqual(verify.status, 0);
+  assert.match(verify.stderr, /KEYLESS_ALLOW_LIVE=1/);
+});

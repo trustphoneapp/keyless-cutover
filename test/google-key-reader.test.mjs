@@ -213,6 +213,44 @@ test("legacy Google key reader refuses invalid validAfterTime and credential bod
     client_email: clientEmail,
     private_key_id: privateKeyId,
   }), /validAfterTime/);
+  const invalidBefore = createGoogleKeyReader({
+    auth,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({
+        name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+        disabled: false,
+        validAfterTime: "2026-08-13T12:00:00Z",
+        validBeforeTime: "invalid",
+      }),
+    }),
+  });
+  await assert.rejects(() => invalidBefore({
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
+  }), /validBeforeTime/);
+  const reversed = createGoogleKeyReader({
+    auth,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({
+        name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+        disabled: false,
+        validAfterTime: "2026-08-13T12:00:00Z",
+        validBeforeTime: "2026-08-13T11:00:00Z",
+      }),
+    }),
+  });
+  await assert.rejects(() => reversed({
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
+  }), /validBeforeTime does not follow validAfterTime/);
   const credential = createGoogleKeyReader({
     auth,
     fetchImpl: async () => ({

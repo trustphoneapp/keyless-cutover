@@ -3,9 +3,9 @@ import { createHash, verify } from "node:crypto";
 import { canonicalJson } from "./evidence-artifact.mjs";
 import { parseK0ReceiptBytes } from "./k0-receipt.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
+import { CREDENTIAL_SHAPED as CREDENTIAL } from "./credential-shaped.mjs";
 
 const K0_KMS_ALGORITHM = "RSA_SIGN_PKCS1_2048_SHA256";
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 const KEY_VERSION = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/locations\/[A-Za-z0-9_-]{1,63}\/keyRings\/[A-Za-z0-9_-]{1,63}\/cryptoKeys\/[A-Za-z0-9_-]{1,63}\/cryptoKeyVersions\/[1-9]\d*$/;
 const SIDECAR_FIELDS = new Set(["version", "name", "algorithm", "digest_sha256", "signature"]);

@@ -71,6 +71,8 @@ test("runtime containers are digest-pinned and exclude package-manager tooling",
   const agent = await readFile(new URL("../agent/Dockerfile", import.meta.url), "utf8");
   assert.match(agent, /npm ci --omit=dev --legacy-peer-deps --ignore-scripts/);
   assert.match(agent, /r\.status===200/);
+  assert.match(agent, /^COPY src \.\/src$/m);
+  assert.match(agent, /^COPY agent \.\/agent$/m);
   const consoleImage = await readFile(new URL("../console/Dockerfile", import.meta.url), "utf8");
   assert.match(consoleImage, /r\.status===204/);
   const demo = await readFile(new URL("../demo/service/Dockerfile", import.meta.url), "utf8");
@@ -111,6 +113,7 @@ test("package scripts stay local-only and do not expose merge or deploy shortcut
     "cutover", "plan:wif", "proofv2", "run:eval", "score:eval", "start:console", "test", "verify:k0",
   ]);
   assert.equal(pkg.scripts.test, "node --test");
+  assert.equal(pkg.scripts["verify:k0"], "node bin/k0-bundle.mjs verify");
   assert.doesNotMatch(JSON.stringify(pkg.scripts), /gh |deploy|merge|kms|disable|dispatch/i);
   assert.equal(pkg.type, "module");
   assert.match(pkg.engines.node, />=22/);

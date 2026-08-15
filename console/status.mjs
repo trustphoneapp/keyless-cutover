@@ -6,10 +6,10 @@ import { verifyKmsSignature } from "../src/k0-kms.mjs";
 import { createK0Receipt, verifyK0Receipt } from "../src/k0-receipt.mjs";
 import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
 import { isRfc3339 } from "../src/rfc3339.mjs";
+import { CREDENTIAL_SHAPED as CREDENTIAL } from "../src/credential-shaped.mjs";
 
 const MAX_DOCUMENT_BYTES = 1_000_000;
 const MAX_SIDECAR_BYTES = 16_384;
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const KEY_ID = /^[a-f0-9]{40}$/;

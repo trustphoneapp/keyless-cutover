@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --test",
     "start:console": "node console/server.mjs",
-    "verify:k0": "node src/k0-manifest.mjs",
+    "verify:k0": "node bin/k0-bundle.mjs verify",
     "cutover": "node src/workflow-cutover.mjs",
     "plan:wif": "node src/wif-plan.mjs",
     "run:eval": "node src/run-eval.mjs",

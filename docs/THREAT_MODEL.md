@@ -32,7 +32,7 @@
 | Duplicate/replayed webhook/task | High | HMAC; delivery dedupe; deterministic task/operation IDs; CAS | Duplicate/reorder/replay matrix | One semantic effect only |
 | IAM concurrent modification | High | Version-3 policy+etag; normalized preimage; fail on drift | Unrelated concurrent binding | No lost update/rebase |
 | Cross-tenant object reference | Critical | Single-tenant demo; installation/repo/project IDs on every object | IDOR/fuzz tests | Multi-tenant claim prohibited |
-| Offline bundle/receipt/signature tampering | High | Exact canonical bytes, source hashes/IDs, pinned out-of-band trust anchor | Run the 36 named manifest/artifact/receipt/signature/trust mutations | 36/36 must fail verification |
+| Offline bundle/receipt/signature tampering | High | Exact canonical bytes, source hashes/IDs, pinned out-of-band trust anchor | Run the 37 named manifest/artifact/receipt/signature/trust mutations | 37/37 must fail verification |
 | Mixed-byte or TOCTOU evidence | Critical | One captured manifest/artifact snapshot per verification; exact raw manifest/receipt binding | Change reader/buffers after capture; mismatch object and bytes | Mixed snapshots cannot verify or promote |
 | Historical evidence relabeled as a v3 transaction | Critical claim risk | Require the canonical archive checkpoint to be independently reviewed and merged while the fresh key is enabled; bind all later evidence to it | Attempt to reuse the already-disabled transaction or backfill its archive | Historical evidence remains readiness-only; old key is never re-enabled |
 | Local pending output or signature misrepresented as live authority | Critical claim risk | Local issuer remains unrun against an eligible live transaction; no signer exists; pending authorization is immutable; second key cannot replace pinned trust | Wrong key/version/algorithm/digest/signature, valid second-key substitution, and filesafe output races | Signature alone remains `RECOLLECTION_REQUIRED` |
@@ -47,6 +47,6 @@
 
 ## Security test groups
 
-The passing local suite covers identity/trust failures, stale-state and TOCTOU failures, prompt-injection/malformed-model output, credential leaks, duplicate/replayed/out-of-order events, exact filesystem handling, forged console state, and the fixed 36/36 bundle/receipt/signature mutation matrix. The overall suite count is intentionally not a release claim because it changes as controls are added.
+The passing local suite covers identity/trust failures, stale-state and TOCTOU failures, prompt-injection/malformed-model output, credential leaks, duplicate/replayed/out-of-order events, exact filesystem handling, forged console state, and the fixed 37/37 bundle/receipt/signature mutation matrix. The overall suite count is intentionally not a release claim because it changes as controls are added.
 
 One false-safe result is a release blocker; no majority voting. Local tests do not prove a fresh disposable v3 transaction, its archive-before-disable checkpoint, an authenticated live pending-issuer output, a real scoped KMS signature, or the separate human release decision.

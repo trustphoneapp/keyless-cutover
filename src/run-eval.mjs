@@ -37,6 +37,9 @@ export function buildEvalDocument(predictions, generatedAt = new Date().toISOStr
 }
 
 async function main(argv) {
+  if (process.env.KEYLESS_ALLOW_LIVE !== "1") {
+    throw new Error("KEYLESS_ALLOW_LIVE=1 is required for the sealed eval runner");
+  }
   process.env.OTEL_SDK_DISABLED = "true";
   const outputPath = requireEvalOutputBasename(argv[0]);
   const [{ createAgentInvoker }, { evidenceAgent, recoveryAgent }, { runSealedEvaluation }] = await Promise.all([

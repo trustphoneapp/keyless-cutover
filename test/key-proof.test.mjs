@@ -69,6 +69,21 @@ test("key-proof workflow paths refuse dot and parent segments", () => {
   ), /duplicate JSON keys/);
 });
 
+test("key-proof issue path refuses calendar-invalid RFC3339 timestamps", () => {
+  assert.throws(() => createKeyProof(serviceAccountKey, {
+    ...context,
+    issued_at: "2026-02-30T12:00:00Z",
+  }), /issued_at has an invalid format/);
+  assert.throws(() => createKeyProof(serviceAccountKey, {
+    ...context,
+    expires_at: "2026-13-01T12:00:00Z",
+  }), /expires_at has an invalid format/);
+  assert.throws(() => createKeyProof(serviceAccountKey, {
+    ...context,
+    issued_at: "2026-08-12T12:00:00+00:00",
+  }), /issued_at has an invalid format/);
+});
+
 test("proof binds the exact key and workflow context without exporting the private key", () => {
   const proof = createKeyProof(serviceAccountKey, context);
   const expected = { ...context, client_email: proof.client_email, private_key_id: proof.private_key_id };

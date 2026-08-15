@@ -13,21 +13,19 @@ import { fileURLToPath } from "node:url";
 
 import { isRfc3339, timestampBefore, timestampNanoseconds } from "./rfc3339.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
+import { CREDENTIAL_SHAPED as CREDENTIAL } from "./credential-shaped.mjs";
 
 const DOMAIN = "keyless-cutover/key-proof/v2";
 const MAX_CHALLENGE_LIFETIME_MS = 5 * 60 * 1000;
 const MAX_CHALLENGE_LIFETIME_NS = BigInt(MAX_CHALLENGE_LIFETIME_MS) * 1_000_000n;
 const SERVICE_ACCOUNT_EMAIL = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 const REPOSITORY_ID = /^\d+$/;
 const GIT_SHA = /^[a-f0-9]{40,64}$/;
 const GITHUB_PATH = /^\.github\/workflows\/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,62}\/)*[A-Za-z0-9][A-Za-z0-9._-]{0,62}\.ya?ml$/;
 const GITHUB_REF = /^refs\/[A-Za-z0-9._/-]+$/;
 const GITHUB_LOGIN = /^[A-Za-z0-9-]{1,39}$/;
 const RUNNER_ENVIRONMENT = /^(github-hosted|self-hosted)$/;
-const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
-
 function required(value, name, pattern) {
   if (typeof value !== "string" || !value || value.length > 512) {
     throw new Error(`${name} must be a non-empty string of at most 512 characters`);
@@ -71,12 +69,16 @@ function parseServiceAccountKey(raw) {
 }
 
 function fields(input) {
+  const issuedAt = required(input.issued_at, "issued_at");
+  const expiresAt = required(input.expires_at, "expires_at");
+  if (!isRfc3339(issuedAt)) throw new Error("issued_at has an invalid format");
+  if (!isRfc3339(expiresAt)) throw new Error("expires_at has an invalid format");
   return {
     migration_id: required(input.migration_id, "migration_id"),
     challenge_id: required(input.challenge_id, "challenge_id"),
     nonce: required(input.nonce, "nonce"),
-    issued_at: required(input.issued_at, "issued_at", ISO_TIMESTAMP),
-    expires_at: required(input.expires_at, "expires_at", ISO_TIMESTAMP),
+    issued_at: issuedAt,
+    expires_at: expiresAt,
     owner_id: required(input.owner_id, "owner_id", REPOSITORY_ID),
     repository_id: required(input.repository_id, "repository_id", REPOSITORY_ID),
     workflow_path: required(input.workflow_path, "workflow_path", GITHUB_PATH),

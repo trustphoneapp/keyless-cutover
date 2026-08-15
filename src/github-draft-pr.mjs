@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { requireGitHubInstallationToken } from "./github-token.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { applyCutoverPlan } from "./workflow-cutover.mjs";
+import { CREDENTIAL_SHAPED as CREDENTIAL } from "./credential-shaped.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -10,7 +11,6 @@ const NUMERIC = /^\d+$/;
 const SHA = /^[a-f0-9]{40}$/;
 const MIGRATION = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const MAX_RESPONSE = 512_000;
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 function exact(value, pattern, name) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);

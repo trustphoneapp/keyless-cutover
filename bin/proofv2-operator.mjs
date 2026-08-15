@@ -66,10 +66,17 @@ function store(projectId) {
   return new FirestoreChallengeStore({ firestore: new Firestore({ projectId }) });
 }
 
+function requireLiveAllowed() {
+  if (process.env.KEYLESS_ALLOW_LIVE !== "1") {
+    throw new Error("KEYLESS_ALLOW_LIVE=1 is required for live ProofV2 operator commands");
+  }
+}
+
 async function main() {
   const { command, values } = argumentsFor(process.argv.slice(2));
   if (command === "issue") {
     const approved = validateIssueArguments(values);
+    requireLiveAllowed();
     const result = await issueProofV2({
       challengeStore: store(approved["project-id"]),
       scope: {
@@ -88,6 +95,7 @@ async function main() {
   }
 
   const approved = validateVerifyArguments(values);
+  requireLiveAllowed();
   const token = process.env.KEYLESS_GITHUB_TOKEN;
   if (!token) throw new Error("KEYLESS_GITHUB_TOKEN is required and must never be passed as an argument");
   const challengeStore = store(approved["project-id"]);
