@@ -30,7 +30,7 @@ If any condition is absent, use a narrower claim or state that the evidence is p
 - Does not automatically migrate Terraform/Pulumi/CDK-owned identity configuration.
 - Does not replace GitHub's official OIDC token, Google's STS/WIF, or the official `google-github-actions/auth` action; those are trusted primitives.
 - Does not offer compliance certification, penetration-testing coverage, or multi-tenant production readiness.
-- Does not treat an occupied Cloud Run revision suffix as a fresh release marker; legacy, `wif-1`, and `wif-2` markers in one transaction must be pairwise distinct and unused.
+- Does not invent an environment-wide “unused marker” denylist in offline verification; operators must choose pairwise-distinct markers that do not collide with already-deployed Cloud Run revision suffixes before a live baseline.
 
 ## Claim ledger
 

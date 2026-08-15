@@ -6,7 +6,7 @@ Security outcomes use deterministic or external oracles. Gemini never judges aut
 
 ## K0 live gates
 
-- Real `legacy-1`, `wif-1`, and post-disable `wif-2` revisions with pairwise-distinct unused release markers; occupied historical suffixes such as `wif-1` cannot assemble a fresh v3 transaction.
+- Real `legacy-1`, `wif-1`, and post-disable `wif-2` revisions with pairwise-distinct release markers inside one transaction. Reusing an already-occupied Cloud Run revision suffix is a live operator/runbook fail; offline verification rejects only intra-bundle marker collisions, not an environment-wide denylist.
 - ProofV2 exact-key verification and atomic one-time challenge consumption.
 - Reviewed provider/binding readback exactly matches approved configuration.
 - No downstream role/resource widening.

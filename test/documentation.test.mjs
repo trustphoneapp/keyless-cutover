@@ -73,8 +73,10 @@ test("status docs stay fail-closed and reject stale RC-unpublished claims", asyn
   assert.match(master, /NO-GO/);
   assert.match(claims, /complete claim remains unproven/i);
   assert.match(evaluation, /release_ready: false/);
-  assert.match(evaluation, /pairwise-distinct unused release markers/);
-  assert.match(claims, /pairwise distinct and unused/);
+  assert.match(evaluation, /pairwise-distinct release markers/);
+  assert.match(evaluation, /offline verification rejects only intra-bundle marker collisions/);
+  assert.match(claims, /pairwise-distinct markers that do not collide/);
+  assert.doesNotMatch(evaluation, /cannot assemble a fresh v3 transaction/);
   assert.match(protection, /does not authorize a live K0/i);
   assert.match(protection, /48-hour kill gate has not started/i);
   assert.doesNotMatch(protection, /\brelease_ready\s*:\s*true\b/);
