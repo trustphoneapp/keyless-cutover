@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **258** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **264** tests.
 
 ## Findings remediations already landed
 
@@ -16,6 +16,8 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 6. ProofV2 issue requires `workflow_dispatch` / `main` / `production`.
 7. Evidence/artifact `github_pat` + duplicate-key refuse; bundle `O_NOFOLLOW`; CI/package script locks.
 8. Google key Content-Length match; draft PR refuses non-draft/merged responses; agent invoker credential/duplicate refuse.
+9. Receipt scope exact fields; bundle/eval-score/assemble JSON gates; workflow snapshot credential/multiline refuse.
+10. Shared `rejectDuplicateJsonKeys` across GitHub evidence collectors.
 
 ## Hard stops held
 
