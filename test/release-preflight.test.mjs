@@ -98,6 +98,17 @@ test("CI workflow stays read-only with clean-install and high audit gates", asyn
   assert.match(source, /node-version: 24/);
 });
 
+test("package scripts stay local-only and do not expose merge or deploy shortcuts", async () => {
+  const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  assert.deepEqual(Object.keys(pkg.scripts).sort(), [
+    "cutover", "plan:wif", "proofv2", "run:eval", "score:eval", "start:console", "test", "verify:k0",
+  ]);
+  assert.equal(pkg.scripts.test, "node --test");
+  assert.doesNotMatch(JSON.stringify(pkg.scripts), /gh |deploy|merge|kms|disable|dispatch/i);
+  assert.equal(pkg.type, "module");
+  assert.match(pkg.engines.node, />=22/);
+});
+
 test("workflow and template action pins cover every external uses entry", async () => {
   const roots = [
     new URL("../.github/workflows/", import.meta.url),

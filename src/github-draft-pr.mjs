@@ -134,7 +134,8 @@ export async function openDraftCutoverPr({
     draft: true,
     body: `${marker}\n\nDeterministically compiled cutover. Human review and merge required.\n\nPlan digest: \`${approvedCutoverPlan.plan_digest}\``,
   });
-  if (!Number.isInteger(pull?.number) || pull?.draft !== true || typeof pull?.html_url !== "string") {
+  if (!Number.isInteger(pull?.number) || pull?.draft !== true || typeof pull?.html_url !== "string"
+      || pull?.merged === true || pull?.state === "closed" || pull?.auto_merge != null) {
     throw new Error("GitHub did not return a draft PR");
   }
   return { number: pull.number, url: pull.html_url, commit_sha: commitSha, reused: false };

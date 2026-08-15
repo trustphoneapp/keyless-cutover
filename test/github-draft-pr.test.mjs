@@ -72,8 +72,27 @@ test("GitHub adapter opens one draft PR from exact compiler bytes", async () => 
   });
   const contentWrite = requests.find(({ method, url }) => method === "PUT" && url.endsWith("k0-deploy.yml"));
   assert.equal(Buffer.from(contentWrite.body.content, "base64").toString("utf8"), replacement);
+  const createPull = requests.find(({ method, url }) => method === "POST" && url.endsWith("/pulls"));
+  assert.equal(createPull.body.draft, true);
+  assert.equal("auto_merge" in createPull.body, false);
   assert.equal(requests.some(({ url }) => /merge/.test(url)), false);
   assert.equal(JSON.stringify(requests).includes(input.installationToken), false);
+});
+
+test("GitHub adapter refuses a non-draft or already-merged pull response", async () => {
+  const { fetchImpl } = createFetch();
+  const hostile = async (url, options) => {
+    if (url.endsWith("/pulls") && options.method === "POST") {
+      return response(201, {
+        number: 7,
+        draft: false,
+        html_url: "https://github.com/trustphoneapp/keyless-cutover/pull/7",
+        merged: true,
+      });
+    }
+    return fetchImpl(url, options);
+  };
+  await assert.rejects(() => openDraftCutoverPr({ ...input, fetchImpl: hostile }), /draft PR/);
 });
 
 test("GitHub adapter refuses repository identity drift before mutation", async () => {
