@@ -96,11 +96,9 @@ export async function collectFreshLegacyDenialEvidence({
       || jobs[0].steps?.find(({ name }) => name === "Require fresh legacy denial")?.conclusion !== "success") {
     throw new Error("fresh legacy denial assertion is missing or unsuccessful");
   }
-  if (!isRfc3339(run.run_started_at) || !isRfc3339(jobs[0].completed_at)
-      || !timestampAtOrBefore(run.run_started_at, jobs[0].completed_at)
-      || (jobs[0].started_at !== undefined && (!isRfc3339(jobs[0].started_at)
-        || !timestampAtOrBefore(run.run_started_at, jobs[0].started_at)
-        || !timestampAtOrBefore(jobs[0].started_at, jobs[0].completed_at)))) {
+  if (!isRfc3339(run.run_started_at) || !isRfc3339(jobs[0].started_at) || !isRfc3339(jobs[0].completed_at)
+      || !timestampAtOrBefore(run.run_started_at, jobs[0].started_at)
+      || !timestampAtOrBefore(jobs[0].started_at, jobs[0].completed_at)) {
     throw new Error("fresh legacy timeline is invalid");
   }
   const artifacts = boundedGitHubPage(artifactsResponse, "artifacts")

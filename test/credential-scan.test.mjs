@@ -322,3 +322,11 @@ test("credential scan bounds iterative JSON depth, nodes, and strings without le
     { message: "CREDENTIAL_SCAN_LIMIT_EXCEEDED" },
   );
 });
+
+test("credential scan refuses duplicate JSON keys that could drop nested payloads", () => {
+  const hidden = Buffer.from(`ghs_${"z".repeat(36)}`).toString("base64");
+  assert.throws(
+    () => assertCredentialFreeBytes(Buffer.from(`{"payload":"${hidden}","payload":"clean"}`)),
+    /duplicate JSON key/,
+  );
+});

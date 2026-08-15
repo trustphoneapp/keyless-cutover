@@ -102,7 +102,16 @@ test("Google certificate lookup is bounded and keyed by the exact key ID", async
   );
   await assert.rejects(
     verifyGoogleKeyProof(proof, expected, async () => response("{"), new Date("2026-08-12T12:01:00Z")),
-    SyntaxError,
+    /not valid JSON/,
+  );
+  await assert.rejects(
+    verifyGoogleKeyProof(
+      proof,
+      expected,
+      async () => response(`{"${privateKeyId}":${JSON.stringify(publicKeyPem)},"${privateKeyId}":"x"}`),
+      new Date("2026-08-12T12:01:00Z"),
+    ),
+    /duplicate JSON keys/,
   );
 });
 

@@ -191,6 +191,7 @@ test("legacy collector rejects run and job events outside the authoritative time
     { mutateJobs: (page) => { page.jobs[0].started_at = "2026-08-13T12:01:00Z"; } },
     { mutateJobs: (page) => { page.jobs[0].started_at = "2026-08-13T12:04:00Z"; } },
     { mutateJobs: (page) => { page.jobs[0].completed_at = "2026-08-13T12:01:00Z"; } },
+    { mutateJobs: (page) => { delete page.jobs[0].started_at; } },
   ];
   for (const options of attacks) {
     const { fetchImpl, keyId } = fixture(options);

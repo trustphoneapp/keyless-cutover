@@ -14,6 +14,7 @@ import { createKmsSigningRequest } from "./k0-kms.mjs";
 import { expandK0PreDisableArchive } from "./k0-predisable-archive.mjs";
 import { createK0Receipt, verifyK0Receipt } from "./k0-receipt.mjs";
 import { timestampNanoseconds } from "./rfc3339.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const DOMAIN = "KEYLESS_K0_LIVE_RECOLLECTION_PLAN_V1";
 const MAX_PLAN = 32 * 1024;
@@ -61,8 +62,13 @@ export function parseK0LiveRecollectionPlan(planBytes) {
   assertCredentialFreeBytes(captured);
   let plan;
   try {
-    plan = JSON.parse(decodeUtf8(captured));
-  } catch {
+    const text = decodeUtf8(captured);
+    rejectDuplicateJsonKeys(text);
+    plan = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("K0 live recollection plan contains duplicate JSON keys");
+    }
     throw new Error("K0 live recollection plan is not JSON");
   }
   if (!captured.equals(Buffer.from(canonicalJson(plan), "utf8")) || !exactObject(plan, PLAN_FIELDS)

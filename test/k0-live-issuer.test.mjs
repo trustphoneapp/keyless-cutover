@@ -463,6 +463,10 @@ test("live issuer rejects plan and credential authority before authentication", 
     assert.throws(() => issueK0Live(bytes, { installationToken: token, googleAuth }));
   }
   assert.throws(() => parseK0LiveRecollectionPlan("not bytes"));
+  assert.throws(
+    () => parseK0LiveRecollectionPlan(Buffer.from(plan().toString("utf8").replace('"version":1', '"version":1,"version":1'))),
+    /duplicate JSON key/,
+  );
   const accessor = Object.defineProperty({ installationToken: token, googleAuth }, "installationToken", {
     enumerable: true, get: () => token,
   });

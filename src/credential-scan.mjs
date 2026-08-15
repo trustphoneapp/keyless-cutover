@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { TextDecoder } from "node:util";
 
 import { canonicalJson } from "./evidence-artifact.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const MAX_INPUT = 700 * 1024;
 const MAX_SINGLE_DECODED = 512 * 1024;
@@ -169,6 +170,12 @@ export function assertCredentialFreeBytes(bytes) {
       // Non-JSON text is still scanned for URL and base64 encodings below.
     }
     if (parsed) {
+      try {
+        rejectDuplicateJsonKeys(text);
+      } catch (error) {
+        if (error?.message === "duplicate JSON key") throw new Error("duplicate JSON key");
+        // JSON.parse may accept forms the strict duplicate-key walker rejects; still walk strings.
+      }
       const strings = jsonStrings(json);
       const initialTypedTree = current.source === "raw" && current.depth === 0
         && current.typedAuthority;

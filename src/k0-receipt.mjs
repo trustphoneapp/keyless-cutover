@@ -39,8 +39,13 @@ function snapshotBundle({ manifestBytes, manifest, artifacts }) {
   const capturedManifestBytes = Buffer.from(manifestBytes);
   let parsedManifest;
   try {
-    parsedManifest = JSON.parse(decodeUtf8(capturedManifestBytes));
-  } catch {
+    const text = decodeUtf8(capturedManifestBytes);
+    rejectDuplicateJsonKeys(text);
+    parsedManifest = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("K0 manifest bytes contain duplicate JSON keys");
+    }
     throw new Error("K0 manifest bytes are not JSON");
   }
   let suppliedManifestBytes;

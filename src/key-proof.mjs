@@ -12,6 +12,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { isRfc3339, timestampBefore, timestampNanoseconds } from "./rfc3339.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const DOMAIN = "keyless-cutover/key-proof/v2";
 const MAX_CHALLENGE_LIFETIME_MS = 5 * 60 * 1000;
@@ -222,7 +223,19 @@ export async function verifyGoogleKeyProof(proof, expected, fetchImpl = fetch, n
   if (!response.ok) throw new Error(`Google public-key lookup failed with HTTP ${response.status}`);
   const body = await response.text();
   if (body.length > 256_000) throw new Error("Google public-key lookup response is too large");
-  const certificates = JSON.parse(body);
+  let certificates;
+  try {
+    rejectDuplicateJsonKeys(body);
+    certificates = JSON.parse(body);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") {
+      throw new Error("Google public-key lookup response contains duplicate JSON keys");
+    }
+    throw new Error("Google public-key lookup response is not valid JSON");
+  }
+  if (!certificates || typeof certificates !== "object" || Array.isArray(certificates)) {
+    throw new Error("Google public-key lookup response is invalid");
+  }
   const certificate = certificates[keyId];
   if (typeof certificate !== "string") return false;
   return verifyKeyProof(proof, certificate, expected, now);
