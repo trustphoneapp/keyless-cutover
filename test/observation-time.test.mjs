@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseAuthenticatedTransportObservation } from "../src/observation-time.mjs";
+import { parseAuthenticatedTransportObservation, rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
 
 function response(date, status = 200) {
   return new Response("{}", { status, headers: date === undefined ? {} : { date } });
@@ -72,4 +72,11 @@ test("authenticated transport observation rejects future or invalid source event
       sourceEventTimes,
     }), /source|regresses/);
   }
+});
+
+test("rejectDuplicateJsonKeys accepts unique keys and refuses duplicates", () => {
+  assert.equal(rejectDuplicateJsonKeys('{"a":1,"b":{"c":2}}'), undefined);
+  assert.throws(() => rejectDuplicateJsonKeys('{"a":1,"a":2}'), /duplicate JSON key/);
+  assert.throws(() => rejectDuplicateJsonKeys('{"outer":{"a":1,"a":2}}'), /duplicate JSON key/);
+  assert.throws(() => rejectDuplicateJsonKeys("{"), /invalid JSON/);
 });

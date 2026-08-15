@@ -8,6 +8,8 @@ const SHA256 = /^[0-9a-f]{64}$/;
 const NUMERIC = /^\d+$/;
 const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
 const REF = /^refs\/[A-Za-z0-9._/-]+$/;
+const EVENT_NAME = /^(?:workflow_dispatch|push)$/;
+const ENVIRONMENT = /^production$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const NONCE = /^[A-Za-z0-9_-]{43}$/;
 const COLLECTION = "keyProofChallenges";
@@ -39,8 +41,8 @@ function validIssuedChallenge(value, challengeId) {
       || value.status !== "ISSUED" || value.challenge_id !== challengeId
       || !bounded(value.migration_id) || !bounded(value.nonce, NONCE)
       || !bounded(value.owner_id, NUMERIC) || !bounded(value.repository_id, NUMERIC)
-      || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name)
-      || !bounded(value.ref, REF) || !bounded(value.environment)
+      || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name, EVENT_NAME)
+      || !bounded(value.ref, REF) || !bounded(value.environment, ENVIRONMENT)
       || !bounded(value.client_email, SERVICE_ACCOUNT)
       || !isRfc3339(value.issued_at) || !isRfc3339(value.expires_at)
       || !timestampBefore(value.issued_at, value.expires_at)) {
@@ -56,8 +58,8 @@ function validStoredChallenge(value, challengeId) {
         || value.challenge_id !== challengeId
         || !bounded(value.migration_id) || !bounded(value.nonce, NONCE)
         || !bounded(value.owner_id, NUMERIC) || !bounded(value.repository_id, NUMERIC)
-        || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name)
-        || !bounded(value.ref, REF) || !bounded(value.environment)
+        || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name, EVENT_NAME)
+        || !bounded(value.ref, REF) || !bounded(value.environment, ENVIRONMENT)
         || !bounded(value.client_email, SERVICE_ACCOUNT) || !bounded(value.proof_digest, SHA256)
         || !isRfc3339(value.issued_at) || !isRfc3339(value.expires_at) || !isRfc3339(value.consumed_at)
         || !timestampBefore(value.issued_at, value.consumed_at)
@@ -95,8 +97,8 @@ function observedConsumedChallenge(value, challengeId, updateTime, readTime) {
       || value.status !== "CONSUMED" || value.challenge_id !== challengeId
       || !bounded(value.migration_id) || !bounded(value.nonce, NONCE)
       || !bounded(value.owner_id, NUMERIC) || !bounded(value.repository_id, NUMERIC)
-      || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name)
-      || !bounded(value.ref, REF) || !bounded(value.environment)
+      || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name, EVENT_NAME)
+      || !bounded(value.ref, REF) || !bounded(value.environment, ENVIRONMENT)
       || !bounded(value.client_email, SERVICE_ACCOUNT) || !bounded(value.proof_digest, SHA256)
       || !isRfc3339(value.issued_at) || !isRfc3339(value.expires_at) || !isRfc3339(value.consumed_at)
       || !timestampBefore(value.issued_at, value.consumed_at)

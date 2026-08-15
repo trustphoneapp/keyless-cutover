@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **274** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **275** tests.
 
 ## Findings remediations already landed
 
@@ -23,6 +23,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 13. Normalizers bind key names/project patterns; Cloud Run digests; ProofV2 CLI; eval basename docs.
 14. Console GET-only 405; frozen KMS signing requests; refuse Bearer/whitespace GitHub tokens.
 15. Credential scan AKIA/Slack; distinct live-issuer run IDs; demo Dockerfile /healthz HEALTHCHECK.
+16. Firestore event_name/environment allowlists; rejectDuplicateJsonKeys unit coverage.
 
 ## Hard stops held
 
