@@ -113,9 +113,31 @@ test("console derives an honest no-go view from the credential-free historical c
   assert.equal(status.gates.find(({ label }) => label === "H3–H8 controls").state, "historical");
   assert.equal(status.gates.find(({ label }) => label === "Human key disable").state, "historical");
   assert.equal(status.gates.find(({ label }) => label === "Canonical pre-disable archive checkpoint").state, "missing");
+  assert.equal(status.gates.find(({ label }) => label === "Fresh disposable v3 transaction").state, "missing");
   assert.match(status.headline, /Historical evidence only/);
   assert.match(status.summary, /cannot satisfy v3/);
   assert.equal(status.blockers.some((item) => /Never re-enable the historical key/.test(item)), true);
+  assert.equal(status.blockers.some((item) => /unused release marker/.test(item)), true);
+  assert.equal(status.blockers.every((item) => !/\bGO\b|release.?ready|K0\s+COMPLETE|v3\s+complete/i.test(item)), true);
+  assert.doesNotMatch(JSON.stringify(status), /Publish the protected RC/);
+});
+
+test("checkpoint console copy never promotes authorization or release readiness", async () => {
+  const status = await loadConsoleStatus({ checkpointPath });
+  assert.equal(status.authorization, "INCOMPLETE");
+  assert.equal(status.signature_verified ?? false, false);
+  assert.equal(status.release_ready, false);
+  assert.equal(status.cutover_verified, false);
+  assert.match(status.status, /^NO_GO/);
+  assert.doesNotMatch(status.headline, /\bGO\b|PASS|COMPLETE/);
+  assert.doesNotMatch(status.summary, /release.?ready|authorized live|v3 complete/i);
+  for (const gate of status.gates) {
+    if (gate.label === "Gemini necessity") {
+      assert.equal(gate.state, "passed");
+      continue;
+    }
+    assert.match(gate.state, /^(historical|missing)$/);
+  }
 });
 
 test("console rejects a self-asserted success checkpoint instead of falling back", async () => {

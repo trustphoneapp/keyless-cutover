@@ -93,6 +93,8 @@ test("valid pinned test signature passes its gate but cannot promote cutover or 
   assert.equal(status.gates.find(({ label }) => label === "Pinned KMS signature").state, "passed");
   assert.match(status.summary, /local read-only pending issuer exists and is tested/);
   assert.match(renderConsoleHtml(status), /Signature verified · recollection required/);
+  assert.equal(status.gates.find(({ label }) => label === "Release authorization").state, "blocked");
+  assert.doesNotMatch(JSON.stringify(status), /"authorization":"AUTHORIZED"|release_ready":true|"status":"GO"/);
 });
 
 test("configured invalid bundle files fail without checkpoint fallback or evidence echo", async (t) => {
