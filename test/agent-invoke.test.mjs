@@ -47,3 +47,28 @@ test("agent invoker rejects unknown input fields and invented citations", async 
   assert.equal(called, false);
   await assert.rejects(invoke(bundle), /unknown evidence/);
 });
+
+test("agent invoker refuses credential-shaped or duplicate-key final responses", async () => {
+  for (const text of [
+    JSON.stringify({
+      pattern: "CANDIDATE_DIRECT",
+      auth_evidence_ids: ["E001"],
+      deploy_evidence_ids: ["E002"],
+      missing_evidence: [],
+      risk_codes: [],
+      explanation: `token ghp_${"a".repeat(36)}`,
+    }),
+    '{"pattern":"CANDIDATE_DIRECT","pattern":"CANDIDATE_DIRECT","auth_evidence_ids":["E001"],"deploy_evidence_ids":["E002"],"missing_evidence":[],"risk_codes":[],"explanation":"x"}',
+  ]) {
+    const invoke = createAgentInvoker({
+      agent,
+      lane: "evidence",
+      runner: {
+        async *runEphemeral() {
+          yield createEvent({ author: agent.name, content: { parts: [{ text }] } });
+        },
+      },
+    });
+    await assert.rejects(() => invoke(bundle), /credential|duplicate|JSON/);
+  }
+});
