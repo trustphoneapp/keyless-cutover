@@ -49,6 +49,8 @@ test("WIF compiler refuses malformed, widening, or identity-ambiguous inputs", (
   for (const [label, value] of attacks) {
     assert.throws(() => buildWifPlan(value), /invalid/, label);
   }
+  assert.throws(() => buildWifPlan({ ...input, extra: true }), /invalid/);
+  assert.throws(() => buildWifPlan({ ...input, role: "roles/owner" }), /invalid/);
 
   const plan = buildWifPlan(input);
   assert.equal(verifyWifPlan({ ...input, owner_id: "112" }, plan), false);
