@@ -36,3 +36,27 @@ test("agent server exposes health and protects bounded model routes", async (con
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { output: { count: 1 } });
 });
+
+test("agent server rejects credential-shaped and duplicate-key bodies", async (context) => {
+  const token = "b".repeat(32);
+  const server = createKeylessAgentServer({
+    evidenceInvoker: async () => ({ ok: true }),
+    recoveryInvoker: async () => ({ ok: true }),
+    apiToken: token,
+  });
+  context.after(() => server.close());
+  const origin = await listen(server);
+  const headers = {
+    authorization: "Bearer google-cloud-run-identity-token",
+    "x-keyless-api-token": token,
+    "content-type": "application/json",
+  };
+  for (const body of [
+    JSON.stringify({ evidence: [{ id: "E001", text: `ghp_${"a".repeat(36)}` }] }),
+    '{"evidence":[],"evidence":[]}',
+  ]) {
+    const response = await fetch(`${origin}/v1/evidence`, { method: "POST", headers, body });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), { error: "request_rejected" });
+  }
+});

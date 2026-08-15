@@ -1,6 +1,9 @@
 import { createServer as createHttpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 
+import { textLooksLikeCredential } from "../src/credential-scan.mjs";
+import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
+
 const MAX_BODY_BYTES = 64 * 1024;
 const API_TOKEN_HEADER = "x-keyless-api-token";
 
@@ -20,7 +23,15 @@ async function body(request) {
     if (bytes > MAX_BODY_BYTES) throw new Error("request is too large");
     chunks.push(chunk);
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  const text = Buffer.concat(chunks).toString("utf8");
+  if (textLooksLikeCredential(text)) throw new Error("request contains credential-shaped material");
+  rejectDuplicateJsonKeys(text);
+  const value = JSON.parse(text);
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || Object.getPrototypeOf(value) !== Object.prototype) {
+    throw new Error("request body is invalid");
+  }
+  return value;
 }
 
 function send(response, status, value) {

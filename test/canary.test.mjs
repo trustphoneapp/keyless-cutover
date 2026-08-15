@@ -9,4 +9,7 @@ test("canary exposes only the independently observable release identity", () => 
     revision: "keyless-demo-wif-1",
     release: "wif-1",
   });
+  assert.deepEqual(Object.keys(canaryPayload({ K_SERVICE: "a", K_REVISION: "b", RELEASE: "c", SECRET: "nope" })).sort(), [
+    "release", "revision", "service",
+  ]);
 });
