@@ -568,6 +568,13 @@ async function verifyPendingOutputFile(path) {
   return bytes;
 }
 
+test("live issuer pending verifier source rejects duplicate JSON keys", async () => {
+  const source = await readFile(new URL("../bin/k0-live-issuer.mjs", import.meta.url), "utf8");
+  assert.match(source, /rejectDuplicateJsonKeys\(text\)/);
+  assert.match(source, /pending output contains duplicate JSON keys/);
+  assert.match(source, /output manifest contains duplicate JSON keys/);
+});
+
 test("pending issuer envelope and kms_request refuse promotion fields", async () => {
   const { assembleK0Bundle } = await import("../src/k0-bundle.mjs");
   const { createK0Receipt } = await import("../src/k0-receipt.mjs");

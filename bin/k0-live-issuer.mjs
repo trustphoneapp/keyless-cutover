@@ -12,6 +12,7 @@ import { verifyK0Bundle } from "../src/k0-bundle.mjs";
 import { createKmsSigningRequest } from "../src/k0-kms.mjs";
 import { issueK0Live } from "../src/k0-live-issuer.mjs";
 import { verifyK0Receipt } from "../src/k0-receipt.mjs";
+import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
 
 const MAX_PLAN = 32 * 1024;
 const MAX_OUTPUT = 2_000_000;
@@ -69,8 +70,11 @@ async function verifyPendingOutput(bytes, expected) {
   }
   let value;
   try {
-    value = JSON.parse(decodeUtf8(bytes));
-  } catch {
+    const text = decodeUtf8(bytes);
+    rejectDuplicateJsonKeys(text);
+    value = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("K0 issuer pending output contains duplicate JSON keys");
     throw new Error("K0 issuer pending output is not JSON");
   }
   if (!bytes.equals(Buffer.from(canonicalJson(value), "utf8"))
@@ -89,8 +93,11 @@ async function verifyPendingOutput(bytes, expected) {
   ]));
   let manifest;
   try {
-    manifest = JSON.parse(decodeUtf8(manifestBytes));
-  } catch {
+    const text = decodeUtf8(manifestBytes);
+    rejectDuplicateJsonKeys(text);
+    manifest = JSON.parse(text);
+  } catch (error) {
+    if (error?.message === "duplicate JSON key") throw new Error("K0 issuer output manifest contains duplicate JSON keys");
     throw new Error("K0 issuer output manifest is not JSON");
   }
   if (!manifestBytes.equals(Buffer.from(canonicalJson(manifest), "utf8"))) {

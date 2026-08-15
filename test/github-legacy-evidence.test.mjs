@@ -266,6 +266,19 @@ test("legacy baseline collector accepts only the reviewed inactive workflow fixt
   await assembleK0Bundle(input);
 });
 
+test("legacy baseline collector refuses duplicate JSON keys", async () => {
+  const fetchImpl = async (url) => {
+    if (url.includes("/repos/") && !url.includes("/contents/") && !url.includes("/actions/") && !url.includes("/pulls")) {
+      return new Response('{"id":1,"id":2}', {
+        status: 200,
+        headers: { date: "Thu, 13 Aug 2026 12:18:00 GMT" },
+      });
+    }
+    return baselineFixture()(url);
+  };
+  await assert.rejects(() => collectSuccessfulLegacyDeploy({ ...baseline, fetchImpl }), /duplicate JSON key/);
+});
+
 test("legacy baseline collector rejects unreviewed, unbounded, or noncanonical success claims", async () => {
   const attacks = [
     ["self environment review", (value) => { value.environmentApprovals[0].user.id = 10; }],

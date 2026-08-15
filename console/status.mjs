@@ -5,10 +5,11 @@ import { readBoundedFile, readK0BundleDirectory } from "../src/k0-bundle-files.m
 import { verifyKmsSignature } from "../src/k0-kms.mjs";
 import { createK0Receipt, verifyK0Receipt } from "../src/k0-receipt.mjs";
 import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
+import { isRfc3339 } from "../src/rfc3339.mjs";
 
 const MAX_DOCUMENT_BYTES = 1_000_000;
 const MAX_SIDECAR_BYTES = 16_384;
-const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
@@ -78,7 +79,7 @@ function failedStatus(code = "CHECKPOINT_REJECTED") {
 
 function checkpointStatus(bytes, checkpoint) {
   if (checkpoint?.version !== 1 || checkpoint?.status !== "NO_GO_INCOMPLETE") throw new Error("checkpoint status is not fail-closed");
-  if (!bounded(checkpoint.recorded_at) || !Number.isFinite(Date.parse(checkpoint.recorded_at))) throw new Error("checkpoint timestamp is invalid");
+  if (!bounded(checkpoint.recorded_at) || !isRfc3339(checkpoint.recorded_at)) throw new Error("checkpoint timestamp is invalid");
   if (!REPOSITORY.test(checkpoint.repository?.full_name ?? "")) throw new Error("checkpoint repository is invalid");
   if (!Number.isInteger(checkpoint.repository?.cutover_pr) || checkpoint.repository.cutover_pr < 1
       || !bounded(checkpoint.gcp?.legacy_revision)
@@ -116,7 +117,7 @@ function checkpointStatus(bytes, checkpoint) {
       || !bounded(keyDisable?.human_actor)
       || !bounded(keyDisable?.audit_insert_id)
       || !bounded(keyDisable?.audit_timestamp)
-      || !Number.isFinite(Date.parse(keyDisable.audit_timestamp))) {
+      || !isRfc3339(keyDisable.audit_timestamp)) {
     throw new Error("checkpoint key-disable evidence is invalid");
   }
   if (![checkpoint.agent_eval.supported, checkpoint.agent_eval.refusal, checkpoint.agent_eval.recovery, checkpoint.agent_eval.schema_valid].every((value) => bounded(value, 20))

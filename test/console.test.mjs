@@ -164,6 +164,21 @@ test("console rejects github_pat credential shapes in checkpoint input", async (
   assert.doesNotMatch(JSON.stringify(status), /github_pat_/);
 });
 
+test("console rejects AKIA and Slack credential shapes in checkpoint input", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "keyless-console-akia-"));
+  for (const note of [`AKIA${"A".repeat(16)}`, `xoxb-${"a".repeat(12)}-${"b".repeat(24)}`]) {
+    const path = join(directory, `${note.slice(0, 4)}.json`);
+    await writeFile(path, JSON.stringify({
+      version: 1,
+      status: "NO_GO_INCOMPLETE",
+      note,
+    }), { mode: 0o600 });
+    const status = await loadConsoleStatus({ checkpointPath: path });
+    assert.equal(status.status, "NO_GO_VERIFICATION_FAILED");
+    assert.doesNotMatch(JSON.stringify(status), /AKIA|xoxb-/);
+  }
+});
+
 test("console rejects duplicate JSON keys and non-numeric ProofV2 run ids", async () => {
   const directory = await mkdtemp(join(tmpdir(), "keyless-console-dup-"));
   const duplicatePath = join(directory, "duplicate.json");

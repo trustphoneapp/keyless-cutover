@@ -12,7 +12,8 @@ import {
 } from "./github-denial-evidence.mjs";
 import { requireGitHubInstallationToken } from "./github-token.mjs";
 import { githubReleaseMarker, githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
-import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
+import { isRfc3339, timestampAtOrBefore, timestampBefore, timestampNanoseconds } from "./rfc3339.mjs";
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
@@ -52,6 +53,7 @@ async function fetchBaselineJson(url, token, fetchImpl) {
   const text = await response.text();
   if (text.length > 1_000_000) throw new Error("GitHub API response is too large");
   if (!response.ok) throw new Error(`GitHub API failed with HTTP ${response.status}`);
+  rejectDuplicateJsonKeys(text);
   return {
     value: JSON.parse(text),
     observedAt: new Date(milliseconds).toISOString().replace(".000Z", "Z"),
@@ -292,8 +294,13 @@ export async function collectSuccessfulLegacyDeploy({
   if (String(pull?.base?.repo?.owner?.id) !== ownerId || String(pull?.base?.repo?.id) !== repositoryId) {
     throw new Error("legacy baseline repository identity is invalid");
   }
-  const observedAt = [...firstResponses, ...contentResponses].map(({ observedAt: value }) => value)
-    .reduce((latest, value) => Date.parse(value) > Date.parse(latest) ? value : latest);
+  const observedTimes = [...firstResponses, ...contentResponses].map(({ observedAt: value }) => value);
+  if (observedTimes.some((value) => !isRfc3339(value))) {
+    throw new Error("legacy baseline observation time is invalid");
+  }
+  const observedAt = observedTimes.reduce((latest, value) => (
+    timestampNanoseconds(value) > timestampNanoseconds(latest) ? value : latest
+  ));
   if (!timestampAtOrBefore(run.updated_at, observedAt) || !timestampAtOrBefore(job.completed_at, observedAt)
       || !timestampAtOrBefore(pull.merged_at, observedAt)) {
     throw new Error("legacy baseline evidence occurrence is after collection");

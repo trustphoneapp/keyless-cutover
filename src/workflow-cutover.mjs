@@ -3,6 +3,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
+
 const WORKFLOW_PATH = ".github/workflows/k0-deploy.yml";
 const MAX_WORKFLOW_BYTES = 64 * 1024;
 const WIF_AUTH_STEP_COUNT = 6;
@@ -31,6 +33,10 @@ function validatePinnedActions(value, label) {
 }
 
 function validateWorkflows(current, template) {
+  if (typeof current !== "string" || typeof template !== "string"
+      || current.includes("\0") || template.includes("\0")) {
+    throw new Error("workflow bytes contain a NUL");
+  }
   if (!Buffer.byteLength(current) || Buffer.byteLength(current) > MAX_WORKFLOW_BYTES) {
     throw new Error("current workflow size is invalid");
   }
@@ -117,10 +123,12 @@ async function main([command, ...args]) {
   }
   if (command === "apply" && args.length === 4) {
     const [currentPath, templatePath, planPath, outputPath] = args;
+    const planText = await readFile(resolve(planPath), "utf8");
+    rejectDuplicateJsonKeys(planText);
     const output = applyCutoverPlan(
       await readFile(resolve(currentPath), "utf8"),
       await readFile(resolve(templatePath), "utf8"),
-      JSON.parse(await readFile(resolve(planPath), "utf8")),
+      JSON.parse(planText),
     );
     await writeFile(resolve(outputPath), output, { flag: "wx", mode: 0o600 });
     return;
