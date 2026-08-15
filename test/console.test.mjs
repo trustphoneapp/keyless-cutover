@@ -289,7 +289,15 @@ test("console routes are read-only and return hardened response headers", async 
     assert.match(page.headers.get("strict-transport-security"), /max-age=31536000/);
     assert.equal(page.headers.get("x-frame-options"), "DENY");
     const mutation = await fetch(`http://127.0.0.1:${port}/api/status`, { method: "POST" });
-    assert.equal(mutation.status, 404);
+    assert.equal(mutation.status, 405);
+    assert.equal(mutation.headers.get("allow"), "GET");
+    for (const method of ["HEAD", "OPTIONS", "PUT", "DELETE"]) {
+      for (const path of ["/", "/api/status", "/healthz"]) {
+        const response = await fetch(`http://127.0.0.1:${port}${path}`, { method });
+        assert.equal(response.status, 405, `${method} ${path}`);
+        assert.equal(response.headers.get("allow"), "GET");
+      }
+    }
     const apiStatus = await (await fetch(`http://127.0.0.1:${port}/api/status`)).json();
     assert.equal(apiStatus.release_ready, false);
   } finally {

@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **273** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **274** tests.
 
 ## Findings remediations already landed
 
@@ -21,6 +21,7 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 11. Canary method/path allowlist; legacy Google key identity/Content-Length parity.
 12. Console duplicate-JSON + numeric ProofV2 run_id; bounded-file hardlink/size integrity.
 13. Normalizers bind key names/project patterns; Cloud Run digests; ProofV2 CLI; eval basename docs.
+14. Console GET-only 405; frozen KMS signing requests; refuse Bearer/whitespace GitHub tokens.
 
 ## Hard stops held
 

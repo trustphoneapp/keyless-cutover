@@ -159,16 +159,21 @@ export function createConsoleServer(status) {
     throw new Error("console status is not fail-closed");
   }
   return createServer((request, response) => {
-    if (request.method === "GET" && request.url === "/healthz") {
+    if (request.method !== "GET") {
+      response.writeHead(405, { ...SECURITY_HEADERS, allow: "GET" });
+      response.end();
+      return;
+    }
+    if (request.url === "/healthz") {
       response.writeHead(204, SECURITY_HEADERS);
       response.end();
       return;
     }
-    if (request.method === "GET" && request.url === "/api/status") {
+    if (request.url === "/api/status") {
       send(response, 200, "application/json; charset=utf-8", `${JSON.stringify(capturedStatus)}\n`);
       return;
     }
-    if (request.method === "GET" && request.url === "/") {
+    if (request.url === "/") {
       send(response, 200, "text/html; charset=utf-8", renderConsoleHtml(capturedStatus));
       return;
     }

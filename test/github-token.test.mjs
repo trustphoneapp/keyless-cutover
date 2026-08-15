@@ -37,3 +37,18 @@ test("refuses write and user PAT token shapes for installation and read helpers"
     assert.throws(() => requireGitHubReadToken(value), /invalid/);
   }
 });
+
+test("refuses Bearer, whitespace, and control-prefixed GitHub tokens", () => {
+  const classic = `ghs_${"a".repeat(36)}`;
+  for (const value of [
+    `Bearer ${classic}`,
+    `Authorization: ${classic}`,
+    ` ${classic}`,
+    `${classic} `,
+    `${classic}\n`,
+    `\u0000${classic}`,
+  ]) {
+    assert.throws(() => requireGitHubInstallationToken(value), /invalid/);
+    assert.throws(() => requireGitHubReadToken(value), /invalid/);
+  }
+});

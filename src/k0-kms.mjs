@@ -28,14 +28,16 @@ function base64(value) {
 
 // This only builds inert digest material. Authorization remains RECOLLECTION_REQUIRED.
 export function createKmsSigningRequest(receiptBytes, pinnedKeyVersion) {
-  parseK0ReceiptBytes(receiptBytes);
+  if (!Buffer.isBuffer(receiptBytes)) throw new Error("receipt bytes are invalid");
+  const bytes = Buffer.from(receiptBytes);
+  parseK0ReceiptBytes(bytes);
   if (typeof pinnedKeyVersion !== "string" || !KEY_VERSION.test(pinnedKeyVersion)) {
     throw new Error("pinned KMS key version is invalid");
   }
-  return {
+  return Object.freeze({
     name: pinnedKeyVersion,
-    digest: { sha256: digest(receiptBytes).toString("base64") },
-  };
+    digest: Object.freeze({ sha256: digest(bytes).toString("base64") }),
+  });
 }
 
 // Signature validity never changes the receipt's RECOLLECTION_REQUIRED authorization.

@@ -55,6 +55,13 @@ test("pending K0 receipt reconstructs byte-identically and verifies with a pinne
   });
   assert.equal(JSON.parse(sidecar).algorithm, "RSA_SIGN_PKCS1_2048_SHA256");
   assert.equal(verifyKmsSignature(first.receiptBytes, sidecar, signer.trustAnchor), true);
+
+  const snapshot = Buffer.from(first.receiptBytes);
+  const frozen = createKmsSigningRequest(snapshot, KEY_VERSION);
+  snapshot[0] ^= 1;
+  assert.equal(frozen.digest.sha256, request.digest.sha256);
+  assert.throws(() => { frozen.extra = true; }, /Cannot add property|object is not extensible|read only/i);
+  assert.throws(() => { frozen.digest.sha256 = "tampered"; }, /Cannot assign|read only/i);
 });
 
 test("receipt construction snapshots the verified bundle before yielding", async () => {
