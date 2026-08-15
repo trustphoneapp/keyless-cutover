@@ -19,6 +19,8 @@ const OUTPUT_FIELDS = new Set([
   "version", "domain", "manifest_bytes_base64", "artifacts", "receipt_bytes_base64", "kms_request",
 ]);
 const ARTIFACT_FIELDS = new Set(["id", "bytes_base64"]);
+const KMS_REQUEST_FIELDS = new Set(["name", "digest"]);
+const KMS_DIGEST_FIELDS = new Set(["sha256"]);
 
 function exactObject(value, fields) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -96,8 +98,17 @@ async function verifyPendingOutput(bytes, expected) {
   }
   await verifyK0Bundle({ manifest, artifacts });
   await verifyK0Receipt({ receiptBytes, manifest, manifestBytes, artifacts });
+  if (!exactObject(value.kms_request, KMS_REQUEST_FIELDS)
+      || !exactObject(value.kms_request.digest, KMS_DIGEST_FIELDS)
+      || typeof value.kms_request.name !== "string"
+      || typeof value.kms_request.digest.sha256 !== "string"
+      || "release_ready" in value.kms_request
+      || "authorization" in value.kms_request
+      || "status" in value.kms_request) {
+    throw new Error("K0 issuer pending output is invalid");
+  }
   const kmsRequestBytes = Buffer.from(canonicalJson(value.kms_request), "utf8");
-  const rebuiltRequest = createKmsSigningRequest(receiptBytes, value.kms_request?.name);
+  const rebuiltRequest = createKmsSigningRequest(receiptBytes, value.kms_request.name);
   if (!kmsRequestBytes.equals(Buffer.from(canonicalJson(rebuiltRequest), "utf8"))
       || !manifestBytes.equals(expected.bundle.manifestBytes)
       || !receiptBytes.equals(expected.receipt.receiptBytes)

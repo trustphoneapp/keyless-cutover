@@ -36,3 +36,14 @@ test("cutover compiler refuses credential retention, privilege widening, and hos
     /does not match/,
   );
 });
+
+test("reviewed WIF template still compiles from the frozen legacy fixture", async () => {
+  const fixture = await readFile(new URL("../k0/fixtures/k0-deploy.legacy.yml", import.meta.url), "utf8");
+  const reviewed = await readFile(new URL("../k0/templates/k0-deploy.wif.yml", import.meta.url), "utf8");
+  const plan = buildCutoverPlan(fixture, reviewed);
+  assert.equal(applyCutoverPlan(fixture, reviewed, plan), reviewed);
+  assert.equal(plan.removes_credentials_json, true);
+  assert.doesNotMatch(reviewed, /credentials_json:/);
+  assert.match(reviewed, /id-token: write/);
+  assert.match(reviewed, /workload_identity_provider:/);
+});

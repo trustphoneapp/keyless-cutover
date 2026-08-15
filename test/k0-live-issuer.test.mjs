@@ -555,10 +555,60 @@ async function verifyPendingOutputFile(path) {
   await verifyK0Bundle({ manifest, artifacts });
   await verifyK0Receipt({ receiptBytes, manifest, manifestBytes, artifacts });
   assert.deepEqual(value.kms_request, createKmsSigningRequest(receiptBytes, value.kms_request.name));
+  assert.deepEqual(Object.keys(value.kms_request).sort(), ["digest", "name"]);
+  assert.deepEqual(Object.keys(value.kms_request.digest), ["sha256"]);
+  assert.equal("release_ready" in value.kms_request, false);
+  assert.equal("authorization" in value.kms_request, false);
   assert.equal(JSON.parse(receiptBytes).authorization, "RECOLLECTION_REQUIRED");
   assert.equal(JSON.parse(receiptBytes).release_ready, false);
   return bytes;
 }
+
+test("pending issuer envelope and kms_request refuse promotion fields", async () => {
+  const { assembleK0Bundle } = await import("../src/k0-bundle.mjs");
+  const { createK0Receipt } = await import("../src/k0-receipt.mjs");
+  const { createKmsSigningRequest } = await import("../src/k0-kms.mjs");
+  const { validK0BundleInput } = await import("./fixtures/k0-bundle.mjs");
+  const bundle = await assembleK0Bundle(validK0BundleInput());
+  const { receipt, receiptBytes } = await createK0Receipt(bundle);
+  const keyVersion = "projects/example-project/locations/global/keyRings/keyless/cryptoKeys/k0-receipt/cryptoKeyVersions/1";
+  const kmsRequest = createKmsSigningRequest(receiptBytes, keyVersion);
+  const artifacts = [...bundle.artifacts]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([id, bytes]) => ({ id, bytes_base64: bytes.toString("base64") }));
+  const valid = {
+    version: 1,
+    domain: "KEYLESS_K0_LIVE_PENDING_OUTPUT_V1",
+    manifest_bytes_base64: bundle.manifestBytes.toString("base64"),
+    artifacts,
+    receipt_bytes_base64: receiptBytes.toString("base64"),
+    kms_request: kmsRequest,
+  };
+  assert.deepEqual(Object.keys(valid).sort(), [
+    "artifacts", "domain", "kms_request", "manifest_bytes_base64", "receipt_bytes_base64", "version",
+  ]);
+  assert.deepEqual(Object.keys(valid.kms_request).sort(), ["digest", "name"]);
+  assert.equal(receipt.authorization, "RECOLLECTION_REQUIRED");
+  assert.equal(receipt.release_ready, false);
+
+  for (const [label, mutate] of [
+    ["top-level release_ready", (value) => { value.release_ready = true; }],
+    ["top-level AUTHORIZED", (value) => { value.authorization = "AUTHORIZED"; }],
+    ["top-level GO", (value) => { value.status = "GO"; }],
+    ["kms release_ready", (value) => { value.kms_request = { ...kmsRequest, release_ready: true }; }],
+    ["kms AUTHORIZED", (value) => { value.kms_request = { ...kmsRequest, authorization: "AUTHORIZED" }; }],
+    ["kms extra field", (value) => { value.kms_request = { ...kmsRequest, extra: true }; }],
+  ]) {
+    const value = structuredClone(valid);
+    mutate(value);
+    const promoted = "release_ready" in value || "authorization" in value || "status" in value
+      || Object.keys(value.kms_request).length !== 2
+      || "release_ready" in value.kms_request
+      || "authorization" in value.kms_request
+      || "extra" in value.kms_request;
+    assert.equal(promoted, true, label);
+  }
+});
 
 test("live issuer CLI accepts only one safe basename and atomically rejects occupied targets", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "k0-live-issuer-"));
