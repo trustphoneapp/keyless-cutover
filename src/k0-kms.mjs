@@ -5,6 +5,7 @@ import { parseK0ReceiptBytes } from "./k0-receipt.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const K0_KMS_ALGORITHM = "RSA_SIGN_PKCS1_2048_SHA256";
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 
 const KEY_VERSION = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/locations\/[A-Za-z0-9_-]{1,63}\/keyRings\/[A-Za-z0-9_-]{1,63}\/cryptoKeys\/[A-Za-z0-9_-]{1,63}\/cryptoKeyVersions\/[1-9]\d*$/;
 const SIDECAR_FIELDS = new Set(["version", "name", "algorithm", "digest_sha256", "signature"]);
@@ -58,10 +59,12 @@ export function verifyKmsSignature(receiptBytes, sidecarBytes, pinnedTrustAnchor
   let sidecar;
   try {
     const text = sidecarBytes.toString("utf8");
+    if (CREDENTIAL.test(text)) throw new Error("KMS signature sidecar contains credential-shaped material");
     rejectDuplicateJsonKeys(text);
     sidecar = JSON.parse(text);
   } catch (error) {
     if (error?.message === "duplicate JSON key") throw new Error("KMS signature sidecar contains duplicate JSON keys");
+    if (/credential-shaped/.test(error?.message ?? "")) throw error;
     throw new Error("KMS signature sidecar is not JSON");
   }
   const expectedDigest = digest(receiptBytes).toString("base64");

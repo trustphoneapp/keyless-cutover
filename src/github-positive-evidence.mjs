@@ -428,6 +428,7 @@ export async function collectGitHubEvidenceCheckpoint({
   const records = new Map(receipt.receipt.evidence.map((record) => [record.id, record]));
   const archivedArtifacts = new Map(archive.artifacts.map(({ id, bytes_base64: bytesBase64 }) => {
     const text = decodeUtf8(Buffer.from(bytesBase64, "base64"));
+    if (CREDENTIAL.test(text)) throw new Error("checkpoint archive artifact contains credential-shaped material");
     rejectDuplicateJsonKeys(text);
     return [id, JSON.parse(text)];
   }));

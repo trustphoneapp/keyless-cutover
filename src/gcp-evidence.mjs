@@ -8,6 +8,7 @@ import { parseAuthenticatedTransportObservation, rejectDuplicateJsonKeys } from 
 import { isRfc3339, timestampNanoseconds } from "./rfc3339.mjs";
 import { buildWifPlan } from "./wif-plan.mjs";
 
+const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[0-9]+-[A-Za-z0-9-]{10,}|bearer\s+[A-Za-z0-9._~+/=-]{20,})/i;
 const PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const REGION = /^[a-z]+-[a-z]+\d$/;
 const SERVICE = /^[a-z][a-z0-9-]{0,62}$/;
@@ -526,10 +527,12 @@ export function createGcpEvidenceReader({
     let value;
     try {
       const text = decodeUtf8(bytes);
+      if (CREDENTIAL.test(text)) throw new Error("Google API response contains credential-shaped material");
       rejectDuplicateJsonKeys(text);
       value = JSON.parse(text);
     } catch (error) {
       if (error?.message === "duplicate JSON key") throw new Error("Google API response contains duplicate JSON keys");
+      if (/credential-shaped/.test(error?.message ?? "")) throw error;
       throw new Error("Google API response is not valid JSON");
     }
     return { response, value };
@@ -602,6 +605,7 @@ export function createGcpEvidenceReader({
     } catch {
       throw new Error("Google API response is not valid JSON");
     }
+    if (CREDENTIAL.test(text)) throw new Error("Google API response contains credential-shaped material");
     let value;
     try {
       rejectDuplicateJsonKeys(text);
