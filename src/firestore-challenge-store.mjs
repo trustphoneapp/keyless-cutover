@@ -8,7 +8,7 @@ const SHA256 = /^[0-9a-f]{64}$/;
 const NUMERIC = /^\d+$/;
 const WORKFLOW = /^\.github\/workflows\/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,62}\/)*[A-Za-z0-9][A-Za-z0-9._-]{0,62}\.ya?ml$/;
 const REF = /^refs\/[A-Za-z0-9._/-]+$/;
-const EVENT_NAME = /^(?:workflow_dispatch|push)$/;
+const EVENT_NAME = /^workflow_dispatch$/;
 const ENVIRONMENT = /^production$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const NONCE = /^[A-Za-z0-9_-]{43}$/;
@@ -136,6 +136,8 @@ export class FirestoreChallengeStore {
   }
 
   async issue(scope) {
+    valid(scope?.event_name, EVENT_NAME, "event_name");
+    valid(scope?.environment, ENVIRONMENT, "environment");
     const challenge = issueKeyProofChallenge(scope, this.now());
     await this.collection.doc(challenge.challenge_id).create(challenge);
     return challenge;

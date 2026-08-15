@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { canonicalJson, decodeUtf8 } from "./evidence-artifact.mjs";
+import { looksCredentialShaped } from "./credential-shaped.mjs";
 import { verifyK0Bundle } from "./k0-bundle.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339 } from "./rfc3339.mjs";
@@ -104,9 +105,11 @@ export function parseK0ReceiptBytes(receiptBytes) {
   let receipt;
   try {
     const text = decodeUtf8(receiptBytes);
+    if (looksCredentialShaped(text)) throw new Error("K0 receipt contains credential-shaped material");
     rejectDuplicateJsonKeys(text);
     receipt = JSON.parse(text);
   } catch (error) {
+    if (error?.message === "K0 receipt contains credential-shaped material") throw error;
     if (error?.message === "duplicate JSON key") throw new Error("K0 receipt contains duplicate JSON keys");
     throw new Error("K0 receipt is not JSON");
   }

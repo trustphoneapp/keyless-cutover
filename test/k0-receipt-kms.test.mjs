@@ -123,6 +123,9 @@ test("receipt rejects absent, malformed, noncanonical, changed, or mismatched ma
   }
   const duplicateReceipt = Buffer.from(receiptBytes.toString("utf8").replace('"version":1', '"version":1,"version":1'));
   assert.throws(() => parseK0ReceiptBytes(duplicateReceipt), /duplicate JSON key/);
+  const credentialReceipt = Buffer.from(receiptBytes.toString("utf8")
+    .replace('"RECOLLECTION_REQUIRED"', `"RECOLLECTION_REQUIRED","note":"AKIA${"A".repeat(16)}"`));
+  assert.throws(() => parseK0ReceiptBytes(credentialReceipt), /credential-shaped/);
   const duplicateManifest = Buffer.from(`{"version":3,"version":3,${bundle.manifestBytes.toString("utf8").slice(1)}`);
   await assert.rejects(
     () => createK0Receipt({ manifestBytes: duplicateManifest, manifest: bundle.manifest, artifacts: bundle.artifacts }),

@@ -242,6 +242,9 @@ async function writeReservedOutput(result, basename, reservation, transaction) {
 }
 
 async function main(argv) {
+  if (process.env.KEYLESS_ALLOW_LIVE !== "1") {
+    throw new Error("KEYLESS_ALLOW_LIVE=1 is required for the live K0 issuer");
+  }
   if (argv.length !== 2) throw new Error("invalid command");
   const outputBasename = requireOutputBasename(argv[1]);
   const planBytes = await readBoundedFile(resolve(argv[0]), MAX_PLAN);

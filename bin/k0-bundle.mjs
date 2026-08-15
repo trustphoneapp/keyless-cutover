@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { assembleK0Bundle } from "../src/k0-bundle.mjs";
 import { readBoundedFile, readK0BundleDirectory } from "../src/k0-bundle-files.mjs";
 import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
+import { looksCredentialShaped } from "../src/credential-shaped.mjs";
 
 const MAX_INPUT = 6_000_000;
 
@@ -43,6 +44,9 @@ async function main(argv) {
     let input;
     try {
       const text = inputBytes.toString("utf8");
+      if (looksCredentialShaped(text)) {
+        throw new Error("bundle input contains credential-shaped material");
+      }
       rejectDuplicateJsonKeys(text);
       input = JSON.parse(text);
     } catch (error) {

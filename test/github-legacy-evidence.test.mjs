@@ -127,7 +127,16 @@ function baselineFixture({ mutate = () => {}, headers = { date: "Thu, 13 Aug 202
     release: { encoding: "base64", content: Buffer.from("legacy-1\n").toString("base64"), sha: "f812d757b68999535b363515a96b4ec8e6462e9d" },
   };
   mutate(values);
-  const reply = (value) => new Response(JSON.stringify(value), { status: 200, headers });
+  const reply = (value) => {
+    const body = typeof value === "string" ? value : JSON.stringify(value);
+    return new Response(body, {
+      status: 200,
+      headers: {
+        ...headers,
+        "content-length": String(Buffer.byteLength(body)),
+      },
+    });
+  };
   return async (url) => {
     if (url.endsWith("/actions/runs/8001")) return reply(values.run);
     if (url.includes("/actions/runs/8001/jobs")) return reply(values.jobs);
@@ -270,9 +279,13 @@ test("legacy baseline collector accepts only the reviewed inactive workflow fixt
 test("legacy baseline collector refuses duplicate JSON keys", async () => {
   const fetchImpl = async (url) => {
     if (url.includes("/repos/") && !url.includes("/contents/") && !url.includes("/actions/") && !url.includes("/pulls")) {
-      return new Response('{"id":1,"id":2}', {
+      const body = '{"id":1,"id":2}';
+      return new Response(body, {
         status: 200,
-        headers: { date: "Thu, 13 Aug 2026 12:18:00 GMT" },
+        headers: {
+          date: "Thu, 13 Aug 2026 12:18:00 GMT",
+          "content-length": String(Buffer.byteLength(body)),
+        },
       });
     }
     return baselineFixture()(url);

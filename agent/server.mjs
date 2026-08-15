@@ -17,11 +17,12 @@ function authorized(request, apiToken) {
 
 async function body(request) {
   const declared = request.headers["content-length"];
-  if (declared !== undefined) {
-    if (typeof declared !== "string" || declared.length > 16 || !/^\d+$/.test(declared)
-        || Number(declared) > MAX_BODY_BYTES) {
-      throw new Error("request is too large");
-    }
+  if (declared === undefined) {
+    throw new Error("Content-Length is required");
+  }
+  if (typeof declared !== "string" || declared.length > 16 || !/^\d+$/.test(declared)
+      || Number(declared) > MAX_BODY_BYTES) {
+    throw new Error("request is too large");
   }
   const chunks = [];
   let bytes = 0;
@@ -30,7 +31,7 @@ async function body(request) {
     if (bytes > MAX_BODY_BYTES) throw new Error("request is too large");
     chunks.push(chunk);
   }
-  if (declared !== undefined && bytes !== Number(declared)) {
+  if (bytes !== Number(declared)) {
     throw new Error("request length does not match Content-Length");
   }
   const text = Buffer.concat(chunks).toString("utf8");

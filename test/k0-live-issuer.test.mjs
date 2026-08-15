@@ -499,7 +499,7 @@ test("live issuer fails closed on authenticated key, workflow, audit, and revisi
 function runCli(args, env = {}, cwd) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(process.execPath, [new URL("../bin/k0-live-issuer.mjs", import.meta.url).pathname, ...args], {
-      cwd, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"],
+      cwd, env: { ...process.env, KEYLESS_ALLOW_LIVE: "1", ...env }, stdio: ["ignore", "pipe", "pipe"],
     });
     const stdout = [];
     const stderr = [];
@@ -540,6 +540,18 @@ function assertCliFailed(value) {
   assert.equal(value.stderr, "K0 live issuer command failed\n");
   assert.equal(value.stderr.includes(token), false);
 }
+
+test("live issuer CLI requires KEYLESS_ALLOW_LIVE before plan work", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "k0-live-allow-"));
+  try {
+    const planPath = join(directory, "plan.json");
+    await writeFile(planPath, "{}");
+    const result = await runCli([planPath, "out.json"], { KEYLESS_ALLOW_LIVE: "" }, directory);
+    assertCliFailed(result);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 async function verifyPendingOutputFile(path) {
   const bytes = await readFile(path);

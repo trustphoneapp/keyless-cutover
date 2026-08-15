@@ -65,6 +65,29 @@ test("agent server exposes health and protects bounded model routes", async (con
     req.end();
   });
   assert.equal(mismatch.status, 400);
+
+  const missingLength = await new Promise((resolve, reject) => {
+    const req = request({
+      hostname: "127.0.0.1",
+      port,
+      path: "/v1/evidence",
+      method: "POST",
+      headers: {
+        authorization: "Bearer google-cloud-run-identity-token",
+        "x-keyless-api-token": token,
+        "content-type": "application/json",
+        "transfer-encoding": "chunked",
+      },
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString("utf8") }));
+    });
+    req.on("error", reject);
+    req.write(JSON.stringify({ evidence: [{ id: "E001", text: "safe" }] }));
+    req.end();
+  });
+  assert.equal(missingLength.status, 400);
 });
 
 test("agent server rejects credential-shaped and duplicate-key bodies", async (context) => {

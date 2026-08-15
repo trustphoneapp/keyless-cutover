@@ -49,7 +49,7 @@ The historical command values below must not be reused. For the fresh transactio
 2. With explicit Firestore-write permission, run the issue command once. Do not issue early: expiry is exactly five minutes.
 
    ```sh
-   npm run proofv2 -- issue \
+   KEYLESS_ALLOW_LIVE=1 npm run proofv2 -- issue \
      --project-id keyless-k0-20260813 \
      --migration-id k0-proofv2-reviewed \
      --owner-id 289479481 \
@@ -64,7 +64,7 @@ The historical command values below must not be reused. For the fresh transactio
 
    ```sh
    export KEYLESS_GITHUB_TOKEN="$(gh auth token)"
-   npm run proofv2 -- verify \
+   KEYLESS_ALLOW_LIVE=1 npm run proofv2 -- verify \
      --project-id keyless-k0-20260813 \
      --owner trustphoneapp \
      --repository keyless-cutover \

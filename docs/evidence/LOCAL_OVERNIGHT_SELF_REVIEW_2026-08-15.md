@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **293** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **296** tests.
 
 ## Findings remediations already landed
 
@@ -47,6 +47,10 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 37. Docs/mutation claim 37/37; `verify:k0` → `bin/k0-bundle.mjs verify`.
 38. Live CLI footguns require `KEYLESS_ALLOW_LIVE=1` (ProofV2 operator + sealed eval).
 39. Google key `validBeforeTime` RFC3339 + ordering; cutover workflow credential refuse.
+40. Shared credential denylist on workflow snapshot + legacy baseline fetch; require Content-Length on agent POST and legacy baseline JSON.
+41. Firestore challenges accept only `workflow_dispatch` (no `push`).
+42. Local JSON CLIs refuse credential-shaped input (eval-score, WIF plan, cutover apply, k0-bundle, k0-receipt).
+43. Live K0 issuer CLI requires `KEYLESS_ALLOW_LIVE=1`; docs note the live footgun gate.
 
 ## Hard stops held
 

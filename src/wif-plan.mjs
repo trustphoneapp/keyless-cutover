@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { canonicalJson } from "./evidence-artifact.mjs";
+import { looksCredentialShaped } from "./credential-shaped.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 
 const NUMBER = /^[1-9]\d*$/;
@@ -122,6 +123,7 @@ export function verifyWifPlan(input, approvedPlan) {
 async function main([inputPath, outputPath]) {
   if (!inputPath || !outputPath) throw new Error("Usage: node src/wif-plan.mjs <input.json> <plan.json>");
   const text = await readFile(resolve(inputPath), "utf8");
+  if (looksCredentialShaped(text)) throw new Error("WIF plan input contains credential-shaped material");
   rejectDuplicateJsonKeys(text);
   const plan = buildWifPlan(JSON.parse(text));
   await writeFile(resolve(outputPath), `${JSON.stringify(plan, null, 2)}\n`, { flag: "wx", mode: 0o600 });

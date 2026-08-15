@@ -39,6 +39,7 @@ The published RC also contains a filesafe authenticated pending-issuance CLI. It
 ```sh
 cd "$PRIVATE_OUTPUT_DIR"
 KEYLESS_GITHUB_TOKEN="$GITHUB_READ_TOKEN" \
+KEYLESS_ALLOW_LIVE=1 \
   node "$REPO_ROOT/bin/k0-live-issuer.mjs" "$PLAN_FILE" pending-output.json
 ```
 
@@ -47,11 +48,11 @@ The exact second argument is a safe JSON basename, not a path. The command atomi
 ## Evaluate agent necessity
 
 ```sh
-npm run run:eval -- predictions.json
+KEYLESS_ALLOW_LIVE=1 npm run run:eval -- predictions.json
 npm run score:eval -- predictions.json
 ```
 
-Live evaluation requires valid Vertex AI application-default credentials and the configured Gemini model. Raw model outputs are local evidence and must not be committed. Security verdicts are always deterministic; the model does not judge authorization or receipt completeness.
+Live evaluation requires `KEYLESS_ALLOW_LIVE=1`, valid Vertex AI application-default credentials, and the configured Gemini model. Raw model outputs are local evidence and must not be committed. Security verdicts are always deterministic; the model does not judge authorization or receipt completeness.
 
 ## Live K0
 

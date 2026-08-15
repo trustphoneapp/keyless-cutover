@@ -73,7 +73,7 @@ const scope = {
   owner_id: "987654321",
   repository_id: "123456789",
   workflow_path: ".github/workflows/k0-deploy.yml",
-  event_name: "push",
+  event_name: "workflow_dispatch",
   ref: "refs/heads/main",
   environment: "production",
   client_email: "keyless-demo@example-project.iam.gserviceaccount.com",
@@ -239,4 +239,15 @@ test("Firestore get/consume refuse offset timestamps and extra ISSUED fields", a
     consumed_status: "CONSUMED",
     proof_digest: "d".repeat(64),
   }), /invalid/);
+});
+
+test("Firestore challenge store refuses push event_name", async () => {
+  const store = new FirestoreChallengeStore({
+    firestore: new MemoryFirestore(),
+    now: () => new Date("2026-08-13T12:00:00Z"),
+  });
+  await assert.rejects(() => store.issue({
+    ...scope,
+    event_name: "push",
+  }), /event_name is invalid/);
 });

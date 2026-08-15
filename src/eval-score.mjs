@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import { scoreSealedPredictions } from "../eval/score.mjs";
+import { looksCredentialShaped } from "./credential-shaped.mjs";
 import { rejectDuplicateJsonKeys } from "./observation-time.mjs";
 import { isRfc3339 } from "./rfc3339.mjs";
 
@@ -10,6 +11,7 @@ const REQUIRED_FIELDS = new Set(["version", "model", "repeats", "predictions"]);
 const path = process.argv[2];
 if (!path) throw new Error("usage: npm run score:eval -- predictions.json");
 const text = await readFile(path, "utf8");
+if (looksCredentialShaped(text)) throw new Error("prediction document contains credential-shaped material");
 rejectDuplicateJsonKeys(text);
 const document = JSON.parse(text);
 if (!document || typeof document !== "object" || Array.isArray(document)

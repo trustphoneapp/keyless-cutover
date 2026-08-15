@@ -128,6 +128,7 @@ async function main([command, ...args]) {
   if (command === "apply" && args.length === 4) {
     const [currentPath, templatePath, planPath, outputPath] = args;
     const planText = await readFile(resolve(planPath), "utf8");
+    if (looksCredentialShaped(planText)) throw new Error("cutover plan contains credential-shaped material");
     rejectDuplicateJsonKeys(planText);
     const output = applyCutoverPlan(
       await readFile(resolve(currentPath), "utf8"),
