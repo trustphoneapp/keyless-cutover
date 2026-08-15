@@ -164,6 +164,22 @@ test("console rejects github_pat credential shapes in checkpoint input", async (
   assert.doesNotMatch(JSON.stringify(status), /github_pat_/);
 });
 
+test("console rejects duplicate JSON keys and non-numeric ProofV2 run ids", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "keyless-console-dup-"));
+  const duplicatePath = join(directory, "duplicate.json");
+  await writeFile(duplicatePath, '{"version":1,"version":2,"status":"NO_GO_INCOMPLETE"}\n', { mode: 0o600 });
+  const duplicate = await loadConsoleStatus({ checkpointPath: duplicatePath });
+  assert.equal(duplicate.status, "NO_GO_VERIFICATION_FAILED");
+
+  const checkpoint = JSON.parse(await readFile(checkpointPath, "utf8"));
+  checkpoint.proof_v2.github_run_id = "31746236399/../evil";
+  const hostilePath = join(directory, "hostile-run.json");
+  await writeFile(hostilePath, `${JSON.stringify(checkpoint)}\n`, { mode: 0o600 });
+  const hostile = await loadConsoleStatus({ checkpointPath: hostilePath });
+  assert.equal(hostile.status, "NO_GO_VERIFICATION_FAILED");
+  assert.doesNotMatch(JSON.stringify(hostile), /\.\.\/evil/);
+});
+
 test("checkpoint FIFO fails closed without blocking, output, or fallback", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "keyless-console-fifo-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

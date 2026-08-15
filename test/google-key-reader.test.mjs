@@ -45,7 +45,7 @@ test("Google key reader performs one bounded authenticated exact-key lookup", as
         ok: true,
         status: 200,
         text: async () => JSON.stringify({
-          name: "projects/-/serviceAccounts/deploy@example.iam.gserviceaccount.com/keys/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          name: keyName,
           keyType: "USER_MANAGED",
           keyAlgorithm: "KEY_ALG_RSA_2048",
         }),
@@ -53,10 +53,11 @@ test("Google key reader performs one bounded authenticated exact-key lookup", as
     },
   });
   const key = await reader({
-    client_email: "deploy@example.iam.gserviceaccount.com",
-    private_key_id: "a".repeat(40),
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
   });
   assert.equal(key.disabled, false);
+  assert.equal(key.name, keyName);
   assert.equal(requests.length, 1);
   assert.match(requests[0].url, /deploy%40example\.iam\.gserviceaccount\.com\/keys\/a{40}$/);
   assert.equal(requests[0].options.headers.authorization, "Bearer test");
@@ -68,14 +69,55 @@ test("Google key reader preserves an explicit disabled state", async () => {
     fetchImpl: async () => ({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ disabled: true }),
+      text: async () => JSON.stringify({
+        name: keyName,
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+        disabled: true,
+      }),
     }),
   });
   const key = await reader({
-    client_email: "deploy@example.iam.gserviceaccount.com",
-    private_key_id: "a".repeat(40),
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
   });
   assert.equal(key.disabled, true);
+});
+
+test("Google key reader rejects incomplete or mismatched identity", async () => {
+  const reader = createGoogleKeyReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ disabled: true }),
+    }),
+  });
+  await assert.rejects(reader({
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
+  }), /identity/);
+
+  const lengthMismatch = createGoogleKeyReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => {
+      const body = JSON.stringify({
+        name: keyName,
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+      });
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: (name) => name.toLowerCase() === "content-length" ? "1" : null },
+        text: async () => body,
+      };
+    },
+  });
+  await assert.rejects(lengthMismatch({
+    client_email: clientEmail,
+    private_key_id: privateKeyId,
+  }), /Content-Length/);
 });
 
 test("Google key reader rejects malformed identity before authentication", async () => {

@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **264** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **275** tests.
 
 ## Findings remediations already landed
 
@@ -18,6 +18,9 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 8. Google key Content-Length match; draft PR refuses non-draft/merged responses; agent invoker credential/duplicate refuse.
 9. Receipt scope exact fields; bundle/eval-score/assemble JSON gates; workflow snapshot credential/multiline refuse.
 10. Shared `rejectDuplicateJsonKeys` across GitHub evidence collectors.
+11. Canary method/path allowlist; legacy Google key identity/Content-Length parity.
+12. Console duplicate-JSON + numeric ProofV2 run_id; bounded-file hardlink/size integrity.
+13. Normalizers bind key names/project patterns; Cloud Run digests; ProofV2 CLI; eval basename docs.
 
 ## Hard stops held
 

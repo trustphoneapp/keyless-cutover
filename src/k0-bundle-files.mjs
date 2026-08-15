@@ -17,9 +17,12 @@ export async function readBoundedFile(path, limit) {
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const stat = await handle.stat();
-    if (!stat.isFile() || stat.size > limit) throw new Error("bounded file is invalid");
+    if (!stat.isFile() || stat.nlink !== 1 || !Number.isSafeInteger(stat.size) || stat.size < 0
+        || stat.size > limit) {
+      throw new Error("bounded file is invalid");
+    }
     const bytes = await handle.readFile();
-    if (bytes.length > limit) throw new Error("bounded file is invalid");
+    if (bytes.length > limit || bytes.length !== stat.size) throw new Error("bounded file is invalid");
     return bytes;
   } finally {
     await handle.close();

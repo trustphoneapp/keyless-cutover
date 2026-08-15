@@ -143,19 +143,34 @@ export function createGoogleKeyReader({
   return async ({ client_email: clientEmail, private_key_id: privateKeyId }) => {
     exact(clientEmail, SERVICE_ACCOUNT_EMAIL, "client_email");
     exact(privateKeyId, KEY_ID, "private_key_id");
-    const name = `projects/-/serviceAccounts/${encodeURIComponent(clientEmail)}/keys/${privateKeyId}`;
-    const url = `https://iam.googleapis.com/v1/${name}`;
-    const client = await auth.getClient();
-    const headers = await client.getRequestHeaders(url);
-    const response = await fetchImpl(url, {
-      headers,
-      redirect: "error",
-      signal: AbortSignal.timeout(5_000),
-    });
-    if (!response.ok) throw new Error(`Google key lookup failed with HTTP ${response.status}`);
-    const body = await response.text();
-    if (typeof body !== "string" || body.length > 64_000) {
+    const name = `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`;
+    const url = `https://iam.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(clientEmail)}/keys/${privateKeyId}`;
+    let response;
+    try {
+      const client = await auth.getClient();
+      const headers = await client.getRequestHeaders(url);
+      response = await fetchImpl(url, {
+        headers,
+        redirect: "error",
+        signal: AbortSignal.timeout(5_000),
+      });
+    } catch {
+      throw new Error("Google key authenticated transport failed");
+    }
+    if (!response?.ok) throw new Error(`Google key lookup failed with HTTP ${response?.status}`);
+    let body;
+    try {
+      body = await response.text();
+    } catch {
+      throw new Error("Google key lookup response is invalid");
+    }
+    if (typeof body !== "string" || body.length > MAX_KEY_RESPONSE) {
       throw new Error("Google key lookup response is too large");
+    }
+    const length = response.headers?.get?.("content-length") ?? null;
+    if (length !== null && (typeof length !== "string" || length.length > 16
+        || !/^\d+$/.test(length) || Number(length) !== Buffer.byteLength(body))) {
+      throw new Error("Google key response length does not match Content-Length");
     }
     let key;
     try {
@@ -168,11 +183,12 @@ export function createGoogleKeyReader({
       throw new Error("Google key lookup response is not valid JSON");
     }
     if (!key || typeof key !== "object" || Array.isArray(key)
+        || key.name !== name || key.keyType !== "USER_MANAGED" || key.keyAlgorithm !== "KEY_ALG_RSA_2048"
         || (key.disabled !== undefined && typeof key.disabled !== "boolean")) {
-      throw new Error("Google key disabled state is invalid");
+      throw new Error("Google key identity, state, type, or algorithm is invalid");
     }
     return {
-      name: typeof key.name === "string" ? key.name : undefined,
+      name,
       keyType: key.keyType,
       keyAlgorithm: key.keyAlgorithm,
       disabled: key.disabled ?? false,

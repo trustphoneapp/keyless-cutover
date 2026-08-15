@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { readBoundedFile, readK0BundleDirectory } from "../src/k0-bundle-files.mjs";
 import { verifyKmsSignature } from "../src/k0-kms.mjs";
 import { createK0Receipt, verifyK0Receipt } from "../src/k0-receipt.mjs";
+import { rejectDuplicateJsonKeys } from "../src/observation-time.mjs";
 
 const MAX_DOCUMENT_BYTES = 1_000_000;
 const MAX_SIDECAR_BYTES = 16_384;
@@ -46,6 +47,7 @@ async function readBoundedJson(path) {
   const bytes = await readBoundedFile(resolve(path), MAX_DOCUMENT_BYTES);
   const text = bytes.toString("utf8");
   if (CREDENTIAL.test(text)) throw new Error("status input contains credential-shaped material");
+  rejectDuplicateJsonKeys(text);
   return { bytes, value: JSON.parse(text) };
 }
 
@@ -102,6 +104,7 @@ function checkpointStatus(bytes, checkpoint) {
       || checkpoint.proof_v2?.firestore_consumed_once !== true
       || checkpoint.proof_v2?.replay_rejected !== true
       || checkpoint.proof_v2?.authoritative_status !== "VERIFIED_INDEPENDENT_REVIEW"
+      || !NUMERIC.test(checkpoint.proof_v2?.github_run_id ?? "")
       || checkpoint.agent_eval?.pass !== true) throw new Error("checkpoint readiness facts are invalid");
   const keyDisable = checkpoint.key_disable;
   if (keyDisable?.status !== "KEY_DISABLED_OBSERVED"
