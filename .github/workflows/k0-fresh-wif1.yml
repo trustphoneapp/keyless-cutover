@@ -1,7 +1,9 @@
 name: K0 fresh WIF-1 deploy
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -9,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    if: vars.KEYLESS_K0_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 10
@@ -42,6 +44,6 @@ jobs:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           region: ${{ vars.GCP_REGION }}
           image: ${{ vars.GCP_CANARY_IMAGE }}
-          suffix: ${{ steps.release.outputs.value }}
+          suffix: wif-1-${{ github.run_id }}-wif-1
           env_vars: RELEASE=${{ steps.release.outputs.value }}
           env_vars_update_strategy: merge
