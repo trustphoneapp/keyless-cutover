@@ -137,13 +137,15 @@ export async function fetchGitHubJsonObserved(url, token, fetchImpl) {
 export async function fetchGitHubJson(url, token, fetchImpl) {
   const response = await fetchImpl(url, { headers: headers(token), redirect: "error", signal: AbortSignal.timeout(8_000) });
   const declared = response.headers?.get?.("content-length") ?? null;
-  if (declared !== null && (typeof declared !== "string" || declared.length > 16
-      || !/^\d+$/.test(declared) || Number(declared) > MAX_JSON_RESPONSE)) {
-    throw new Error("GitHub API response is too large");
+  if (declared === null || typeof declared !== "string" || declared.length > 16
+      || !/^\d+$/.test(declared) || Number(declared) > MAX_JSON_RESPONSE) {
+    throw new Error(declared === null
+      ? "GitHub API response is missing Content-Length"
+      : "GitHub API response is too large");
   }
   const text = await response.text();
-  if (text.length > MAX_JSON_RESPONSE) throw new Error("GitHub API response is too large");
-  if (declared !== null && Buffer.byteLength(text) !== Number(declared)) {
+  if (Buffer.byteLength(text) > MAX_JSON_RESPONSE) throw new Error("GitHub API response is too large");
+  if (Buffer.byteLength(text) !== Number(declared)) {
     throw new Error("GitHub API response length does not match Content-Length");
   }
   if (!response.ok) throw new Error(`GitHub API failed with HTTP ${response.status}`);

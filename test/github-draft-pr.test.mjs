@@ -4,6 +4,7 @@ import test from "node:test";
 import { openDraftCutoverPr } from "../src/github-draft-pr.mjs";
 import { buildCutoverPlan } from "../src/workflow-cutover.mjs";
 import { readFile } from "node:fs/promises";
+import { mockJsonResponse } from "./support/http-response.mjs";
 
 const current = await readFile(new URL("../k0/fixtures/k0-deploy.legacy.yml", import.meta.url), "utf8");
 const replacement = await readFile(new URL("../k0/templates/k0-deploy.wif.yml", import.meta.url), "utf8");
@@ -13,7 +14,7 @@ const blobSha = "b".repeat(40);
 const installationToken = `ghs_${"t".repeat(36)}`;
 
 function response(status, value) {
-  return { status, text: async () => JSON.stringify(value) };
+  return mockJsonResponse(value, { status });
 }
 
 function createFetch({ repositoryId = 2, existing = false, existingBranch = false } = {}) {
@@ -99,10 +100,7 @@ test("GitHub adapter refuses duplicate JSON keys before mutation", async () => {
   const { fetchImpl, requests } = createFetch();
   const hostile = async (url, options) => {
     if (url.includes("/repos/") && options.method === "GET" && !url.includes("/contents/") && !url.includes("/git/")) {
-      return {
-        status: 200,
-        text: async () => '{"id":1,"id":2,"full_name":"trustphoneapp/keyless-cutover"}',
-      };
+      return mockJsonResponse('{"id":1,"id":2,"full_name":"trustphoneapp/keyless-cutover"}');
     }
     return fetchImpl(url, options);
   };
@@ -114,10 +112,7 @@ test("GitHub adapter refuses credential-shaped response bodies before mutation",
   const { fetchImpl, requests } = createFetch();
   const hostile = async (url, options) => {
     if (url.includes("/repos/") && options.method === "GET" && !url.includes("/contents/") && !url.includes("/git/")) {
-      return {
-        status: 200,
-        text: async () => JSON.stringify({ id: 1, full_name: "trustphoneapp/keyless-cutover", note: `AKIA${"A".repeat(16)}` }),
-      };
+      return mockJsonResponse({ id: 1, full_name: "trustphoneapp/keyless-cutover", note: `AKIA${"A".repeat(16)}` });
     }
     return fetchImpl(url, options);
   };

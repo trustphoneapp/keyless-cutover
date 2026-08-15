@@ -78,9 +78,9 @@ export function validateRedactedEvidenceBundle(bundle) {
       throw new Error("evidence item contains unknown fields");
     }
     if (!evidenceId.safeParse(item?.id).success || ids.has(item.id)) throw new Error("evidence IDs are invalid");
-    if (typeof item.text !== "string" || item.text.length > 8_000) throw new Error("evidence text is invalid");
+    if (typeof item.text !== "string" || Buffer.byteLength(item.text) > 8_000) throw new Error("evidence text is invalid");
     if (CREDENTIAL.test(item.text)) throw new Error("credential-shaped material is forbidden");
-    totalLength += item.text.length;
+    totalLength += Buffer.byteLength(item.text);
     ids.add(item.id);
   }
   if (totalLength > 32_000) throw new Error("evidence bundle is too large");

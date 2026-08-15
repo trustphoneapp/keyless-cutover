@@ -10,12 +10,13 @@ import {
   fetchGitHubJson,
   fetchGitHubJsonObserved,
 } from "../src/github-denial-evidence.mjs";
+import { httpResponse } from "./support/http-response.mjs";
 
 const installationToken = `ghs_${"t".repeat(36)}`;
 
 function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
-  return new Response(bytes, {
+  return httpResponse(bytes, {
     status,
     headers: { date: "Thu, 13 Aug 2026 11:10:00 GMT", ...extraHeaders },
   });

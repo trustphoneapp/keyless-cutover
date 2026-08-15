@@ -124,7 +124,15 @@ test("malformed input is rejected before signing", () => {
 test("Google certificate lookup is bounded and keyed by the exact key ID", async () => {
   const proof = createKeyProof(serviceAccountKey, context);
   const expected = { ...context, client_email: proof.client_email, private_key_id: proof.private_key_id };
-  const response = (body, ok = true) => ({ ok, status: ok ? 200 : 500, text: async () => body });
+  const response = (body, ok = true) => {
+    const text = typeof body === "string" ? body : JSON.stringify(body);
+    return {
+      ok,
+      status: ok ? 200 : 500,
+      headers: { get: (name) => name.toLowerCase() === "content-length" ? String(Buffer.byteLength(text)) : null },
+      text: async () => text,
+    };
+  };
   const validFetch = async () => response(JSON.stringify({ [privateKeyId]: publicKeyPem }));
 
   assert.equal(
@@ -195,11 +203,15 @@ test("protocol consumes one authoritative challenge exactly once", async () => {
     disabled: false,
   };
   const getGoogleKey = async () => googleKey;
-  const fetchImpl = async () => ({
-    ok: true,
-    status: 200,
-    text: async () => JSON.stringify({ [privateKeyId]: publicKeyPem }),
-  });
+  const fetchImpl = async () => {
+    const body = JSON.stringify({ [privateKeyId]: publicKeyPem });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: (name) => name.toLowerCase() === "content-length" ? String(Buffer.byteLength(body)) : null },
+      text: async () => body,
+    };
+  };
   let consumed = false;
   const consume = async () => {
     if (consumed) return false;

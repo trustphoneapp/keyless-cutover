@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createGoogleKeyReader, createGoogleKeyReaderObserved } from "../src/google-key-reader.mjs";
+import { httpResponse, mockJsonResponse } from "./support/http-response.mjs";
 
 const clientEmail = "deploy@example.iam.gserviceaccount.com";
 const privateKeyId = "a".repeat(40);
@@ -9,7 +10,7 @@ const keyName = `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`
 
 function keyResponse(value, { date = "Thu, 13 Aug 2026 12:01:00 GMT", status = 200, headers = {} } = {}) {
   const body = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
-  return new Response(body, { status, headers: { date, ...headers } });
+  return httpResponse(body, { status, headers: { date, ...headers } });
 }
 
 function validKey(overrides = {}) {
@@ -41,15 +42,11 @@ test("Google key reader performs one bounded authenticated exact-key lookup", as
     },
     fetchImpl: async (url, options) => {
       requests.push({ url, options });
-      return {
-        ok: true,
-        status: 200,
-        text: async () => JSON.stringify({
-          name: keyName,
-          keyType: "USER_MANAGED",
-          keyAlgorithm: "KEY_ALG_RSA_2048",
-        }),
-      };
+      return mockJsonResponse({
+        name: keyName,
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+      });
     },
   });
   const key = await reader({
@@ -66,15 +63,11 @@ test("Google key reader performs one bounded authenticated exact-key lookup", as
 test("Google key reader preserves an explicit disabled state", async () => {
   const reader = createGoogleKeyReader({
     auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
-    fetchImpl: async () => ({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({
-        name: keyName,
-        keyType: "USER_MANAGED",
-        keyAlgorithm: "KEY_ALG_RSA_2048",
-        disabled: true,
-      }),
+    fetchImpl: async () => mockJsonResponse({
+      name: keyName,
+      keyType: "USER_MANAGED",
+      keyAlgorithm: "KEY_ALG_RSA_2048",
+      disabled: true,
     }),
   });
   const key = await reader({
@@ -87,11 +80,7 @@ test("Google key reader preserves an explicit disabled state", async () => {
 test("Google key reader rejects incomplete or mismatched identity", async () => {
   const reader = createGoogleKeyReader({
     auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
-    fetchImpl: async () => ({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({ disabled: true }),
-    }),
+    fetchImpl: async () => mockJsonResponse({ disabled: true }),
   });
   await assert.rejects(reader({
     client_email: clientEmail,
@@ -181,11 +170,7 @@ test("observed Google key transport rejects Date, status, bounds, UTF-8, and dup
 test("legacy Google key reader rejects duplicate JSON keys", async () => {
   const reader = createGoogleKeyReader({
     auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
-    fetchImpl: async () => ({
-      ok: true,
-      status: 200,
-      text: async () => '{"disabled":false,"disabled":true}',
-    }),
+    fetchImpl: async () => mockJsonResponse('{"disabled":false,"disabled":true}'),
   });
   await assert.rejects(() => reader({
     client_email: clientEmail,
@@ -197,17 +182,13 @@ test("legacy Google key reader refuses invalid validAfterTime and credential bod
   const auth = { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) };
   const invalidTime = createGoogleKeyReader({
     auth,
-    fetchImpl: async () => ({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({
+    fetchImpl: async () => mockJsonResponse({
         name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
         keyType: "USER_MANAGED",
         keyAlgorithm: "KEY_ALG_RSA_2048",
         disabled: false,
         validAfterTime: "invalid",
       }),
-    }),
   });
   await assert.rejects(() => invalidTime({
     client_email: clientEmail,
@@ -215,10 +196,7 @@ test("legacy Google key reader refuses invalid validAfterTime and credential bod
   }), /validAfterTime/);
   const invalidBefore = createGoogleKeyReader({
     auth,
-    fetchImpl: async () => ({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({
+    fetchImpl: async () => mockJsonResponse({
         name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
         keyType: "USER_MANAGED",
         keyAlgorithm: "KEY_ALG_RSA_2048",
@@ -226,7 +204,6 @@ test("legacy Google key reader refuses invalid validAfterTime and credential bod
         validAfterTime: "2026-08-13T12:00:00Z",
         validBeforeTime: "invalid",
       }),
-    }),
   });
   await assert.rejects(() => invalidBefore({
     client_email: clientEmail,
@@ -234,10 +211,7 @@ test("legacy Google key reader refuses invalid validAfterTime and credential bod
   }), /validBeforeTime/);
   const reversed = createGoogleKeyReader({
     auth,
-    fetchImpl: async () => ({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({
+    fetchImpl: async () => mockJsonResponse({
         name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
         keyType: "USER_MANAGED",
         keyAlgorithm: "KEY_ALG_RSA_2048",
@@ -245,7 +219,6 @@ test("legacy Google key reader refuses invalid validAfterTime and credential bod
         validAfterTime: "2026-08-13T12:00:00Z",
         validBeforeTime: "2026-08-13T11:00:00Z",
       }),
-    }),
   });
   await assert.rejects(() => reversed({
     client_email: clientEmail,
@@ -253,17 +226,13 @@ test("legacy Google key reader refuses invalid validAfterTime and credential bod
   }), /validBeforeTime does not follow validAfterTime/);
   const credential = createGoogleKeyReader({
     auth,
-    fetchImpl: async () => ({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({
+    fetchImpl: async () => mockJsonResponse({
         name: `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
         keyType: "USER_MANAGED",
         keyAlgorithm: "KEY_ALG_RSA_2048",
         disabled: false,
         note: `AKIA${"A".repeat(16)}`,
       }),
-    }),
   });
   await assert.rejects(() => credential({
     client_email: clientEmail,

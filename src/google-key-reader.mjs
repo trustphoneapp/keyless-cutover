@@ -176,13 +176,15 @@ export function createGoogleKeyReader({
     } catch {
       throw new Error("Google key lookup response is invalid");
     }
-    if (typeof body !== "string" || body.length > MAX_KEY_RESPONSE) {
+    if (typeof body !== "string" || Buffer.byteLength(body) > MAX_KEY_RESPONSE) {
       throw new Error("Google key lookup response is too large");
     }
     const length = response.headers?.get?.("content-length") ?? null;
-    if (length !== null && (typeof length !== "string" || length.length > 16
-        || !/^\d+$/.test(length) || Number(length) !== Buffer.byteLength(body))) {
-      throw new Error("Google key response length does not match Content-Length");
+    if (length === null || typeof length !== "string" || length.length > 16
+        || !/^\d+$/.test(length) || Number(length) !== Buffer.byteLength(body)) {
+      throw new Error(length === null
+        ? "Google key response is missing Content-Length"
+        : "Google key response length does not match Content-Length");
     }
     if (CREDENTIAL.test(body)) throw new Error("Google key response contains credential-shaped material");
     let key;

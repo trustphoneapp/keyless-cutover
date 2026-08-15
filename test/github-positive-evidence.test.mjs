@@ -17,6 +17,7 @@ import {
   validK0BundleInput,
 } from "./fixtures/k0-bundle.mjs";
 import { validPreDisableArchiveInput } from "./support/k0-predisable.mjs";
+import { httpResponse } from "./support/http-response.mjs";
 
 const token = `ghs_${"t".repeat(36)}`;
 const workflowPath = ".github/workflows/k0-deploy.yml";
@@ -30,14 +31,14 @@ const checkpointArchiveBlob = createHash("sha1")
   .update(`blob ${checkpointArchive.archiveBytes.length}\0`).update(checkpointArchive.archiveBytes).digest("hex");
 
 function response(value) {
-  return new Response(JSON.stringify(value), {
+  return httpResponse(value, {
     status: 200,
     headers: { date: "Thu, 13 Aug 2026 12:20:00 GMT" },
   });
 }
 
 function checkpointResponse(value, { link = "", date = "Thu, 13 Aug 2026 12:18:00 GMT" } = {}) {
-  return new Response(JSON.stringify(value), {
+  return httpResponse(value, {
     status: 200,
     headers: { date, ...(link ? { link } : {}) },
   });
@@ -318,7 +319,10 @@ test("successful deploy collector rejects observations before the completed job"
       if (!url.includes("/contents/")) return original;
       return new Response(await original.arrayBuffer(), {
         status: original.status,
-        headers: { date: "Thu, 13 Aug 2026 11:29:00 GMT" },
+        headers: {
+          date: "Thu, 13 Aug 2026 11:29:00 GMT",
+          "content-length": original.headers.get("content-length"),
+        },
       });
     },
   }), /after collection/);

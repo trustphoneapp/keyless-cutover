@@ -93,7 +93,11 @@ function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
   return new Response(bytes, {
     status,
-    headers: { date: "Thu, 13 Aug 2026 23:21:00 GMT", ...extraHeaders },
+    headers: {
+      "content-length": String(bytes.length),
+      date: "Thu, 13 Aug 2026 23:21:00 GMT",
+      ...extraHeaders,
+    },
   });
 }
 

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 
 import { fetchGitHubProofObservation } from "../src/github-proof-observer.mjs";
+import { mockJsonResponse } from "./support/http-response.mjs";
 
 const installationToken = `ghs_${"t".repeat(36)}`;
 
@@ -54,7 +55,7 @@ function fetchFixture({ approved = true, path = run.path, reviewerId = 444, muta
     } else {
       value = { ...run, path };
     }
-    return { ok: true, status: 200, text: async () => JSON.stringify(value) };
+    return mockJsonResponse(value, { status: 200, ok: true });
   };
 }
 
@@ -130,7 +131,7 @@ test("GitHub observer refuses push events and duplicate JSON keys", async () => 
     ...input,
     fetchImpl: async (url) => {
       if (url.includes("/actions/runs/") && !url.includes("/jobs") && !url.includes("/approvals")) {
-        return { ok: true, status: 200, text: async () => JSON.stringify({ ...run, event: "push" }) };
+        return mockJsonResponse({ ...run, event: "push" });
       }
       return fetchFixture()(url);
     },
@@ -139,11 +140,7 @@ test("GitHub observer refuses push events and duplicate JSON keys", async () => 
     ...input,
     fetchImpl: async (url) => {
       if (url.includes("/actions/runs/") && !url.includes("/jobs") && !url.includes("/approvals")) {
-        return {
-          ok: true,
-          status: 200,
-          text: async () => '{"id":456789123,"id":456789123,"event":"workflow_dispatch"}',
-        };
+        return mockJsonResponse('{"id":456789123,"id":456789123,"event":"workflow_dispatch"}');
       }
       return fetchFixture()(url);
     },
@@ -158,11 +155,7 @@ test("GitHub observer refuses push events and duplicate JSON keys", async () => 
     ...input,
     fetchImpl: async (url) => {
       if (url.includes("/actions/runs/") && !url.includes("/jobs") && !url.includes("/approvals")) {
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ ...run, note: `AKIA${"A".repeat(16)}` }),
-        };
+        return mockJsonResponse({ ...run, note: `AKIA${"A".repeat(16)}` });
       }
       return fetchFixture()(url);
     },

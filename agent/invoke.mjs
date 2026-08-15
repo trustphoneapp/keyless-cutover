@@ -28,7 +28,7 @@ export function createAgentInvoker({ agent, lane, runner = new InMemoryRunner({ 
       if (isFinalResponse(event) && event.author === agent.name) finalText = stringifyContent(event);
     }
     if (!finalText) throw new Error("agent produced no final response");
-    if (typeof finalText !== "string" || finalText.length > MAX_FINAL_TEXT) {
+    if (typeof finalText !== "string" || Buffer.byteLength(finalText) > MAX_FINAL_TEXT) {
       throw new Error("agent response is too large");
     }
     if (textLooksLikeCredential(finalText)) throw new Error("agent response contains credential-shaped material");

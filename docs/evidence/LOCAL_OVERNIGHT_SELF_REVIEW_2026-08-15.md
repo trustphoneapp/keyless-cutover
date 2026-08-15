@@ -4,7 +4,7 @@ Branch `agent/local-overnight-hardening` reviewed against `origin/main`. Local c
 
 ## Scope
 
-Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **298** tests.
+Commits from `16e1865` through tip on this branch (local overnight hardening loop). Full suite last green at **299** tests.
 
 ## Findings remediations already landed
 
@@ -51,6 +51,8 @@ Commits from `16e1865` through tip on this branch (local overnight hardening loo
 41. Firestore challenges accept only `workflow_dispatch` (no `push`).
 42. Local JSON CLIs refuse credential-shaped input (eval-score, WIF plan, cutover apply, k0-bundle, k0-receipt).
 43. Live K0 issuer CLI requires `KEYLESS_ALLOW_LIVE=1`; docs note the live footgun gate.
+44. Require Content-Length + byteLength caps on shared GitHub JSON, ProofV2 observer, draft-PR, x509, and legacy Google key text paths.
+45. Agent evidence/final-text budgets use `Buffer.byteLength`; credential-shaped gains `authorization: bearer` parity.
 
 ## Hard stops held
 
