@@ -276,8 +276,10 @@ async function issueFromSnapshot(plan, credentials) {
   const wif2RunId = add(next(), "GITHUB_RUN", "github:wif-2-run", wif2.observedAt, wif2.githubRun);
   const wif2ReviewId = add(next(), "GITHUB_ENVIRONMENT_REVIEW", "github:wif-2-environment-review",
     wif2.observedAt, wif2.environmentReview);
+  const wifAuditText = decodeUtf8(wifAudit.projection);
+  rejectDuplicateJsonKeys(wifAuditText);
   const wifAuditId = add(next(), "GCP_WIF_AUDIT_LOG", "gcp:wif-2-audit", wifAudit.observedAt,
-    JSON.parse(decodeUtf8(wifAudit.projection)));
+    JSON.parse(wifAuditText));
   const wif2RevisionId = add(next(), "CLOUD_RUN_REVISION", "gcp:wif-2-revision", wif2Revision.observed_at,
     Object.fromEntries(Object.entries(wif2Revision).filter(([key]) => key !== "observed_at")));
   add(forbiddenId, "CLOUD_RUN_REVISION", "gcp:forbidden-after", forbidden.observed_at,

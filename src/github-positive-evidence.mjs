@@ -420,13 +420,17 @@ export async function collectGitHubEvidenceCheckpoint({
   }
   const archiveBytes = Buffer.from(archiveContent.bytes);
   await verifyK0PreDisableArchive(archiveBytes);
-  const archive = JSON.parse(decodeUtf8(archiveBytes));
+  const archiveText = decodeUtf8(archiveBytes);
+  rejectDuplicateJsonKeys(archiveText);
+  const archive = JSON.parse(archiveText);
   const scanIds = archive.evidence.filter(({ kind }) => kind === "LEAK_SCAN").map(({ id }) => id);
   const preEvidence = archive.evidence.filter(({ id }) => id !== scanIds[0]);
   const records = new Map(receipt.receipt.evidence.map((record) => [record.id, record]));
-  const archivedArtifacts = new Map(archive.artifacts.map(({ id, bytes_base64: bytesBase64 }) => [
-    id, JSON.parse(decodeUtf8(Buffer.from(bytesBase64, "base64"))),
-  ]));
+  const archivedArtifacts = new Map(archive.artifacts.map(({ id, bytes_base64: bytesBase64 }) => {
+    const text = decodeUtf8(Buffer.from(bytesBase64, "base64"));
+    rejectDuplicateJsonKeys(text);
+    return [id, JSON.parse(text)];
+  }));
   if (scanIds.length !== 1 || records.size !== preEvidence.length
       || [...records.keys()].some((id) => !preEvidence.some((entry) => entry.id === id))) {
     throw new Error("checkpoint receipt does not exactly cover the pre-disable archive");
