@@ -9,6 +9,7 @@ The already-disabled August transaction is terminal `HISTORICAL_READINESS_ONLY`:
 ```text
 NEW
 → OBSERVED
+→ LEGACY_BASELINE_PASSED
 → KEY_PROVED
 → PLAN_VALIDATED
 → PR_OPEN
@@ -44,7 +45,8 @@ Side states:
 | Transition | Required facts |
 |---|---|
 | `NEW → OBSERVED` | Exact repo/owner IDs, workflow blob SHA, target project/service account/key inventory, branch/environment rules, and IAM policy etag captured |
-| `OBSERVED → KEY_PROVED` | Signed nonce probe verifies against the exact GCP public key; no raw private material leaves runner |
+| `OBSERVED → LEGACY_BASELINE_PASSED` | The canonical legacy workflow deploys `legacy_1` with the enabled fresh key. The verifier requires this run to start, and its revision to be created, strictly before `wif-1` starts; a baseline collected later cannot be reordered |
+| `LEGACY_BASELINE_PASSED → KEY_PROVED` | Signed nonce probe verifies against the exact GCP public key; no raw private material leaves runner |
 | `KEY_PROVED → PLAN_VALIDATED` | Typed IR complete; policy compiler passes; no privilege widening; support gate passes |
 | `PLAN_VALIDATED → PR_OPEN` | Current repo head and IAM etag equal plan preconditions; branch/PR are Keyless-owned and idempotent |
 | `PR_OPEN → PR_REVIEWED` | Independent review applies to exact head SHA; stale approvals dismissed |

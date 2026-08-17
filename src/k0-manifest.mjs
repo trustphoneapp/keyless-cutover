@@ -55,7 +55,7 @@ const TOP_LEVEL = new Set([
 const PRE_DISABLE_TOP_LEVEL = new Set([
   "scope", "revisions", "approved_workflows", "legacy_baseline", "proof", "cutover", "wif", "hostile_tests",
 ]);
-const SCOPE_FIELDS = new Set([
+export const SCOPE_FIELDS = new Set([
   "owner_id", "repository_id", "workflow_path", "proof_workflow_path", "legacy_workflow_path", "h1_workflow_path", "h2_workflow_path", "h4_workflow_path",
   "project_id", "project_number", "region",
   "service_account_email", "service_account_unique_id", "key_id", "allowed_service", "forbidden_service",
