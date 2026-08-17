@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 import {
   normalizeCloudRunObservation,
@@ -9,6 +10,13 @@ import { createCredentialScan } from "../../src/credential-scan.mjs";
 import { canonicalJson, createEvidenceArtifact } from "../../src/evidence-artifact.mjs";
 import { verifyPreexistingWifReadback } from "../../src/gcp-evidence.mjs";
 import { buildWifPlan } from "../../src/wif-plan.mjs";
+
+// Derived, never hardcoded: a hardcoded copy of these digests silently disagreed with
+// the shipped legacy template once its workflow name changed.
+const baselineWorkflowBytes = await readFile(new URL("../../k0/templates/k0-deploy.legacy.yml", import.meta.url));
+const baselineWorkflowBlobSha = createHash("sha1")
+  .update(Buffer.from(`blob ${baselineWorkflowBytes.length}\0`)).update(baselineWorkflowBytes).digest("hex");
+const baselineWorkflowSha256 = createHash("sha256").update(baselineWorkflowBytes).digest("hex");
 
 function checkpointSourceIds(manifest) {
   return new Set([
@@ -113,8 +121,8 @@ export function validK0BundleInput() {
     approved_workflows: {
       baseline: {
         workflow_path: ".github/workflows/k0-deploy.yml",
-        workflow_blob_sha: "62ec226833a2ac44913044ab665a01b0f0f271db",
-        workflow_sha256: "efa494890963b2744b031a54f78f13df5575b948eec9fa2ec452342fda6feebf",
+        workflow_blob_sha: baselineWorkflowBlobSha,
+        workflow_sha256: baselineWorkflowSha256,
       },
       h1: {
         workflow_path: ".github/workflows/k0-deploy.yml",
