@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { canonicalJson, decodeUtf8 } from "./evidence-artifact.mjs";
 import { verifyK0Bundle } from "./k0-bundle.mjs";
+import { SCOPE_FIELDS } from "./k0-manifest.mjs";
 import { isRfc3339 } from "./rfc3339.mjs";
 
 const RECEIPT_FIELDS = new Set([
@@ -107,7 +108,7 @@ export function parseK0ReceiptBytes(receiptBytes) {
         || !/^E\d{3}$/.test(item.id) || typeof item.kind !== "string" || !item.kind || !SHA256.test(item.sha256))
       || new Set(receipt.evidence.map(({ id }) => id)).size !== receipt.evidence.length
       || receipt.evidence.some(({ id }, index) => index > 0 && receipt.evidence[index - 1].id >= id)
-      || !exactObject(receipt.scope, new Set(Object.keys(receipt.scope ?? {}))) || !Object.keys(receipt.scope).length
+      || !exactObject(receipt.scope, SCOPE_FIELDS)
       || !exactObject(receipt.verified_results, RESULT_FIELDS)
       || !Array.isArray(receipt.limitations) || !receipt.limitations.length
       || receipt.limitations.some((value) => typeof value !== "string" || !value || value.length > 2048 || /[\r\n]/.test(value))) {
