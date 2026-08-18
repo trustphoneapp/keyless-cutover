@@ -67,3 +67,23 @@ test("runtime containers are digest-pinned and exclude package-manager tooling",
   const agent = await readFile(new URL("../agent/Dockerfile", import.meta.url), "utf8");
   assert.match(agent, /npm ci --omit=dev --legacy-peer-deps --ignore-scripts/);
 });
+
+test("console image import graph is dependency-free", async () => {
+  // console/Dockerfile ships src/ and console/ with no node_modules; any bare
+  // specifier reachable from the server entry crashes the container at startup.
+  const { dirname, resolve } = await import("node:path");
+  const seen = new Set();
+  const external = [];
+  const walk = async (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    const source = await readFile(file, "utf8");
+    for (const [, specifier] of source.matchAll(/^import[^"']*["']([^"']+)["']/gm)) {
+      if (specifier.startsWith("node:")) continue;
+      if (specifier.startsWith(".")) await walk(resolve(dirname(file), specifier));
+      else external.push(`${specifier} <- ${file}`);
+    }
+  };
+  await walk(new URL("../console/server.mjs", import.meta.url).pathname);
+  assert.deepEqual(external, []);
+});
