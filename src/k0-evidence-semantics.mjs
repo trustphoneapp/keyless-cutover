@@ -536,7 +536,7 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
     const resultKind = hostile.id === "H8" ? "CLOUD_RUN_IAM_RESULT" : "STS_CLIENT_RESULT";
     const results = dataOfKind(hostile.source_ids, resultKind);
     const expectedCategory = hostile.id === "H7" ? "AUDIENCE_DENIED" : "WIF_CONDITION_DENIED";
-    const runs = dataOfKind(hostile.source_ids, "GITHUB_RUN");
+    const runs = dataOfKind(hostile.source_ids, "GITHUB_RUN").filter(object);
     fail(results.some((result) => result?.hostile_id === hostile.id && result?.outcome === hostile.outcome
       && runs.some((run) => result?.run_id === run?.run_id && result?.run_attempt === run?.run_attempt
         && result?.head_sha === run?.head_sha)
@@ -590,7 +590,7 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
   const h8 = manifest.hostile_tests.find(({ id }) => id === "H8");
   const h8Run = entryOfKind(h8.source_ids, "GITHUB_RUN")[0];
   const h8Result = entryOfKind(h8.source_ids, "CLOUD_RUN_IAM_RESULT")[0];
-  fail(h8Run && h8Result
+  fail(object(h8Run?.data) && object(h8Result?.data)
     && timestampBefore(observedAt.get(forbiddenBeforeId), h8Run.data.started_at)
     && timestampAtOrBefore(h8Run.data.started_at, h8Result.data.denied_at)
     && timestampAtOrBefore(h8Result.data.denied_at, observedAt.get(forbiddenAfterHostileId)),
