@@ -1717,7 +1717,7 @@ function disableObservedReader({ transform } = {}) {
       projectId: plan.project_id,
       email: plan.service_account,
       uniqueId: "110652672782847439596",
-      disabled: false,
+      // Real IAM v1 responses omit `disabled` for enabled accounts (proto3 default elision).
     },
     disableAuditResponse(),
   ];
@@ -1786,8 +1786,9 @@ test("observed disable reader rejects missing or wrong service-account resource 
     (account) => { account.name = `projects/other-project/serviceAccounts/${account.email}`; },
     (account) => { account.name = `projects/${plan.project_id}/serviceAccounts/${encodeURIComponent(account.email)}`; },
     (account) => { account.name = `${account.name}/extra`; },
-    (account) => { delete account.disabled; },
     (account) => { account.disabled = true; },
+    (account) => { account.disabled = "false"; },
+    (account) => { account.disabled = null; },
   ];
   for (const mutate of attacks) {
     const reader = disableObservedReader({

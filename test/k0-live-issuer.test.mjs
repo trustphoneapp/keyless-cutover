@@ -200,7 +200,7 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
     account: {
       name: `projects/${scope.project_id}/serviceAccounts/${scope.service_account_email}`,
       projectId: scope.project_id, email: scope.service_account_email,
-      uniqueId: scope.service_account_unique_id, disabled: false,
+      uniqueId: scope.service_account_unique_id,
     },
     disableAudit: { entries: [{
       insertId: "audit-1", timestamp: "2026-08-13T12:10:00Z",
