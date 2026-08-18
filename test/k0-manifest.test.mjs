@@ -813,6 +813,23 @@ test("semantic verification snapshots every artifact exactly once", async () => 
   assert.equal([...calls.values()].every((count) => count === 1), true);
 });
 
+test("hostile run and H8 result artifacts with null data fail closed without throwing", async () => {
+  const input = validK0BundleInput();
+  const bundle = await assembleK0Bundle(input);
+  const targets = [
+    evidenceByKind(input, "GITHUB_RUN", "H3-run"),
+    evidenceByKind(input, "GITHUB_RUN", "H8-run"),
+    evidenceByKind(input, "CLOUD_RUN_IAM_RESULT"),
+  ];
+  for (const target of targets) {
+    const mutated = { manifest: structuredClone(bundle.manifest), artifacts: new Map(bundle.artifacts) };
+    replaceArtifact(mutated, target.id, (envelope) => { envelope.data = null; });
+    const result = await semanticResult(mutated);
+    assert.equal(result.ok, false, target.id);
+    assert.equal(result.errors.includes(`${target.id} ${target.kind} data fields are invalid`), true, target.id);
+  }
+});
+
 test("bundle verification rejects artifact bytes outside the manifest ledger", async () => {
   const bundle = await assembleK0Bundle(validK0BundleInput());
   const extra = new Map(bundle.artifacts);
