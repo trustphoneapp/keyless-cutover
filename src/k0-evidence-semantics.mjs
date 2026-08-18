@@ -464,7 +464,8 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
   };
   for (const [role, approval] of Object.entries(manifest.approved_workflows)) {
     const run = role === "baseline" ? baselineRun
-      : role === "h1" ? hostileRun("H1") : role === "h2" ? hostileRun("H2") : null;
+      : role === "h1" ? hostileRun("H1") : role === "h2" ? hostileRun("H2")
+        : role === "h4" ? hostileRun("H4") : null;
     const ownerId = run?.owner_id ?? manifest.scope.owner_id;
     const repositoryId = run?.repository_id ?? manifest.scope.repository_id;
     fail(approvalMatches(approval, ownerId, repositoryId, run),

@@ -253,6 +253,12 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
       approval.data.merged_at = "2026-08-13T11:51:00Z";
       approval.observed_at = "2026-08-13T11:52:00Z";
     }],
+    ["H4 late approval", (input) => {
+      const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "h4-workflow-approval");
+      approval.data.reviewed_at = "2026-08-13T11:51:00Z";
+      approval.data.merged_at = "2026-08-13T11:52:00Z";
+      approval.observed_at = "2026-08-13T11:53:00Z";
+    }],
     ["H1 H2 approval swap", (input) => {
       const h1 = input.manifest.approved_workflows.h1.source_id;
       input.manifest.approved_workflows.h1.source_id = input.manifest.approved_workflows.h2.source_id;
