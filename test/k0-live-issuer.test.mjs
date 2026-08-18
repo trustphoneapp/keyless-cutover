@@ -425,7 +425,7 @@ function scopeEmail(scope) {
   return encodeURIComponent(scope.service_account_email);
 }
 
-test("live issuer output is deterministic for the same authenticated snapshots", async (t) => {
+test("live issuer output is deterministic for the same authenticated snapshots across read token classes", async (t) => {
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
   const first = authenticatedFixture(archive);
@@ -433,7 +433,8 @@ test("live issuer output is deterministic for the same authenticated snapshots",
   const left = await issueK0Live(plan(), { installationToken: token, googleAuth: first.googleAuth });
   const second = authenticatedFixture(archive);
   globalThis.fetch = second.fetchImpl;
-  const right = await issueK0Live(plan(), { installationToken: token, googleAuth: second.googleAuth });
+  const oauthToken = `gho_${"t".repeat(36)}`;
+  const right = await issueK0Live(plan(), { installationToken: oauthToken, googleAuth: second.googleAuth });
   assert(left.bundle.manifestBytes.equals(right.bundle.manifestBytes));
   assert(left.receipt.receiptBytes.equals(right.receipt.receiptBytes));
   assert(left.kmsRequestBytes.equals(right.kmsRequestBytes));
