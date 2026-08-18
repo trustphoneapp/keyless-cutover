@@ -5,7 +5,9 @@ import { createGoogleKeyReader, createGoogleKeyReaderObserved } from "../src/goo
 
 const clientEmail = "deploy@example.iam.gserviceaccount.com";
 const privateKeyId = "a".repeat(40);
-const keyName = `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`;
+const projectId = "example-project";
+// Real keys.get responses echo the concrete project ID (see docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json).
+const keyName = `projects/${projectId}/serviceAccounts/${clientEmail}/keys/${privateKeyId}`;
 
 function keyResponse(value, { date = "Thu, 13 Aug 2026 12:01:00 GMT", status = 200, headers = {} } = {}) {
   const body = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
@@ -30,7 +32,7 @@ function observedReader(fetchImpl, auth = {
 }
 
 function observedArguments(overrides = {}) {
-  return { client_email: clientEmail, private_key_id: privateKeyId, expected_disabled: false, ...overrides };
+  return { client_email: clientEmail, private_key_id: privateKeyId, project_id: projectId, expected_disabled: false, ...overrides };
 }
 
 test("Google key reader performs one bounded authenticated exact-key lookup", async () => {
@@ -103,6 +105,7 @@ test("observed Google key reader returns one exact authenticated key projection 
 test("observed Google key reader rejects identity, state, type, algorithm, and event drift", async () => {
   const attacks = [
     validKey({ name: `${keyName}0` }),
+    validKey({ name: `projects/other-project/serviceAccounts/${clientEmail}/keys/${privateKeyId}` }),
     validKey({ disabled: true }),
     validKey({ disabled: "false" }),
     validKey({ keyType: "SYSTEM_MANAGED" }),
@@ -116,6 +119,9 @@ test("observed Google key reader rejects identity, state, type, algorithm, and e
   await assert.rejects(() => observedReader(async () => keyResponse(validKey()))(
     observedArguments({ expected_disabled: "false" }),
   ), /expected_disabled/);
+  await assert.rejects(() => observedReader(async () => keyResponse(validKey()))(
+    observedArguments({ project_id: "-" }),
+  ), /project_id/);
 });
 
 test("observed Google key transport rejects Date, status, bounds, UTF-8, and duplicate keys", async () => {

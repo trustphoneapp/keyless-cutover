@@ -193,7 +193,7 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
       details_url: `https://github.com/${owner}/${repository}/actions/runs/4001/job/5001`,
     }] },
     key: {
-      name: `projects/-/serviceAccounts/${scope.service_account_email}/keys/${scope.key_id}`,
+      name: `projects/${scope.project_id}/serviceAccounts/${scope.service_account_email}/keys/${scope.key_id}`,
       keyType: "USER_MANAGED", keyAlgorithm: ["KEY", "ALG", "RSA", "2048"].join("_"), disabled: true,
       validAfterTime: "2026-08-13T10:00:00Z",
     },
