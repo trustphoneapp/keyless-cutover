@@ -68,9 +68,8 @@ async function json(url, token, fetchImpl) {
       try { await reader.cancel(); } catch { /* static failure below */ }
       throw new Error("GitHub evidence response body is invalid or too large");
     }
-    if (declared !== null && total !== Number(declared)) {
-      throw new Error("GitHub evidence response length does not match Content-Length");
-    }
+    // Content-Length is only an upper bound: GitHub gzips mid-size responses and
+    // fetch hands back the decoded body, so the decoded length legitimately exceeds it.
     bytes = Buffer.concat(chunks, total);
   } else {
     let body;
@@ -81,11 +80,7 @@ async function json(url, token, fetchImpl) {
       throw new Error("GitHub evidence response body is invalid");
     }
     bytes = Buffer.from(body);
-    if (bytes.length > MAX_RESPONSE_BYTES || (declared !== null && bytes.length !== Number(declared))) {
-      throw new Error(bytes.length > MAX_RESPONSE_BYTES
-        ? "GitHub evidence response is too large"
-        : "GitHub evidence response length does not match Content-Length");
-    }
+    if (bytes.length > MAX_RESPONSE_BYTES) throw new Error("GitHub evidence response is too large");
   }
   let body;
   try { body = decodeUtf8(bytes); } catch { throw new Error("GitHub evidence response is not valid UTF-8"); }
