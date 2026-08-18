@@ -1059,7 +1059,8 @@ export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
       ]);
       if (!account || typeof account !== "object" || Array.isArray(account)
           || Object.hasOwn(account, "nextPageToken")
-          || account.projectId !== projectId || account.disabled !== false
+          || account.projectId !== projectId
+          || (Object.hasOwn(account, "disabled") && account.disabled !== false)
           || !accountNames.has(account.name)
           || account.email !== serviceAccountEmail || account.uniqueId !== serviceAccountUniqueId) {
         throw new Error("service account identity does not match");
