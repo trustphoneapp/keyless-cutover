@@ -141,6 +141,9 @@ Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong
 ## Development
 
 ```sh
+npm run preflight   # = npm ci + npm audit + actionlint + npm test
+
+# or step by step:
 npm ci --legacy-peer-deps --ignore-scripts
 npm test
 npm audit --omit=dev --audit-level=high
