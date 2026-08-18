@@ -462,6 +462,7 @@ export function validK0BundleInput() {
         outcome: "DENIED",
         reached_sts: true,
         error_category: id === "H7" ? "AUDIENCE_DENIED" : "WIF_CONDITION_DENIED",
+        provider: manifest.wif.provider,
         denied_at: "2026-08-13T11:50:00Z",
         log_sha256: "1".repeat(64),
       });

@@ -17,6 +17,7 @@ const REVISION = /^[a-z][a-z0-9-]{0,62}$/;
 const REGION = /^[a-z]+-[a-z]+\d$/;
 const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
+const PROVIDER = /^projects\/\d+\/locations\/global\/workloadIdentityPools\/[a-z0-9-]+\/providers\/[a-z0-9-]+$/;
 const CHECKPOINT_FIELDS = new Set([
   "owner_id", "repository_id", "collected_at", "protection", "pull", "receipt", "archive", "run", "check",
 ]);
@@ -63,7 +64,7 @@ const DATA_FIELDS = {
     "region", "allowed_service", "forbidden_service",
     "observed_before_at", "observed_after_at", "parity_hash",
   ]),
-  STS_CLIENT_RESULT: new Set(["hostile_id", "run_id", "run_attempt", "head_sha", "outcome", "reached_sts", "error_category", "denied_at", "log_sha256"]),
+  STS_CLIENT_RESULT: new Set(["hostile_id", "run_id", "run_attempt", "head_sha", "outcome", "reached_sts", "error_category", "provider", "denied_at", "log_sha256"]),
   CLOUD_RUN_IAM_RESULT: new Set(["hostile_id", "run_id", "run_attempt", "head_sha", "outcome", "reached_cloud_run", "target", "denied_at", "log_sha256"]),
   CLOUD_RUN_REVISION: new Set(["project_id", "region", "service", "revision", "create_time", "release_marker", "image_digest"]),
   GCP_AUDIT_ENTRY: new Set(["method_name", "resource_name", "principal_email", "key_id", "service_account_email", "service_account_unique_id", "project_id", "project_number", "insert_id", "timestamp", "status"]),
@@ -218,6 +219,7 @@ function validateArtifactData(kind, data, fail, id) {
     fail(data.outcome === "DENIED" && data.reached_sts === true
       && ["WIF_CONDITION_DENIED", "AUDIENCE_DENIED"].includes(data.error_category)
       && isRfc3339(data.denied_at) && string(data.log_sha256, SHA256), `${id} STS denial is invalid`);
+    fail(string(data.provider, PROVIDER), `${id} STS denial provider is invalid`);
   } else if (kind === "CLOUD_RUN_IAM_RESULT") {
     fail(data.hostile_id === "H8" && string(data.run_id, NUMERIC)
       && string(data.run_attempt, NUMERIC) && string(data.head_sha, COMMIT_SHA)
@@ -541,7 +543,8 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
       && runs.some((run) => result?.run_id === run?.run_id && result?.run_attempt === run?.run_attempt
         && result?.head_sha === run?.head_sha)
       && (hostile.id === "H8" ? result?.target === manifest.scope.forbidden_service
-        : result?.error_category === expectedCategory)), `${hostile.id} client artifact does not match its run`);
+        : result?.error_category === expectedCategory && result?.provider === manifest.wif.provider)),
+    `${hostile.id} client artifact does not match its run`);
     const expectedWorkflowRef = `${manifest.scope.workflow_path}@refs/heads/main`;
     const contextMatches = runs.some((run) => {
       const exactRepository = run.owner_id === manifest.scope.owner_id && run.repository_id === manifest.scope.repository_id;

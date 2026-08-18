@@ -272,6 +272,9 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
     ["backdated observation", (input) => {
       evidenceByKind(input, "STS_CLIENT_RESULT", "H1-result").observed_at = "2026-08-13T11:49:59Z";
     }],
+    ["H3 wrong provider", (input) => {
+      evidenceByKind(input, "STS_CLIENT_RESULT", "H3-result").data.provider = `${input.manifest.wif.provider}-fresh-wif1`;
+    }],
     ["H8 bracket", (input) => {
       evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-after-hostile").observed_at = "2026-08-13T11:40:00Z";
     }],
