@@ -182,6 +182,10 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
       revision.observed_at = "2026-08-13T11:33:00Z";
     }],
     ["cutover repository", (input) => { evidenceByKind(input, "GITHUB_PULL_REQUEST", "cutover-pr").data.repository_id = "999"; }],
+    ["wif-1 before cutover merge", (input) => {
+      evidenceByKind(input, "GITHUB_RUN", "wif-1").data.started_at = "2026-08-13T10:50:00Z";
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.create_time = "2026-08-13T10:51:00Z";
+    }],
     ["wif-1 self review", (input) => { evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "wif-1-review").data.reviewer_id = "10"; }],
     ["wif-1 stale revision", (input) => {
       evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.create_time = "2026-08-13T11:29:59Z";

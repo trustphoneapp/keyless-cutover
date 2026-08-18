@@ -484,13 +484,13 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
   fail(Boolean(baselineRevision), "legacy baseline Cloud Run revision does not match its exact run and release marker");
 
   const pullRequests = dataOfKind(manifest.cutover.source_ids, "GITHUB_PULL_REQUEST");
-  fail(pullRequests.some((pull) => pull?.number === manifest.cutover.pr_number
+  const cutoverPull = pullRequests.find((pull) => pull?.number === manifest.cutover.pr_number
     && pull?.head_sha === manifest.cutover.reviewed_head_sha && pull?.merge_sha === manifest.cutover.merge_sha
     && pull?.workflow_path === manifest.scope.workflow_path
     && pull?.workflow_blob_sha === manifest.cutover.workflow_blob_sha
     && pull?.workflow_sha256 === manifest.cutover.workflow_sha256
-    && pull?.owner_id === manifest.scope.owner_id && pull?.repository_id === manifest.scope.repository_id),
-  "cutover pull request does not match");
+    && pull?.owner_id === manifest.scope.owner_id && pull?.repository_id === manifest.scope.repository_id);
+  fail(Boolean(cutoverPull), "cutover pull request does not match");
   const wif1Runs = dataOfKind(manifest.cutover.source_ids, "GITHUB_RUN");
   const wif1Reviews = dataOfKind(manifest.cutover.source_ids, "GITHUB_ENVIRONMENT_REVIEW");
   const wif1Claim = {
@@ -504,6 +504,8 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
     && run?.workflow_sha256 === manifest.cutover.workflow_sha256
     && wif1Reviews.some((review) => reviewMatches(review, run)));
   fail(Boolean(wif1Run), "wif-1 GitHub run does not match approved workflow bytes and release marker");
+  fail(cutoverPull && wif1Run && timestampBefore(cutoverPull.merged_at, wif1Run.started_at),
+    "wif-1 run predates cutover pull request merge");
   fail(baselineRun && baselineRevision && wif1Run
     && timestampBefore(baselineRun.started_at, wif1Run.started_at)
     && timestampBefore(baselineRevision.data.create_time, wif1Run.started_at),
