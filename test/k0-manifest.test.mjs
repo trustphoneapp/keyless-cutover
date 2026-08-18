@@ -280,6 +280,8 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
       input.manifest.revisions.forbidden_after_hostile_source_id = input.manifest.revisions.forbidden_before_source_id;
     }],
     ["missing baseline source", (input) => { input.manifest.legacy_baseline.source_ids.pop(); }],
+    ["public_url array", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").public_url = ["https://example.test/x"]; }],
+    ["public_url newline", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").public_url = "https://example.test/x\nevil"; }],
   ];
   for (const [label, mutate] of attacks) {
     const input = validK0BundleInput();
