@@ -118,8 +118,9 @@ test("console derives an honest no-go view from the credential-free historical c
   assert.equal(status.blockers.some((item) => /Never re-enable the historical key/.test(item)), true);
 });
 
-test("console rejects a self-asserted success checkpoint instead of falling back", async () => {
+test("console rejects a self-asserted success checkpoint instead of falling back", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "keyless-console-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
   const path = join(directory, "checkpoint.json");
   await writeFile(path, JSON.stringify({ version: 1, status: "VERIFIED" }), { mode: 0o600 });
   const status = await loadConsoleStatus({ checkpointPath: path });
@@ -170,8 +171,9 @@ test("checkpoint FIFO fails closed without blocking, output, or fallback", async
   assert.equal(result.stderr, "");
 });
 
-test("configured invalid K0 manifest fails closed and never uses checkpoint readiness", async () => {
+test("configured invalid K0 manifest fails closed and never uses checkpoint readiness", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "keyless-console-manifest-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
   const path = join(directory, "manifest.json");
   await writeFile(path, JSON.stringify({ version: 2 }), { mode: 0o600 });
   const status = await loadConsoleStatus({ checkpointPath, manifestPath: path });
