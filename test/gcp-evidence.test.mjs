@@ -1351,7 +1351,8 @@ test("observed WIF audit reader returns the exact projection and authenticated t
   const result = await reader.readWifAuditEvidenceObserved(wifObservedArguments(input));
   assert.equal(result.observedAt, "2026-08-13T12:13:31.000Z");
   assert.deepEqual(JSON.parse(result.projection), audit);
-  assert.notEqual(result.projection, Buffer.from(validWifAuditLog(input.manifest)));
+  assert.equal(Buffer.isBuffer(result.projection), true);
+  assert.equal(result.projection.equals(Buffer.from(validWifAuditLog(input.manifest))), true);
   assert.equal(requestBody.pageSize, 2);
 });
 
