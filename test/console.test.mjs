@@ -128,6 +128,19 @@ test("console rejects a self-asserted success checkpoint instead of falling back
   assert.equal(status.cutover_verified, false);
 });
 
+test("console rejects a checkpoint whose forbidden revisions are absent rather than equal strings", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "keyless-console-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const checkpoint = JSON.parse(await readFile(checkpointPath, "utf8"));
+  delete checkpoint.pre_disable.forbidden_revision_before;
+  delete checkpoint.pre_disable.forbidden_revision_after;
+  const path = join(directory, "checkpoint.json");
+  await writeFile(path, JSON.stringify(checkpoint), { mode: 0o600 });
+  const status = await loadConsoleStatus({ checkpointPath: path });
+  assert.equal(status.status, "NO_GO_VERIFICATION_FAILED");
+  assert.equal(status.release_ready, false);
+});
+
 test("checkpoint FIFO fails closed without blocking, output, or fallback", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "keyless-console-fifo-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
