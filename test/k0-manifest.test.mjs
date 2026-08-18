@@ -841,6 +841,7 @@ test("bundle verification rejects artifact bytes outside the manifest ledger", a
   const first = bundle.manifest.evidence[0];
   const changed = Buffer.from(bundle.artifacts.get(first.id));
   changed[changed.length - 2] ^= 1;
-  const digest = createHash("sha256").update(changed).digest("hex");
-  assert.notEqual(digest, first.sha256);
+  const tampered = new Map(bundle.artifacts);
+  tampered.set(first.id, changed);
+  await assert.rejects(() => verifyK0Bundle({ manifest: bundle.manifest, artifacts: tampered }));
 });
