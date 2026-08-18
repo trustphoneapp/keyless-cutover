@@ -143,7 +143,7 @@ test("36 deterministic bundle, receipt, signature, and trust mutations all fail 
     }],
     ["semantic artifact drift with reconstructed digest", async () => {
       const changed = validK0BundleInput();
-      evidenceByKind(changed, "GCP_WIF_PROVIDER").data.project_id = "wrong-project";
+      evidenceByKind(changed, "GCP_WIF_PARITY").data.project_id = "wrong-project";
       await assembleK0Bundle(changed);
     }],
     ["missing artifact", async () => {
@@ -244,5 +244,5 @@ test("36 deterministic bundle, receipt, signature, and trust mutations all fail 
     ["invalid request key version", () => createKmsSigningRequest(receiptBytes, "cryptoKeyVersions/1")],
   ];
   assert.equal(mutations.length, 36);
-  for (const [label, mutate] of mutations) await assert.rejects(async () => mutate(), undefined, label);
+  for (const [label, mutate] of mutations) await assert.rejects(async () => mutate(), (error) => !(error instanceof TypeError), label);
 });
