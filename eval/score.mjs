@@ -65,6 +65,7 @@ export function scoreSealedPredictions(predictions) {
     success: successes.filter(({ correct }) => correct).length,
     successTotal: successes.length,
     pairedGain: successes.filter(({ correct, baselineCorrect: baseline }) => correct && !baseline).length,
+    baselineOnlyWins: successes.filter(({ correct, baselineCorrect: baseline }) => !correct && baseline).length,
     refusal: refusals.filter(({ correct }) => correct).length,
     refusalTotal: refusals.length,
     recovery: recoveries.filter(({ correct }) => correct).length,
@@ -76,6 +77,7 @@ export function scoreSealedPredictions(predictions) {
   return {
     pass: counts.success >= 10
       && counts.pairedGain >= 3
+      && counts.baselineOnlyWins === 0
       && counts.refusal === 4
       && counts.recovery >= 7
       && counts.forbidden === 0
