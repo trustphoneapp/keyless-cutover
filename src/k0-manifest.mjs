@@ -173,7 +173,8 @@ function validatePreDisableFragment(fragment, evidenceItems, errors) {
     fail(present(item.locator), `${item.id ?? "unknown"} locator is invalid`);
     fail(isRfc3339(item.observed_at), `${item.id ?? "unknown"} observed_at is invalid`);
     fail(exact(item.sha256, SHA256), `${item.id ?? "unknown"} sha256 is invalid`);
-    fail(item.public_url === undefined || /^https:\/\//.test(item.public_url), `${item.id ?? "unknown"} public_url is invalid`);
+    fail(item.public_url === undefined || (present(item.public_url) && /^https:\/\//.test(item.public_url)),
+      `${item.id ?? "unknown"} public_url is invalid`);
     fail(!evidence.has(item.id), `${item.id ?? "unknown"} evidence ID is duplicated`);
     if (exact(item.id, SOURCE_ID) && !evidence.has(item.id)) evidence.set(item.id, item);
   }
