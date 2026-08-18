@@ -394,6 +394,23 @@ test("GitHub checkpoint collector derives protected review, receipt, push, and r
   await assembleK0Bundle(input);
 });
 
+test("GitHub checkpoint collector accepts the Contents API's 60-column wrapped base64", async () => {
+  const wrap = (content) => `${content.match(/.{1,60}/g).join("\n")}\n`;
+  const collected = await collectGitHubEvidenceCheckpoint({
+    owner: "owner",
+    repository: "repo",
+    pullNumber: 12,
+    receiptPath: "docs/evidence/K0_CHECKPOINT_EXAMPLE.json",
+    archivePath,
+    installationToken: token,
+    fetchImpl: checkpointFixture({ mutate: (kind, value) => {
+      if (kind === "archive" || kind === "receipt") value.content = wrap(value.content);
+    } }),
+  });
+  assert.equal(collected.checkpoint.archive.blob_sha, checkpointArchiveBlob);
+  assert.equal(await verifyK0PreDisableArchive(collected.archiveBytes), true);
+});
+
 test("GitHub checkpoint collector rejects noncanonical evidence paths before fetch", async () => {
   const invalidPaths = [
     "docs/evidence/../bad.json",
@@ -476,7 +493,13 @@ test("GitHub checkpoint collector rejects archive identity, integrity, coverage,
   const preId = checkpointArchive.archive.evidence.find(({ id }) => id !== scanId).id;
   const attacks = [
     ["wrong blob", (kind, value) => { if (kind === "archive") value.sha = "d".repeat(40); }],
-    ["noncanonical base64", (kind, value) => { if (kind === "archive") value.content += "\n"; }],
+    ["noncanonical base64", (kind, value) => {
+      // Whitespace is GitHub's wrapping, not noncanonical; use nonzero trailing bits instead.
+      if (kind === "archive") {
+        value.content = value.content.endsWith("=")
+          ? value.content.replace(/.(?==+$)/, "B") : `${value.content}AB==`;
+      }
+    }],
     ["wrong archive path", (kind, value) => { if (kind === "archive") value.path += ".wrong"; }],
     ["reviewed head drift", (kind, value, url) => {
       if (kind === "archive" && url.endsWith(`ref=${"b".repeat(40)}`)) {
