@@ -81,8 +81,10 @@ function decodedBase64(value) {
   }
   const bytes = Buffer.from(value.replace(/-/g, "+").replace(/_/g, "/"), "base64");
   const standard = bytes.toString("base64");
+  const padding = standard.slice(standard.replace(/=+$/, "").length);
+  const url = bytes.toString("base64url");
   const canonical = standard === value || standard.replace(/=+$/, "") === value
-    || bytes.toString("base64url") === value;
+    || url === value || `${url}${padding}` === value;
   if (!canonical) return null;
   if (bytes.length > MAX_SINGLE_DECODED) throw new Error("CREDENTIAL_SCAN_LIMIT_EXCEEDED");
   return bytes;
