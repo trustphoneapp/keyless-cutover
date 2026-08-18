@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
-import { GoogleAuth } from "google-auth-library";
-
 import { canonicalJson, decodeUtf8 } from "./evidence-artifact.mjs";
 import { parseWifAuditEvidence } from "./k0-evidence-normalizer.mjs";
 import { parseAuthenticatedTransportObservation, rejectDuplicateJsonKeys } from "./observation-time.mjs";
@@ -490,11 +488,16 @@ export function verifyWifReadback({
   };
 }
 
-export function createGcpEvidenceReader({
-  auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform.read-only"] }),
-  fetchImpl = fetch,
-} = {}) {
+// Loaded lazily so the dependency-free console can import the pure verifiers
+// in this module without shipping google-auth-library.
+async function defaultGoogleAuth() {
+  const { GoogleAuth } = await import("google-auth-library");
+  return new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform.read-only"] });
+}
+
+export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
   const authenticatedFetch = async (method, url, body) => {
+    auth ??= await defaultGoogleAuth();
     const client = await auth.getClient();
     const authHeaders = await client.getRequestHeaders(url);
     const headers = new Headers(authHeaders);
