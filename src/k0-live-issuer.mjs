@@ -170,6 +170,7 @@ async function issueFromSnapshot(plan, credentials) {
   const disabledKey = await keyReader({
     client_email: scope.service_account_email,
     private_key_id: scope.key_id,
+    project_id: scope.project_id,
     expected_disabled: true,
   });
   const disableAudit = await gcp.readDisableAuditEntryObserved({

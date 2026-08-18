@@ -5,6 +5,7 @@ import { parseAuthenticatedTransportObservation, rejectDuplicateJsonKeys } from 
 
 const SERVICE_ACCOUNT_EMAIL = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
 const KEY_ID = /^[a-f0-9]{40}$/;
+const PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const MAX_KEY_RESPONSE = 64_000;
 
 function exact(value, pattern, name) {
@@ -94,11 +95,18 @@ export function createGoogleKeyReaderObserved({
   auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform.read-only"] }),
   fetchImpl = fetch,
 } = {}) {
-  return async ({ client_email: clientEmail, private_key_id: privateKeyId, expected_disabled: expectedDisabled }) => {
+  return async ({
+    client_email: clientEmail, private_key_id: privateKeyId, project_id: projectId, expected_disabled: expectedDisabled,
+  }) => {
     exact(clientEmail, SERVICE_ACCOUNT_EMAIL, "client_email");
     exact(privateKeyId, KEY_ID, "private_key_id");
+    exact(projectId, PROJECT_ID, "project_id");
     if (typeof expectedDisabled !== "boolean") throw new Error("expected_disabled is invalid");
-    const name = `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`;
+    // keys.get echoes the concrete project ID, not the `-` wildcard used in the request path.
+    const acceptedNames = new Set([
+      `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+      `projects/${projectId}/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+    ]);
     const url = `https://iam.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(clientEmail)}/keys/${privateKeyId}`;
     let response;
     try {
@@ -116,13 +124,13 @@ export function createGoogleKeyReaderObserved({
     const validAfterTime = key?.validAfterTime;
     const disabled = key?.disabled ?? false;
     if (!key || typeof key !== "object" || Array.isArray(key)
-        || key.name !== name || key.keyType !== "USER_MANAGED" || key.keyAlgorithm !== "KEY_ALG_RSA_2048"
+        || !acceptedNames.has(key.name) || key.keyType !== "USER_MANAGED" || key.keyAlgorithm !== "KEY_ALG_RSA_2048"
         || (key.disabled !== undefined && typeof key.disabled !== "boolean") || disabled !== expectedDisabled) {
       throw new Error("Google key identity, state, type, or algorithm is invalid");
     }
     return {
       key: {
-        name,
+        name: key.name,
         keyType: key.keyType,
         keyAlgorithm: key.keyAlgorithm,
         disabled,
