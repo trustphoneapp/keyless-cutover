@@ -26,12 +26,18 @@ test("installed dependency tree has no unreviewed problems", () => {
 });
 
 test("every external GitHub Action is pinned to a full commit SHA", async () => {
-  for (const file of await readdir(workflowDirectory)) {
-    if (!/\.ya?ml$/.test(file)) continue;
-    const source = await readFile(new URL(file, workflowDirectory), "utf8");
-    for (const match of source.matchAll(/^\s*- uses:\s+([^\s#]+)/gm)) {
-      if (match[1].startsWith("./")) continue;
-      assert.match(match[1], /^[^@\s]+@[a-f0-9]{40}$/, `${file} contains an unpinned action`);
+  const templateDirectory = new URL("../k0/templates/", import.meta.url);
+  for (const directory of [workflowDirectory, templateDirectory]) {
+    for (const file of await readdir(directory)) {
+      if (!/\.ya?ml$/.test(file)) continue;
+      const source = await readFile(new URL(file, directory), "utf8");
+      // Match both `- uses:` and name-first `uses:` step forms.
+      const matches = [...source.matchAll(/^\s*(?:- )?uses:\s+([^\s#]+)/gm)];
+      assert.ok(matches.length > 0, `${file} contains no uses: steps`);
+      for (const match of matches) {
+        if (match[1].startsWith("./")) continue;
+        assert.match(match[1], /^[^@\s]+@[a-f0-9]{40}$/, `${file} contains an unpinned action`);
+      }
     }
   }
 });
