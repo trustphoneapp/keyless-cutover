@@ -492,39 +492,39 @@ test("GitHub checkpoint collector rejects archive identity, integrity, coverage,
   const scanId = checkpointArchive.archive.credential_scan.source_id;
   const preId = checkpointArchive.archive.evidence.find(({ id }) => id !== scanId).id;
   const attacks = [
-    ["wrong blob", (kind, value) => { if (kind === "archive") value.sha = "d".repeat(40); }],
-    ["noncanonical base64", (kind, value) => {
+    ["wrong blob", /archive content is invalid/, (kind, value) => { if (kind === "archive") value.sha = "d".repeat(40); }],
+    ["noncanonical base64", /archive content is invalid/, (kind, value) => {
       // Whitespace is GitHub's wrapping, not noncanonical; use nonzero trailing bits instead.
       if (kind === "archive") {
         value.content = value.content.endsWith("=")
           ? value.content.replace(/.(?==+$)/, "B") : `${value.content}AB==`;
       }
     }],
-    ["wrong archive path", (kind, value) => { if (kind === "archive") value.path += ".wrong"; }],
-    ["reviewed head drift", (kind, value, url) => {
+    ["wrong archive path", /archive content is invalid/, (kind, value) => { if (kind === "archive") value.path += ".wrong"; }],
+    ["reviewed head drift", /pre-disable archive differs from its reviewed head/, (kind, value, url) => {
       if (kind === "archive" && url.endsWith(`ref=${"b".repeat(40)}`)) {
         replaceContent(value, changedArchive((archive) => { archive.nonce = "alternate-public-nonce-0001"; }));
       }
     }],
-    ["merge drift", (kind, value, url) => {
+    ["merge drift", /pre-disable archive differs from its reviewed head/, (kind, value, url) => {
       if (kind === "archive" && url.endsWith(`ref=${"c".repeat(40)}`)) {
         replaceContent(value, changedArchive((archive) => { archive.nonce = "alternate-public-nonce-0002"; }));
       }
     }],
-    ["one byte archive", (kind, value) => {
+    ["one byte archive", /archive is not JSON/, (kind, value) => {
       if (kind === "archive") {
         const bytes = Buffer.from(checkpointArchive.archiveBytes);
         bytes[bytes.length - 2] ^= 1;
         replaceContent(value, bytes);
       }
     }],
-    ["missing leak scan", (kind, value) => {
+    ["missing leak scan", /scan or artifact set is invalid/, (kind, value) => {
       if (kind === "archive") replaceContent(value, changedArchive((archive) => {
         archive.evidence = archive.evidence.filter(({ id }) => id !== scanId);
         archive.artifacts = archive.artifacts.filter(({ id }) => id !== scanId);
       }));
     }],
-    ["extra leak scan", (kind, value) => {
+    ["extra leak scan", /artifact integrity failed/, (kind, value) => {
       if (kind === "archive") replaceContent(value, changedArchive((archive) => {
         archive.evidence.push({ ...archive.evidence.find(({ id }) => id === scanId), id: "E999" });
         archive.artifacts.push({ ...archive.artifacts.find(({ id }) => id === scanId), id: "E999" });
@@ -532,13 +532,13 @@ test("GitHub checkpoint collector rejects archive identity, integrity, coverage,
         archive.artifacts.sort((left, right) => left.id.localeCompare(right.id));
       }));
     }],
-    ["missing pre artifact", (kind, value) => {
+    ["missing pre artifact", /archive fragment is invalid/, (kind, value) => {
       if (kind === "archive") replaceContent(value, changedArchive((archive) => {
         archive.evidence = archive.evidence.filter(({ id }) => id !== preId);
         archive.artifacts = archive.artifacts.filter(({ id }) => id !== preId);
       }));
     }],
-    ["extra pre artifact", (kind, value) => {
+    ["extra pre artifact", /artifact integrity failed/, (kind, value) => {
       if (kind === "archive") replaceContent(value, changedArchive((archive) => {
         archive.evidence.push({ ...archive.evidence.find(({ id }) => id === preId), id: "E998" });
         archive.artifacts.push({ ...archive.artifacts.find(({ id }) => id === preId), id: "E998" });
@@ -546,27 +546,36 @@ test("GitHub checkpoint collector rejects archive identity, integrity, coverage,
         archive.artifacts.sort((left, right) => left.id.localeCompare(right.id));
       }));
     }],
-    ["valid archive receipt mismatch", (kind, value) => {
+    ["valid archive receipt mismatch", /does not match the pre-disable archive evidence/, (kind, value) => {
       if (kind === "receipt") replaceContent(value, changedReceipt((receipt) => {
         receipt.evidence[0].data_sha256 = "0".repeat(64);
       }));
     }],
-    ["missing receipt record", (kind, value) => {
+    ["missing receipt record", /does not exactly cover the pre-disable archive/, (kind, value) => {
       if (kind === "receipt") replaceContent(value, changedReceipt((receipt) => { receipt.evidence.pop(); }));
     }],
-    ["extra receipt record", (kind, value) => {
+    ["extra receipt record", /does not exactly cover the pre-disable archive/, (kind, value) => {
       if (kind === "receipt") replaceContent(value, changedReceipt((receipt) => {
         receipt.evidence.push({ ...receipt.evidence.at(-1), id: "E999" });
       }));
     }],
-    ["late seal", (kind, value) => {
+    ["record after review", /does not match the pre-disable archive evidence/, (kind, value) => {
+      if (kind === "reviews") value[0].submitted_at = "2026-08-13T12:08:59Z";
+    }],
+    ["late seal", /sealed after checkpoint review/, (kind, value) => {
+      // Every record predates the review so the per-record guard passes; only the seal is late.
+      if (kind === "receipt") replaceContent(value, changedReceipt((receipt) => {
+        for (const record of receipt.evidence) {
+          if (record.recorded_at > "2026-08-13T12:08:58Z") record.recorded_at = "2026-08-13T12:08:58Z";
+        }
+      }));
       if (kind === "reviews") value[0].submitted_at = "2026-08-13T12:08:59Z";
     }],
   ];
-  for (const [label, mutate] of attacks) {
+  for (const [label, reason, mutate] of attacks) {
     await assert.rejects(
       () => collectCheckpoint(checkpointFixture({ mutate })),
-      undefined,
+      reason,
       label,
     );
   }
