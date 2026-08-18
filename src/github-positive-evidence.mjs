@@ -263,17 +263,20 @@ function latestResponseTime(responses) {
 }
 
 function exactContentsBytes(value, path, name, maximum) {
-  if (value?.encoding !== "base64" || value?.path !== path || typeof value.content !== "string"
-      || !/^[A-Za-z0-9+/]+={0,2}$/.test(value.content) || !SHA.test(value.sha ?? "")) {
+  // GitHub's Contents API wraps base64 at 60 columns with a trailing newline; strip whitespace
+  // before the strict canonical checks below.
+  const encoded = typeof value?.content === "string" ? value.content.replace(/\s/g, "") : "";
+  if (value?.encoding !== "base64" || value?.path !== path
+      || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || !SHA.test(value.sha ?? "")) {
     throw new Error(`${name} content is invalid`);
   }
-  const bytes = Buffer.from(value.content, "base64");
+  const bytes = Buffer.from(encoded, "base64");
   const blobSha = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
-  if (!bytes.length || bytes.length > maximum || bytes.toString("base64") !== value.content
+  if (!bytes.length || bytes.length > maximum || bytes.toString("base64") !== encoded
       || blobSha !== value.sha) {
     throw new Error(`${name} content is invalid`);
   }
-  return { bytes, blobSha, encoded: value.content };
+  return { bytes, blobSha, encoded };
 }
 
 export async function collectGitHubWorkflowApproval({
