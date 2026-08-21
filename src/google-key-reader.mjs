@@ -158,12 +158,36 @@ export function createGoogleKeyReader({
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) throw new Error(`Google key lookup failed with HTTP ${response.status}`);
-    const body = await response.text();
-    if (body.length > 64_000) throw new Error("Google key lookup response is too large");
-    const key = JSON.parse(body);
-    if (key.disabled !== undefined && typeof key.disabled !== "boolean") {
-      throw new Error("Google key disabled state is invalid");
+    const declared = response.headers?.get?.("content-length") ?? null;
+    if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > MAX_KEY_RESPONSE)) {
+      throw new Error("Google key lookup response is too large");
     }
-    return { ...key, disabled: key.disabled ?? false };
+    const body = await response.text();
+    if (body.length > MAX_KEY_RESPONSE) throw new Error("Google key lookup response is too large");
+    let key;
+    try {
+      rejectDuplicateJsonKeys(body);
+      key = JSON.parse(body);
+    } catch (error) {
+      if (error?.message === "duplicate JSON key") throw new Error("Google key response contains duplicate JSON keys");
+      throw new Error("Google key response is not valid JSON");
+    }
+    // keys.get echoes either the `-` wildcard or the concrete project, which the
+    // service-account email already pins. Bind both forms rather than neither.
+    const acceptedNames = new Set([
+      `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+      `projects/${clientEmail.split("@")[1].split(".")[0]}/serviceAccounts/${clientEmail}/keys/${privateKeyId}`,
+    ]);
+    if (!key || typeof key !== "object" || Array.isArray(key) || !acceptedNames.has(key.name)
+        || key.keyType !== "USER_MANAGED" || key.keyAlgorithm !== "KEY_ALG_RSA_2048"
+        || (key.disabled !== undefined && typeof key.disabled !== "boolean")) {
+      throw new Error("Google key identity, type, or algorithm is invalid");
+    }
+    return {
+      name: key.name,
+      keyType: key.keyType,
+      keyAlgorithm: key.keyAlgorithm,
+      disabled: key.disabled ?? false,
+    };
   };
 }
