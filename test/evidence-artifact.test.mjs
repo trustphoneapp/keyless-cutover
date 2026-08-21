@@ -64,3 +64,25 @@ test("canonical JSON rejects lone UTF-16 surrogates in keys and nested values", 
   assert.equal(result.ok, false);
   assert.match(result.errors.join("\n"), /non-JSON value/);
 });
+
+test("verifier fails closed on unreadable artifacts and the evidence byte budget", async () => {
+  const created = createEvidenceArtifact(envelope);
+  const manifest = { evidence: [{ ...envelope, data: undefined, sha256: created.sha256 }] };
+  delete manifest.evidence[0].data;
+
+  const unreadable = await verifyEvidenceArtifacts(manifest, async () => { throw new Error("x"); });
+  assert.equal(unreadable.ok, false);
+  assert.match(unreadable.errors.join("\n"), /cannot be read/);
+
+  const oversized = await verifyEvidenceArtifacts(manifest, async () => Buffer.alloc(512_001, 0x20));
+  assert.equal(oversized.ok, false);
+  assert.match(oversized.errors.join("\n"), /evidence budget/);
+
+  const many = { evidence: Array.from({ length: 11 }, (_, index) => ({
+    ...manifest.evidence[0], id: `E${String(index + 1).padStart(3, "0")}`,
+  })) };
+  const cumulative = await verifyEvidenceArtifacts(many, async () => Buffer.alloc(500_000, 0x20));
+  assert.equal(cumulative.ok, false);
+  assert.match(cumulative.errors.join("\n"), /E011 artifact exceeds the evidence budget/);
+  assert.doesNotMatch(cumulative.errors.join("\n"), /E010 artifact exceeds the evidence budget/);
+});

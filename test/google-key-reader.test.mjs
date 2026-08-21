@@ -5,7 +5,9 @@ import { createGoogleKeyReader, createGoogleKeyReaderObserved } from "../src/goo
 
 const clientEmail = "deploy@example.iam.gserviceaccount.com";
 const privateKeyId = "a".repeat(40);
-const keyName = `projects/-/serviceAccounts/${clientEmail}/keys/${privateKeyId}`;
+const projectId = "example-project";
+// Real keys.get responses echo the concrete project ID (see docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json).
+const keyName = `projects/${projectId}/serviceAccounts/${clientEmail}/keys/${privateKeyId}`;
 
 function keyResponse(value, { date = "Thu, 13 Aug 2026 12:01:00 GMT", status = 200, headers = {} } = {}) {
   const body = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
@@ -30,7 +32,7 @@ function observedReader(fetchImpl, auth = {
 }
 
 function observedArguments(overrides = {}) {
-  return { client_email: clientEmail, private_key_id: privateKeyId, expected_disabled: false, ...overrides };
+  return { client_email: clientEmail, private_key_id: privateKeyId, project_id: projectId, expected_disabled: false, ...overrides };
 }
 
 test("Google key reader performs one bounded authenticated exact-key lookup", async () => {
@@ -68,7 +70,12 @@ test("Google key reader preserves an explicit disabled state", async () => {
     fetchImpl: async () => ({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ disabled: true }),
+      text: async () => JSON.stringify({
+        name: "projects/example/serviceAccounts/deploy@example.iam.gserviceaccount.com/keys/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        keyType: "USER_MANAGED",
+        keyAlgorithm: "KEY_ALG_RSA_2048",
+        disabled: true,
+      }),
     }),
   });
   const key = await reader({
@@ -76,6 +83,41 @@ test("Google key reader preserves an explicit disabled state", async () => {
     private_key_id: "a".repeat(40),
   });
   assert.equal(key.disabled, true);
+});
+
+test("Google key reader binds the returned key to the requested account and rejects junk", async () => {
+  const respond = (value) => createGoogleKeyReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify(value) }),
+  })({ client_email: "deploy@example.iam.gserviceaccount.com", private_key_id: "a".repeat(40) });
+  const valid = {
+    name: "projects/-/serviceAccounts/deploy@example.iam.gserviceaccount.com/keys/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    keyType: "USER_MANAGED",
+    keyAlgorithm: "KEY_ALG_RSA_2048",
+  };
+  // Previously a nameless, typeless body was returned verbatim to the caller.
+  await assert.rejects(respond({ disabled: true }), /identity, type, or algorithm/);
+  await assert.rejects(respond({ ...valid, name: valid.name.replace(/keys\/a+$/, `keys/${"b".repeat(40)}`) }), /identity/);
+  await assert.rejects(respond({ ...valid, keyType: "SYSTEM_MANAGED" }), /identity/);
+  await assert.rejects(respond({ ...valid, keyAlgorithm: "KEY_ALG_RSA_1024" }), /identity/);
+  const key = await respond(valid);
+  assert.deepEqual(Object.keys(key).sort(), ["disabled", "keyAlgorithm", "keyType", "name"]);
+});
+
+test("Google key reader rejects an oversized declared body before buffering", async () => {
+  const reader = createGoogleKeyReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: (name) => name === "content-length" ? "999999" : null },
+      text: async () => { throw new Error("body must not be buffered"); },
+    }),
+  });
+  await assert.rejects(
+    reader({ client_email: "deploy@example.iam.gserviceaccount.com", private_key_id: "a".repeat(40) }),
+    /too large/,
+  );
 });
 
 test("Google key reader rejects malformed identity before authentication", async () => {
@@ -103,6 +145,7 @@ test("observed Google key reader returns one exact authenticated key projection 
 test("observed Google key reader rejects identity, state, type, algorithm, and event drift", async () => {
   const attacks = [
     validKey({ name: `${keyName}0` }),
+    validKey({ name: `projects/other-project/serviceAccounts/${clientEmail}/keys/${privateKeyId}` }),
     validKey({ disabled: true }),
     validKey({ disabled: "false" }),
     validKey({ keyType: "SYSTEM_MANAGED" }),
@@ -116,6 +159,9 @@ test("observed Google key reader rejects identity, state, type, algorithm, and e
   await assert.rejects(() => observedReader(async () => keyResponse(validKey()))(
     observedArguments({ expected_disabled: "false" }),
   ), /expected_disabled/);
+  await assert.rejects(() => observedReader(async () => keyResponse(validKey()))(
+    observedArguments({ project_id: "-" }),
+  ), /project_id/);
 });
 
 test("observed Google key transport rejects Date, status, bounds, UTF-8, and duplicate keys", async () => {

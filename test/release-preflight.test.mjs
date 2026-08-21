@@ -26,12 +26,18 @@ test("installed dependency tree has no unreviewed problems", () => {
 });
 
 test("every external GitHub Action is pinned to a full commit SHA", async () => {
-  for (const file of await readdir(workflowDirectory)) {
-    if (!/\.ya?ml$/.test(file)) continue;
-    const source = await readFile(new URL(file, workflowDirectory), "utf8");
-    for (const match of source.matchAll(/^\s*- uses:\s+([^\s#]+)/gm)) {
-      if (match[1].startsWith("./")) continue;
-      assert.match(match[1], /^[^@\s]+@[a-f0-9]{40}$/, `${file} contains an unpinned action`);
+  const templateDirectory = new URL("../k0/templates/", import.meta.url);
+  for (const directory of [workflowDirectory, templateDirectory]) {
+    for (const file of await readdir(directory)) {
+      if (!/\.ya?ml$/.test(file)) continue;
+      const source = await readFile(new URL(file, directory), "utf8");
+      // Match both `- uses:` and name-first `uses:` step forms.
+      const matches = [...source.matchAll(/^\s*(?:- )?uses:\s+([^\s#]+)/gm)];
+      assert.ok(matches.length > 0, `${file} contains no uses: steps`);
+      for (const match of matches) {
+        if (match[1].startsWith("./")) continue;
+        assert.match(match[1], /^[^@\s]+@[a-f0-9]{40}$/, `${file} contains an unpinned action`);
+      }
     }
   }
 });
@@ -66,4 +72,24 @@ test("runtime containers are digest-pinned and exclude package-manager tooling",
   }
   const agent = await readFile(new URL("../agent/Dockerfile", import.meta.url), "utf8");
   assert.match(agent, /npm ci --omit=dev --legacy-peer-deps --ignore-scripts/);
+});
+
+test("console image import graph is dependency-free", async () => {
+  // console/Dockerfile ships src/ and console/ with no node_modules; any bare
+  // specifier reachable from the server entry crashes the container at startup.
+  const { dirname, resolve } = await import("node:path");
+  const seen = new Set();
+  const external = [];
+  const walk = async (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    const source = await readFile(file, "utf8");
+    for (const [, specifier] of source.matchAll(/^import[^"']*["']([^"']+)["']/gm)) {
+      if (specifier.startsWith("node:")) continue;
+      if (specifier.startsWith(".")) await walk(resolve(dirname(file), specifier));
+      else external.push(`${specifier} <- ${file}`);
+    }
+  };
+  await walk(new URL("../console/server.mjs", import.meta.url).pathname);
+  assert.deepEqual(external, []);
 });

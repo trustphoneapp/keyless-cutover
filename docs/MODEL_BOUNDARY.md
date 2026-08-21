@@ -76,7 +76,7 @@ Only deterministic code may:
 - Model receives no mutation tool definitions or credentials.
 - Model output is parsed as data, never executed.
 - The compiler generates final workflow/IAM artifacts from validated scalars.
-- Injection corpus includes direct, encoded, Unicode, log-based, YAML-key, comment, and dependency instructions.
+- Injection corpus (`eval/cases.mjs`) currently contains two plaintext comment-injection cases (D-E04, S-F01), scored deterministically via `PROMPT_INJECTION_TEXT`; encoded, Unicode, log-based, YAML-key, and dependency variants are not yet covered.
 
 ## Necessity test
 

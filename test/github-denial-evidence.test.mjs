@@ -11,6 +11,8 @@ import {
 } from "../src/github-denial-evidence.mjs";
 
 const installationToken = `ghs_${"t".repeat(36)}`;
+const provider = "projects/3/locations/global/workloadIdentityPools/keyless/providers/github";
+const federated = (name) => `failed to generate Google Cloud federated token for //iam.googleapis.com/${name}:`;
 
 function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
@@ -31,7 +33,7 @@ async function assertStaticFailure(operation, marker, pattern) {
 
 function fixture(options = {}) {
   const {
-    log = "google-github-actions/auth failed: audience rejected by Security Token Service",
+    log = `google-github-actions/auth ${federated(provider)} audience rejected by Security Token Service`,
     mutateRun,
     mutateJobs,
     mutateArtifacts,
@@ -97,7 +99,7 @@ function h2Fixture() {
   };
   const zip = new AdmZip();
   zip.addFile("k0-external.json", Buffer.from(JSON.stringify(denial)));
-  const log = "google-github-actions/auth failed: credential is rejected by the attribute condition at STS";
+  const log = `google-github-actions/auth ${federated(provider)} credential is rejected by the attribute condition at STS`;
   const fetchImpl = async (url) => {
     if (url.endsWith("/actions/runs/8002")) return response(200, run);
     if (url.includes("/jobs?")) return response(200, { total_count: 1, jobs: [{
@@ -122,7 +124,7 @@ function h2Fixture() {
 const input = {
   owner: "trustphoneapp", repository: "keyless-cutover", runId: "7007", hostileId: "H7",
   installationToken, scopeOwnerId: "1", scopeRepositoryId: "2",
-  forbiddenService: "keyless-forbidden",
+  forbiddenService: "keyless-forbidden", provider,
 };
 
 test("GitHub collector proves a hostile denial from API, artifact, and allowlisted log signature", async () => {
@@ -154,8 +156,20 @@ test("GitHub collector accepts a bounded OAuth token only for read-side evidence
 });
 
 test("GitHub collector refuses a generic failure before the intended control", async () => {
-  const { fetchImpl } = fixture("network timeout before authentication");
+  const { fetchImpl } = fixture(`network timeout before authentication ${federated(provider)}`);
   await assert.rejects(collectGitHubDenialEvidence({ ...input, fetchImpl }), /does not prove/);
+});
+
+test("GitHub collector refuses a denial issued by a different WIF provider", async () => {
+  const other = "projects/3/locations/global/workloadIdentityPools/keyless/providers/github-fresh-wif1";
+  const wrongProvider = fixture(`google-github-actions/auth ${federated(other)} audience rejected by Security Token Service`);
+  await assert.rejects(collectGitHubDenialEvidence({ ...input, fetchImpl: wrongProvider.fetchImpl }), /approved WIF provider/);
+  const noProvider = fixture("google-github-actions/auth failed: audience rejected by Security Token Service");
+  await assert.rejects(collectGitHubDenialEvidence({ ...input, fetchImpl: noProvider.fetchImpl }), /approved WIF provider/);
+  const { fetchImpl } = fixture();
+  await assert.rejects(collectGitHubDenialEvidence({ ...input, provider: undefined, fetchImpl }), /WIF provider is invalid/);
+  const ok = await collectGitHubDenialEvidence({ ...input, fetchImpl });
+  assert.equal(ok.clientResult.provider, provider);
 });
 
 test("GitHub collector requires authoritative GitHub-hosted runner metadata", async () => {

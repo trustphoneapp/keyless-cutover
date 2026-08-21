@@ -51,6 +51,7 @@ test("credential scan rejects raw, escaped, URL-encoded, and bounded base64 vari
     Buffer.from(privateKey).toString("base64"),
     `prefix:${Buffer.from(githubToken).toString("base64")}:suffix`,
     Buffer.from(encodeURIComponent(googleToken)).toString("base64url"),
+    `token ${Buffer.from(`${privateKey.split("\n")[0]}\n\u00ff\u00fe`).toString("base64").replace(/\+/g, "-").replace(/\//g, "_")}`,
   ];
   for (const value of variants) {
     assert.throws(
