@@ -981,6 +981,8 @@ export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
           || ![account.email, account.uniqueId].includes(accountIdentifier)) {
         throw new Error("service account identity does not match");
       }
+      // Verified against the live 2026-08-14 DisableServiceAccountKey entry: Cloud Audit
+      // Logs records the `-` wildcard with the numeric unique ID, not the concrete project.
       const auditResource = `projects/-/serviceAccounts/${account.uniqueId}/keys/${keyId}`;
       const method = "google.iam.admin.v1.DisableServiceAccountKey";
       const value = await request("POST", "https://logging.googleapis.com/v2/entries:list", {
@@ -1065,6 +1067,7 @@ export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
           || account.email !== serviceAccountEmail || account.uniqueId !== serviceAccountUniqueId) {
         throw new Error("service account identity does not match");
       }
+      // Same verified shape as above: `-` wildcard plus numeric unique ID.
       const auditResource = `projects/-/serviceAccounts/${serviceAccountUniqueId}/keys/${keyId}`;
       const method = "google.iam.admin.v1.DisableServiceAccountKey";
       const audit = await boundedParityRequest("POST", "https://logging.googleapis.com/v2/entries:list", {
