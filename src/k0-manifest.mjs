@@ -55,7 +55,7 @@ const TOP_LEVEL = new Set([
 const PRE_DISABLE_TOP_LEVEL = new Set([
   "scope", "revisions", "approved_workflows", "legacy_baseline", "proof", "cutover", "wif", "hostile_tests",
 ]);
-const SCOPE_FIELDS = new Set([
+export const SCOPE_FIELDS = new Set([
   "owner_id", "repository_id", "workflow_path", "proof_workflow_path", "legacy_workflow_path", "h1_workflow_path", "h2_workflow_path", "h4_workflow_path",
   "project_id", "project_number", "region",
   "service_account_email", "service_account_unique_id", "key_id", "allowed_service", "forbidden_service",
@@ -173,7 +173,8 @@ function validatePreDisableFragment(fragment, evidenceItems, errors) {
     fail(present(item.locator), `${item.id ?? "unknown"} locator is invalid`);
     fail(isRfc3339(item.observed_at), `${item.id ?? "unknown"} observed_at is invalid`);
     fail(exact(item.sha256, SHA256), `${item.id ?? "unknown"} sha256 is invalid`);
-    fail(item.public_url === undefined || /^https:\/\//.test(item.public_url), `${item.id ?? "unknown"} public_url is invalid`);
+    fail(item.public_url === undefined || (present(item.public_url) && /^https:\/\//.test(item.public_url)),
+      `${item.id ?? "unknown"} public_url is invalid`);
     fail(!evidence.has(item.id), `${item.id ?? "unknown"} evidence ID is duplicated`);
     if (exact(item.id, SOURCE_ID) && !evidence.has(item.id)) evidence.set(item.id, item);
   }

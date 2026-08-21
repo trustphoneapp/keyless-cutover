@@ -10,7 +10,7 @@ import {
   fetchGitHubJsonObserved,
   isGitHubHostedJob,
 } from "./github-denial-evidence.mjs";
-import { requireGitHubInstallationToken } from "./github-token.mjs";
+import { requireGitHubReadToken } from "./github-token.mjs";
 import { githubReleaseMarker, githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
 import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
 
@@ -71,7 +71,7 @@ export async function collectFreshLegacyDenialEvidence({
   exact(owner, OWNER, "owner");
   exact(repository, REPOSITORY, "repository");
   exact(String(runId), NUMERIC, "run ID");
-  const token = requireGitHubInstallationToken(installationToken);
+  const token = requireGitHubReadToken(installationToken);
   const ownerId = exact(scopeOwnerId, NUMERIC, "scope owner ID");
   const repositoryId = exact(scopeRepositoryId, NUMERIC, "scope repository ID");
   exact(keyId, KEY_ID, "key ID");
@@ -194,7 +194,7 @@ export async function collectSuccessfulLegacyDeploy({
   exact(repository, REPOSITORY, "repository");
   exact(String(runId), NUMERIC, "run ID");
   if (!Number.isInteger(pullNumber) || pullNumber < 1) throw new Error("pull number is invalid");
-  const token = requireGitHubInstallationToken(installationToken);
+  const token = requireGitHubReadToken(installationToken);
   const base = `https://api.github.com/repos/${owner}/${repository}`;
   const firstResponses = await Promise.all([
     fetchBaselineJson(`${base}/actions/runs/${runId}`, token, fetchImpl),

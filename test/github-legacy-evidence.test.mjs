@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import AdmZip from "adm-zip";
@@ -14,6 +15,9 @@ import {
 
 const installationToken = `ghs_${"t".repeat(36)}`;
 const legacyTemplate = await readFile(new URL("../k0/templates/k0-deploy.legacy.yml", import.meta.url));
+const legacyTemplateBlobSha = createHash("sha1")
+  .update(Buffer.from(`blob ${legacyTemplate.length}\0`)).update(legacyTemplate).digest("hex");
+const legacyTemplateSha256 = createHash("sha256").update(legacyTemplate).digest("hex");
 
 function response(status, value, extraHeaders = {}) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === "string" ? value : JSON.stringify(value));
@@ -118,11 +122,11 @@ function baselineFixture({ mutate = () => {}, headers = { date: "Thu, 13 Aug 202
     },
     reviewedContent: {
       encoding: "base64", content: legacyTemplate.toString("base64"),
-      sha: "62ec226833a2ac44913044ab665a01b0f0f271db",
+      sha: legacyTemplateBlobSha,
     },
     runContent: {
       encoding: "base64", content: legacyTemplate.toString("base64"),
-      sha: "62ec226833a2ac44913044ab665a01b0f0f271db",
+      sha: legacyTemplateBlobSha,
     },
     release: { encoding: "base64", content: Buffer.from("legacy-1\n").toString("base64") },
   };
@@ -239,7 +243,7 @@ test("legacy baseline collector accepts only the reviewed inactive workflow fixt
   assert.equal(result.githubRun.event, "workflow_dispatch");
   assert.equal(result.observedAt, "2026-08-13T12:18:00Z");
   assert.equal(result.githubRun.release_marker, "legacy-1");
-  assert.equal(result.githubRun.workflow_sha256, "efa494890963b2744b031a54f78f13df5575b948eec9fa2ec452342fda6feebf");
+  assert.equal(result.githubRun.workflow_sha256, legacyTemplateSha256);
   assert.equal(result.workflowApproval.workflow_sha256, result.githubRun.workflow_sha256);
   assert.equal(result.environmentReview.reviewer_id, "11");
   const text = legacyTemplate.toString("utf8");

@@ -193,14 +193,14 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
       details_url: `https://github.com/${owner}/${repository}/actions/runs/4001/job/5001`,
     }] },
     key: {
-      name: `projects/-/serviceAccounts/${scope.service_account_email}/keys/${scope.key_id}`,
+      name: `projects/${scope.project_id}/serviceAccounts/${scope.service_account_email}/keys/${scope.key_id}`,
       keyType: "USER_MANAGED", keyAlgorithm: ["KEY", "ALG", "RSA", "2048"].join("_"), disabled: true,
       validAfterTime: "2026-08-13T10:00:00Z",
     },
     account: {
       name: `projects/${scope.project_id}/serviceAccounts/${scope.service_account_email}`,
       projectId: scope.project_id, email: scope.service_account_email,
-      uniqueId: scope.service_account_unique_id, disabled: false,
+      uniqueId: scope.service_account_unique_id,
     },
     disableAudit: { entries: [{
       insertId: "audit-1", timestamp: "2026-08-13T12:10:00Z",
@@ -425,7 +425,7 @@ function scopeEmail(scope) {
   return encodeURIComponent(scope.service_account_email);
 }
 
-test("live issuer output is deterministic for the same authenticated snapshots", async (t) => {
+test("live issuer output is deterministic for the same authenticated snapshots across read token classes", async (t) => {
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
   const first = authenticatedFixture(archive);
@@ -433,7 +433,8 @@ test("live issuer output is deterministic for the same authenticated snapshots",
   const left = await issueK0Live(plan(), { installationToken: token, googleAuth: first.googleAuth });
   const second = authenticatedFixture(archive);
   globalThis.fetch = second.fetchImpl;
-  const right = await issueK0Live(plan(), { installationToken: token, googleAuth: second.googleAuth });
+  const oauthToken = `gho_${"t".repeat(36)}`;
+  const right = await issueK0Live(plan(), { installationToken: oauthToken, googleAuth: second.googleAuth });
   assert(left.bundle.manifestBytes.equals(right.bundle.manifestBytes));
   assert(left.receipt.receiptBytes.equals(right.receipt.receiptBytes));
   assert(left.kmsRequestBytes.equals(right.kmsRequestBytes));

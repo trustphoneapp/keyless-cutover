@@ -182,6 +182,10 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
       revision.observed_at = "2026-08-13T11:33:00Z";
     }],
     ["cutover repository", (input) => { evidenceByKind(input, "GITHUB_PULL_REQUEST", "cutover-pr").data.repository_id = "999"; }],
+    ["wif-1 before cutover merge", (input) => {
+      evidenceByKind(input, "GITHUB_RUN", "wif-1").data.started_at = "2026-08-13T10:50:00Z";
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.create_time = "2026-08-13T10:51:00Z";
+    }],
     ["wif-1 self review", (input) => { evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "wif-1-review").data.reviewer_id = "10"; }],
     ["wif-1 stale revision", (input) => {
       evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.create_time = "2026-08-13T11:29:59Z";
@@ -249,6 +253,12 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
       approval.data.merged_at = "2026-08-13T11:51:00Z";
       approval.observed_at = "2026-08-13T11:52:00Z";
     }],
+    ["H4 late approval", (input) => {
+      const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "h4-workflow-approval");
+      approval.data.reviewed_at = "2026-08-13T11:51:00Z";
+      approval.data.merged_at = "2026-08-13T11:52:00Z";
+      approval.observed_at = "2026-08-13T11:53:00Z";
+    }],
     ["H1 H2 approval swap", (input) => {
       const h1 = input.manifest.approved_workflows.h1.source_id;
       input.manifest.approved_workflows.h1.source_id = input.manifest.approved_workflows.h2.source_id;
@@ -262,6 +272,9 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
     ["backdated observation", (input) => {
       evidenceByKind(input, "STS_CLIENT_RESULT", "H1-result").observed_at = "2026-08-13T11:49:59Z";
     }],
+    ["H3 wrong provider", (input) => {
+      evidenceByKind(input, "STS_CLIENT_RESULT", "H3-result").data.provider = `${input.manifest.wif.provider}-fresh-wif1`;
+    }],
     ["H8 bracket", (input) => {
       evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-after-hostile").observed_at = "2026-08-13T11:40:00Z";
     }],
@@ -270,6 +283,8 @@ test("shared and full verifiers reject the same pre-disable attacks", async () =
       input.manifest.revisions.forbidden_after_hostile_source_id = input.manifest.revisions.forbidden_before_source_id;
     }],
     ["missing baseline source", (input) => { input.manifest.legacy_baseline.source_ids.pop(); }],
+    ["public_url array", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").public_url = ["https://example.test/x"]; }],
+    ["public_url newline", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").public_url = "https://example.test/x\nevil"; }],
   ];
   for (const [label, mutate] of attacks) {
     const input = validK0BundleInput();
@@ -803,6 +818,23 @@ test("semantic verification snapshots every artifact exactly once", async () => 
   assert.equal([...calls.values()].every((count) => count === 1), true);
 });
 
+test("hostile run and H8 result artifacts with null data fail closed without throwing", async () => {
+  const input = validK0BundleInput();
+  const bundle = await assembleK0Bundle(input);
+  const targets = [
+    evidenceByKind(input, "GITHUB_RUN", "H3-run"),
+    evidenceByKind(input, "GITHUB_RUN", "H8-run"),
+    evidenceByKind(input, "CLOUD_RUN_IAM_RESULT"),
+  ];
+  for (const target of targets) {
+    const mutated = { manifest: structuredClone(bundle.manifest), artifacts: new Map(bundle.artifacts) };
+    replaceArtifact(mutated, target.id, (envelope) => { envelope.data = null; });
+    const result = await semanticResult(mutated);
+    assert.equal(result.ok, false, target.id);
+    assert.equal(result.errors.includes(`${target.id} ${target.kind} data fields are invalid`), true, target.id);
+  }
+});
+
 test("bundle verification rejects artifact bytes outside the manifest ledger", async () => {
   const bundle = await assembleK0Bundle(validK0BundleInput());
   const extra = new Map(bundle.artifacts);
@@ -812,6 +844,7 @@ test("bundle verification rejects artifact bytes outside the manifest ledger", a
   const first = bundle.manifest.evidence[0];
   const changed = Buffer.from(bundle.artifacts.get(first.id));
   changed[changed.length - 2] ^= 1;
-  const digest = createHash("sha256").update(changed).digest("hex");
-  assert.notEqual(digest, first.sha256);
+  const tampered = new Map(bundle.artifacts);
+  tampered.set(first.id, changed);
+  await assert.rejects(() => verifyK0Bundle({ manifest: bundle.manifest, artifacts: tampered }));
 });

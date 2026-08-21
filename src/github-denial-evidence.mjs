@@ -10,6 +10,7 @@ const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const NUMERIC = /^\d+$/;
 const SHA = /^[a-f0-9]{40}$/;
 const SERVICE = /^[a-z][a-z0-9-]{0,62}$/;
+const PROVIDER = /^projects\/\d+\/locations\/global\/workloadIdentityPools\/[a-z0-9-]+\/providers\/[a-z0-9-]+$/;
 const CREDENTIAL = /(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"\s*:|ya29\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35})/;
 const MAX_JSON_RESPONSE = 1_000_000;
 const JOBS = {
@@ -333,11 +334,13 @@ export function extractSingleJsonArtifact(zipBytes, expectedName) {
   return JSON.parse(bytes.toString("utf8"));
 }
 
-function classifyLog(log, hostileId) {
+function classifyLog(log, hostileId, provider) {
   const value = log.toString("utf8");
   if (hostileId === "H8") {
     if (/(PERMISSION_DENIED|does not have permission|Permission .* denied)/i.test(value)
         && /(run\.services\.update|services update|Cloud Run)/i.test(value)) return "CLOUD_RUN_IAM_DENIED";
+  } else if (!value.includes(`federated token for //iam.googleapis.com/${provider}:`)) {
+    throw new Error(`${hostileId} log does not name the approved WIF provider`);
   } else if (hostileId === "H7") {
     if (/(audience|allowed audiences)/i.test(value) && /(invalid|rejected|denied|unauthorized_client)/i.test(value)
         && /(google-github-actions\/auth|Security Token Service|STS)/i.test(value)) return "AUDIENCE_DENIED";
@@ -375,7 +378,8 @@ function validateArtifact(value, hostileId, run, expected) {
 }
 
 export async function collectGitHubDenialEvidence({
-  owner, repository, runId, hostileId, installationToken, scopeOwnerId, scopeRepositoryId, forbiddenService, fetchImpl = fetch,
+  owner, repository, runId, hostileId, installationToken, scopeOwnerId, scopeRepositoryId, forbiddenService, provider,
+  fetchImpl = fetch,
 }) {
   exact(owner, OWNER, "owner");
   exact(repository, REPOSITORY, "repository");
@@ -385,6 +389,7 @@ export async function collectGitHubDenialEvidence({
   const ownerId = exact(scopeOwnerId, NUMERIC, "scope owner ID");
   const repositoryId = exact(scopeRepositoryId, NUMERIC, "scope repository ID");
   exact(forbiddenService, SERVICE, "forbidden service");
+  exact(provider, PROVIDER, "WIF provider");
   const base = `https://api.github.com/repos/${owner}/${repository}`;
   const firstResponses = await Promise.all([
     fetchGitHubJsonObserved(`${base}/actions/runs/${runId}`, token, fetchImpl),
@@ -429,7 +434,7 @@ export async function collectGitHubDenialEvidence({
   const [zip, log] = downloadResponses.map(({ bytes }) => bytes);
   const value = extractSingleJsonArtifact(zip, ["H1", "H2"].includes(hostileId) ? "k0-external.json" : `k0-${hostileId}.json`);
   validateArtifact(value, hostileId, run, { owner, repository, ownerId, repositoryId, forbiddenService });
-  const category = classifyLog(log, hostileId);
+  const category = classifyLog(log, hostileId, provider);
   const apiOwnerId = String(run.repository.owner.id);
   const apiRepositoryId = String(run.repository.id);
   if ((value.owner_id && value.owner_id !== apiOwnerId) || (value.repository_id && value.repository_id !== apiRepositoryId)) {
@@ -465,7 +470,7 @@ export async function collectGitHubDenialEvidence({
     denied_at: jobs[0].completed_at, log_sha256: logSha256,
   } : {
     hostile_id: hostileId, run_id: String(run.id), run_attempt: String(run.run_attempt), head_sha: run.head_sha,
-    outcome: "DENIED", reached_sts: true, error_category: category,
+    outcome: "DENIED", reached_sts: true, error_category: category, provider,
     denied_at: jobs[0].completed_at, log_sha256: logSha256,
   };
   return { observedAt, githubRun, clientResult };

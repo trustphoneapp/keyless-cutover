@@ -12,7 +12,7 @@
 
 | Threat | Sev. | Control | Verification | Ship rule |
 |---|---|---|---|---|
-| Prompt injection in YAML/log/script | Critical | Treat as quoted evidence; redaction; typed model output; no model mutation tools; deterministic compiler | Direct/encoded/Unicode/comment/log injection corpus | Block if model can cross mutation boundary |
+| Prompt injection in YAML/log/script | Critical | Treat as quoted evidence; redaction; typed model output; no model mutation tools; deterministic compiler | Plaintext comment-injection corpus (D-E04, S-F01) scored via `PROMPT_INJECTION_TEXT`; encoded/Unicode/log variants not yet covered | Block if model can cross mutation boundary |
 | Shared GitHub OIDC issuer/confused deputy | Critical | Numeric owner/repo IDs; exact ref/workflow/environment/event/audience | Wrong owner/repo/name-reuse tests | Any success blocks release |
 | Repository rename/transfer | Critical | Numeric IDs; fresh OIDC claim observation; transfer invalidates approval | Rename/transfer fixture | Name-only trust prohibited |
 | Wrong audience/issuer | Critical | Exact issuer and provider-resource audience | Wrong/missing/case-variant audience | Real denial required |

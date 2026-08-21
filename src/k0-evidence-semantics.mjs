@@ -17,6 +17,7 @@ const REVISION = /^[a-z][a-z0-9-]{0,62}$/;
 const REGION = /^[a-z]+-[a-z]+\d$/;
 const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
 const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
+const PROVIDER = /^projects\/\d+\/locations\/global\/workloadIdentityPools\/[a-z0-9-]+\/providers\/[a-z0-9-]+$/;
 const CHECKPOINT_FIELDS = new Set([
   "owner_id", "repository_id", "collected_at", "protection", "pull", "receipt", "archive", "run", "check",
 ]);
@@ -63,7 +64,7 @@ const DATA_FIELDS = {
     "region", "allowed_service", "forbidden_service",
     "observed_before_at", "observed_after_at", "parity_hash",
   ]),
-  STS_CLIENT_RESULT: new Set(["hostile_id", "run_id", "run_attempt", "head_sha", "outcome", "reached_sts", "error_category", "denied_at", "log_sha256"]),
+  STS_CLIENT_RESULT: new Set(["hostile_id", "run_id", "run_attempt", "head_sha", "outcome", "reached_sts", "error_category", "provider", "denied_at", "log_sha256"]),
   CLOUD_RUN_IAM_RESULT: new Set(["hostile_id", "run_id", "run_attempt", "head_sha", "outcome", "reached_cloud_run", "target", "denied_at", "log_sha256"]),
   CLOUD_RUN_REVISION: new Set(["project_id", "region", "service", "revision", "create_time", "release_marker", "image_digest"]),
   GCP_AUDIT_ENTRY: new Set(["method_name", "resource_name", "principal_email", "key_id", "service_account_email", "service_account_unique_id", "project_id", "project_number", "insert_id", "timestamp", "status"]),
@@ -218,6 +219,7 @@ function validateArtifactData(kind, data, fail, id) {
     fail(data.outcome === "DENIED" && data.reached_sts === true
       && ["WIF_CONDITION_DENIED", "AUDIENCE_DENIED"].includes(data.error_category)
       && isRfc3339(data.denied_at) && string(data.log_sha256, SHA256), `${id} STS denial is invalid`);
+    fail(string(data.provider, PROVIDER), `${id} STS denial provider is invalid`);
   } else if (kind === "CLOUD_RUN_IAM_RESULT") {
     fail(data.hostile_id === "H8" && string(data.run_id, NUMERIC)
       && string(data.run_attempt, NUMERIC) && string(data.head_sha, COMMIT_SHA)
@@ -464,7 +466,8 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
   };
   for (const [role, approval] of Object.entries(manifest.approved_workflows)) {
     const run = role === "baseline" ? baselineRun
-      : role === "h1" ? hostileRun("H1") : role === "h2" ? hostileRun("H2") : null;
+      : role === "h1" ? hostileRun("H1") : role === "h2" ? hostileRun("H2")
+        : role === "h4" ? hostileRun("H4") : null;
     const ownerId = run?.owner_id ?? manifest.scope.owner_id;
     const repositoryId = run?.repository_id ?? manifest.scope.repository_id;
     fail(approvalMatches(approval, ownerId, repositoryId, run),
@@ -484,13 +487,13 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
   fail(Boolean(baselineRevision), "legacy baseline Cloud Run revision does not match its exact run and release marker");
 
   const pullRequests = dataOfKind(manifest.cutover.source_ids, "GITHUB_PULL_REQUEST");
-  fail(pullRequests.some((pull) => pull?.number === manifest.cutover.pr_number
+  const cutoverPull = pullRequests.find((pull) => pull?.number === manifest.cutover.pr_number
     && pull?.head_sha === manifest.cutover.reviewed_head_sha && pull?.merge_sha === manifest.cutover.merge_sha
     && pull?.workflow_path === manifest.scope.workflow_path
     && pull?.workflow_blob_sha === manifest.cutover.workflow_blob_sha
     && pull?.workflow_sha256 === manifest.cutover.workflow_sha256
-    && pull?.owner_id === manifest.scope.owner_id && pull?.repository_id === manifest.scope.repository_id),
-  "cutover pull request does not match");
+    && pull?.owner_id === manifest.scope.owner_id && pull?.repository_id === manifest.scope.repository_id);
+  fail(Boolean(cutoverPull), "cutover pull request does not match");
   const wif1Runs = dataOfKind(manifest.cutover.source_ids, "GITHUB_RUN");
   const wif1Reviews = dataOfKind(manifest.cutover.source_ids, "GITHUB_ENVIRONMENT_REVIEW");
   const wif1Claim = {
@@ -504,6 +507,8 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
     && run?.workflow_sha256 === manifest.cutover.workflow_sha256
     && wif1Reviews.some((review) => reviewMatches(review, run)));
   fail(Boolean(wif1Run), "wif-1 GitHub run does not match approved workflow bytes and release marker");
+  fail(cutoverPull && wif1Run && timestampBefore(cutoverPull.merged_at, wif1Run.started_at),
+    "wif-1 run predates cutover pull request merge");
   fail(baselineRun && baselineRevision && wif1Run
     && timestampBefore(baselineRun.started_at, wif1Run.started_at)
     && timestampBefore(baselineRevision.data.create_time, wif1Run.started_at),
@@ -533,12 +538,13 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
     const resultKind = hostile.id === "H8" ? "CLOUD_RUN_IAM_RESULT" : "STS_CLIENT_RESULT";
     const results = dataOfKind(hostile.source_ids, resultKind);
     const expectedCategory = hostile.id === "H7" ? "AUDIENCE_DENIED" : "WIF_CONDITION_DENIED";
-    const runs = dataOfKind(hostile.source_ids, "GITHUB_RUN");
+    const runs = dataOfKind(hostile.source_ids, "GITHUB_RUN").filter(object);
     fail(results.some((result) => result?.hostile_id === hostile.id && result?.outcome === hostile.outcome
       && runs.some((run) => result?.run_id === run?.run_id && result?.run_attempt === run?.run_attempt
         && result?.head_sha === run?.head_sha)
       && (hostile.id === "H8" ? result?.target === manifest.scope.forbidden_service
-        : result?.error_category === expectedCategory)), `${hostile.id} client artifact does not match its run`);
+        : result?.error_category === expectedCategory && result?.provider === manifest.wif.provider)),
+    `${hostile.id} client artifact does not match its run`);
     const expectedWorkflowRef = `${manifest.scope.workflow_path}@refs/heads/main`;
     const contextMatches = runs.some((run) => {
       const exactRepository = run.owner_id === manifest.scope.owner_id && run.repository_id === manifest.scope.repository_id;
@@ -587,7 +593,7 @@ function validatePreDisableSemantics(manifest, entries, artifacts, observedAt, f
   const h8 = manifest.hostile_tests.find(({ id }) => id === "H8");
   const h8Run = entryOfKind(h8.source_ids, "GITHUB_RUN")[0];
   const h8Result = entryOfKind(h8.source_ids, "CLOUD_RUN_IAM_RESULT")[0];
-  fail(h8Run && h8Result
+  fail(object(h8Run?.data) && object(h8Result?.data)
     && timestampBefore(observedAt.get(forbiddenBeforeId), h8Run.data.started_at)
     && timestampAtOrBefore(h8Run.data.started_at, h8Result.data.denied_at)
     && timestampAtOrBefore(h8Result.data.denied_at, observedAt.get(forbiddenAfterHostileId)),

@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
-import { GoogleAuth } from "google-auth-library";
-
 import { canonicalJson, decodeUtf8 } from "./evidence-artifact.mjs";
 import { parseWifAuditEvidence } from "./k0-evidence-normalizer.mjs";
 import { parseAuthenticatedTransportObservation, rejectDuplicateJsonKeys } from "./observation-time.mjs";
@@ -490,11 +488,16 @@ export function verifyWifReadback({
   };
 }
 
-export function createGcpEvidenceReader({
-  auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform.read-only"] }),
-  fetchImpl = fetch,
-} = {}) {
+// Loaded lazily so the dependency-free console can import the pure verifiers
+// in this module without shipping google-auth-library.
+async function defaultGoogleAuth() {
+  const { GoogleAuth } = await import("google-auth-library");
+  return new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform.read-only"] });
+}
+
+export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
   const authenticatedFetch = async (method, url, body) => {
+    auth ??= await defaultGoogleAuth();
     const client = await auth.getClient();
     const authHeaders = await client.getRequestHeaders(url);
     const headers = new Headers(authHeaders);
@@ -978,6 +981,8 @@ export function createGcpEvidenceReader({
           || ![account.email, account.uniqueId].includes(accountIdentifier)) {
         throw new Error("service account identity does not match");
       }
+      // Verified against the live 2026-08-14 DisableServiceAccountKey entry: Cloud Audit
+      // Logs records the `-` wildcard with the numeric unique ID, not the concrete project.
       const auditResource = `projects/-/serviceAccounts/${account.uniqueId}/keys/${keyId}`;
       const method = "google.iam.admin.v1.DisableServiceAccountKey";
       const value = await request("POST", "https://logging.googleapis.com/v2/entries:list", {
@@ -1056,11 +1061,13 @@ export function createGcpEvidenceReader({
       ]);
       if (!account || typeof account !== "object" || Array.isArray(account)
           || Object.hasOwn(account, "nextPageToken")
-          || account.projectId !== projectId || account.disabled !== false
+          || account.projectId !== projectId
+          || (Object.hasOwn(account, "disabled") && account.disabled !== false)
           || !accountNames.has(account.name)
           || account.email !== serviceAccountEmail || account.uniqueId !== serviceAccountUniqueId) {
         throw new Error("service account identity does not match");
       }
+      // Same verified shape as above: `-` wildcard plus numeric unique ID.
       const auditResource = `projects/-/serviceAccounts/${serviceAccountUniqueId}/keys/${keyId}`;
       const method = "google.iam.admin.v1.DisableServiceAccountKey";
       const audit = await boundedParityRequest("POST", "https://logging.googleapis.com/v2/entries:list", {

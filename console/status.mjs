@@ -89,7 +89,8 @@ function checkpointStatus(bytes, checkpoint) {
   const hostile = checkpoint.pre_disable?.hostile_tests;
   if (checkpoint.pre_disable?.status !== "K0_PREDISABLE_VERIFIED"
       || checkpoint.pre_disable?.hostile_controls_passed !== "8/8"
-      || checkpoint.pre_disable?.forbidden_revision_before !== checkpoint.pre_disable?.forbidden_revision_after
+      || !bounded(checkpoint.pre_disable?.forbidden_revision_before)
+      || checkpoint.pre_disable.forbidden_revision_before !== checkpoint.pre_disable.forbidden_revision_after
       || !Array.isArray(hostile) || hostile.length !== 8
       || hostile.some((item, index) => item?.id !== HOSTILE_IDS[index]
         || !/^\d+$/.test(item?.run_id ?? "")

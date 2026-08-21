@@ -1,4 +1,4 @@
-name: K0 deploy
+name: K0 legacy baseline deploy
 
 on:
   workflow_dispatch:

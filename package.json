@@ -11,7 +11,8 @@
     "plan:wif": "node src/wif-plan.mjs",
     "run:eval": "node src/run-eval.mjs",
     "score:eval": "node src/eval-score.mjs",
-    "proofv2": "node bin/proofv2-operator.mjs"
+    "proofv2": "node bin/proofv2-operator.mjs",
+    "preflight": "npm ci --legacy-peer-deps --ignore-scripts && npm audit --omit=dev --audit-level=high && actionlint -no-color && npm test"
   },
   "engines": {
     "node": ">=22"
