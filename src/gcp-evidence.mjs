@@ -165,8 +165,23 @@ function validEtag(value) {
   }
 }
 
-function strictPolicy(policy, name) {
-  if (!exactObject(policy, POLICY_FIELDS) || !Number.isInteger(policy.version)
+function strictPolicy(rawPolicy, name) {
+  // Cloud IAM omits "version" and "bindings" entirely when they are at their zero-value
+  // defaults, so a fully locked-down policy (no bindings) is returned as bare {etag}. That is
+  // the correct, most-restrictive state for the forbidden service, and must be accepted here.
+  // Everything else below is checked exactly as before, against the normalized shape.
+  if (!rawPolicy || typeof rawPolicy !== "object" || Array.isArray(rawPolicy)
+      || Object.getPrototypeOf(rawPolicy) !== Object.prototype
+      || Object.keys(rawPolicy).some((key) => !POLICY_FIELDS.has(key))
+      || !Object.hasOwn(rawPolicy, "etag")) {
+    throw new Error(`${name} is invalid`);
+  }
+  const policy = {
+    version: Object.hasOwn(rawPolicy, "version") ? rawPolicy.version : 1,
+    etag: rawPolicy.etag,
+    bindings: Object.hasOwn(rawPolicy, "bindings") ? rawPolicy.bindings : [],
+  };
+  if (!Number.isInteger(policy.version)
       || ![1, 3].includes(policy.version) || !validEtag(policy.etag)
       || !Array.isArray(policy.bindings) || policy.bindings.length > 100) {
     throw new Error(`${name} is invalid`);
