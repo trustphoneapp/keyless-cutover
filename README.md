@@ -63,7 +63,7 @@ Firestore exists for one-time ProofV2 challenge consumption and evidence-derived
 - KMS proves receipt origin and tamper resistance, not that external events happened.
 - Disabling a key blocks fresh authentication but does not revoke access tokens minted earlier.
 
-## Current status — August 15, 2026
+## Current status — August 24, 2026
 
 Implemented locally:
 
@@ -93,11 +93,13 @@ Implemented locally:
 - ADC-backed Google collectors that hash the exact live provider configuration, require the approved repository impersonation binding as the only service-account IAM delta, project bounded official STS/IAM Credentials audit shapes, reject pagination/ambiguity, and read authoritative Cloud Run revision/create-time/release-marker/image-digest state without copying GitHub identity into cloud evidence.
 - A protected manual legacy-auth workflow and collector that remain available after the canonical workflow becomes WIF, force a fresh Google request with the exact old key on a new hosted runner, and accept only a Google key/authentication rejection signature. The workflow cannot deploy.
 - A bounded Cloud Logging query that accepts exactly one successful `DisableServiceAccountKey` Admin Activity entry for the scoped key, expected human principal, and approved 24-hour-or-shorter window; ambiguity blocks final evidence.
+- A `k0-predisable-collect` executable over those collectors, split into two commands so the forbidden-target read can happen in time: `observe-forbidden` records the forbidden revision before the first hostile probe starts, and `collect` assembles the bundle input, archive plan, and checkpoint receipt from the exact live sources. Nothing in it mutates GitHub or Google state.
+- The WIF audit normalizer accepts the shape Cloud Audit Logs actually return—`principalEmail` alongside `principalSubject`, plus token lifetime and issuer fields—and anchors its lookup window to the deploy job rather than the run's `started_at`, which precedes the exchange. The exact `{@type, grantType}` STS request assertions are deliberate and sourced from Google's published audit examples; they are not an oversight to relax.
 - Google Cloud CLI installed.
 
 Live but incomplete:
 
-- The public [Keyless evidence console](https://keyless-evidence-208865688014.us-central1.run.app) is deployed on Cloud Run revision `keyless-evidence-00001-82l` from an immutable amd64 image. Its dedicated runtime identity has no project role and the expected hardened response headers. The deployed image still serves the earlier eight-blocker checkpoint; the current local checkpoint now has three blockers and requires a separately authorized console rebuild/deploy.
+- The public [Keyless evidence console](https://keyless-evidence-208865688014.us-central1.run.app) is deployed on Cloud Run revision `keyless-evidence-00001-82l`, built 2026-08-13 from an immutable amd64 image. Its dedicated runtime identity has no project role and the expected hardened response headers. That image is stale in three ways: it still serves the earlier eight-blocker rendering, where the current `console/status.mjs` checkpoint path emits ten gates and three blockers; it predates the 2026-08-18 fix that requires bounded forbidden revisions in the checkpoint parity check, without which a malformed checkpoint crashed the render instead of failing closed; and it predates the `/healthz` → `/_health` rename, so its documented health endpoint is intercepted by Google Frontend and never reaches the container. Correcting any of this requires a separately authorized console rebuild and deploy.
 - The billed project `keyless-k0-20260813`, private Cloud Run agent, `legacy-1` canary, forbidden canary, Firestore database, reviewed WIF provider/binding, merged compiler-produced cutover, and live `keyless-demo-wif-1` revision exist. Provider/IAM readback matches the approved hashes and adds no downstream service-account permission.
 - ProofV2 run `31758449936` executed on merged commit `f48d9f1b9ac1d321c6b953217b50df82cd59ca4d` after protected `production` approval by `cherala2002`. It matched the exact active user-managed key, atomically consumed challenge `2dda9f12-07fd-4255-8bcd-61aea76dabdb` before expiry, rejected replay, survived receipt reconstruction after consumption, and passed an independent credential-shape scan. The credential-free [ProofV2 receipt](docs/evidence/PROOFV2_RECEIPT_2026-08-14.json) records the exact hashes and limitations.
 - PR #14 established the hardened reviewed workflow, PR #15 added the fail-closed operator, and PR #16 recorded the verified pre-disable state. All merged with independent review and passing post-merge CI.
@@ -109,7 +111,12 @@ Those key-transaction artifacts are historical readiness evidence only. The key 
 
 Not yet proven:
 
-- Publication of the current RC (PRs #18 and #19) and live read-back of `required_linear_history: true` are complete. Still unproven: a separately authorized fresh disposable v3 transaction; authenticated pending issuance from that transaction; separately authorized scoped KMS signature verification; the separate human release decision; and the updated evidence-console deployment and video.
+- Publication of the current RC (PRs #18 and #19) and live read-back of `required_linear_history: true` are complete. PR #27 restored the canonical cutover path; the compiler-owned WIF cutover is open as draft PR #28 and must not merge until the fresh legacy baseline exists, because its `current_sha256` is that baseline's content.
+- `KEYLESS_K0_ENABLED` is deliberately `false`, so no deploy or hostile job can start until an operator turns it on for the fresh transaction.
+- The three release markers the fresh transaction needs are not pinned. `legacy-1`, `legacy-2`, and `wif-1` are burned on `keyless-demo` and can never be reused, and `demo/release.txt` on `main` still holds the burned `wif-1`.
+- `sts.googleapis.com` data-access audit logging was only enabled on 2026-08-24 and is not retroactive, so no WIF exchange before that date can supply audit evidence.
+- The pre-disable collectors have unit coverage but have never been run against a live transaction.
+- Still unproven: a separately authorized fresh disposable v3 transaction; authenticated pending issuance from that transaction; separately authorized scoped KMS signature verification; the separate human release decision; and the updated evidence-console deployment and video.
 
 The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live security outcome is claimed from the local unit tests.
 
@@ -118,6 +125,8 @@ The project remains **REVISE / NO-GO** until the 48-hour K0 test passes. No live
 The fresh K0 order is fixed: the protected RC is merged and required linear history was read back; collect a fresh legacy baseline, ProofV2, WIF-1 parity, and H1–H8 including H2; review and merge the canonical pre-disable archive checkpoint while the fresh key remains enabled; have a human disable the exact key and read it back; prove fresh legacy denial before deploying and reading back `wif-2`; run authenticated pending issuance; separately authorize and verify the scoped KMS signature; then leave release to a separate human decision. The signature does not replace that boundary, and local v3 reconstruction alone does not pass this gate.
 
 The verifier selects the earliest authoritative occurrence time, checkpoint-receipt `recorded_at`, or checkpoint event time across the final evidence and requires `manifest.assembled_at`—the latest authenticated final collection—to be no more than 48 hours later. Archive or checkpoint sealing and later recollection cannot reset, backdate, or extend that window.
+
+In practice the window opens at the first approval pull-request review, not at the first workflow run: `occurrenceValues` in `src/k0-evidence-semantics.mjs` treats both `reviewed_at` and `merged_at` of every `GITHUB_PULL_REQUEST` artifact as authoritative occurrences, and the manifest carries five approval-workflow PRs plus the cutover and archive-checkpoint PRs. Reviewing any one of them early spends the window before a single deploy runs.
 
 Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong-key ambiguity, hand-repaired generated patch, or failed post-disable WIF deployment kills or pivots the project.
 
@@ -137,6 +146,23 @@ Any mocked core evidence, replay acceptance, hostile success, secret leak, wrong
 - [Release and submission checklist](docs/SUBMISSION_CHECKLIST.md)
 - [Official source index](docs/SOURCES.md)
 - [ADR 0002: Taskmaster scope](docs/adr/0002-TASKMASTER_SCOPE.md)
+
+### Scope, claims, and boundaries
+
+- [Claims and limitations](docs/CLAIMS_AND_LIMITATIONS.md) — what may and may not be said publicly, and the forbidden marketing wording.
+- [Threat model](docs/THREAT_MODEL.md)
+- [Model boundary](docs/MODEL_BOUNDARY.md) — what Gemini may and may not decide.
+- [Permissions](docs/PERMISSIONS.md)
+- [Data handling](docs/DATA_HANDLING.md)
+
+### Operating the system
+
+- [Developer quickstart](docs/QUICKSTART.md)
+- [Operations and failure recovery](docs/OPERATIONS.md)
+- [Approvals and rollback](docs/APPROVALS_AND_ROLLBACK.md)
+- [State machine](docs/STATE_MACHINE.md)
+- [Receipts](docs/RECEIPTS.md)
+- [Internal API surface](docs/API.md)
 
 ## Development
 

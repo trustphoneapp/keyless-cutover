@@ -44,6 +44,43 @@ KEYLESS_GITHUB_TOKEN="$GITHUB_READ_TOKEN" \
 
 The exact second argument is a safe JSON basename, not a path. The command atomically refuses an existing file, symlink, FIFO, or competing writer before authentication, then writes and rereads one canonical mode-`0600` envelope through the reserved handle. On an ordinary pre-commit failure it attempts, through that held handle, to restore mode `0600`, truncate the file, and if needed write and sync an invalid `0xFF` first byte; when those mutations succeed, the residue is private and verifier-invalid. If every held-handle mutation fails, the command still fails, never marks the output committed, and never unlinks or writes through the path, but it cannot guarantee that the residue is invalid or private. Treat any file from a failed run as untrusted: inspect it manually, choose a new basename for a retry, and never treat it as committed. The envelope contains the verified bundle, pending receipt, and inert KMS request; it never contains a signature or release authorization.
 
+## Live operator commands
+
+These four executables are the only ones that touch live GitHub or Google state, and none of them mutates it. All four are read-only apart from the one Firestore write in `proofv2 issue`. Every one refuses to overwrite an existing file, directory, or symlink and writes mode-`0600` output. They take a GitHub token only through `KEYLESS_GITHUB_TOKEN`, never as an argument, and use existing read-only GCP application-default credentials.
+
+### ProofV2 operator
+
+```sh
+npm run proofv2 -- issue --project-id P --migration-id M --owner-id N --repository-id N \
+  --workflow-path .github/workflows/k0-proof-v2.yml --client-email SA@P.iam.gserviceaccount.com
+npm run proofv2 -- verify --project-id P --owner OWNER --repository REPO --run-id N \
+  --workflow-path .github/workflows/k0-proof-v2.yml
+```
+
+`issue` performs exactly one Firestore document creation and prints only the five bounded workflow-dispatch inputs; it never dispatches anything. `verify` is read-only in GitHub and Google IAM until the signed proof, exact completed run, workflow blob, and independent environment review all agree, then atomically moves that one challenge from `ISSUED` to `CONSUMED` and proves a second consume is rejected. The challenge expires exactly five minutes after issuance, so do not issue until the dispatcher is ready; an expired challenge cannot be re-dispatched or reissued without a new explicit write permission. Full operator mechanics and the required human approvals are in [REVIEWER_RUNBOOK.md](REVIEWER_RUNBOOK.md).
+
+### Pre-disable collectors
+
+```sh
+node bin/k0-predisable-collect.mjs observe-forbidden collect-plan.json forbidden-before.json
+
+KEYLESS_GITHUB_TOKEN="$GITHUB_READ_TOKEN" \
+  node bin/k0-predisable-collect.mjs collect \
+    collect-plan.json operator-receipt.json forbidden-before.json new-output-dir
+```
+
+**Run `observe-forbidden` before the first hostile probe starts.** It records the forbidden Cloud Run service's revision, and the verifier requires that observation to be strictly earlier than H8's start time. The `collect` plan cannot be written until H8 exists, so the two cannot be run together: an observation taken after the probes is late, and a late observation cannot be repaired by re-reading the service. That ordering is the only reason the collector is split into two commands.
+
+`collect` then refetches the exact approvals, runs, jobs, logs, artifacts, Cloud Run revisions, WIF provider/IAM state, and audit entries named by the plan, and writes `bundle-input.json`, `archive-plan.json`, and `checkpoint-receipt.json` into a new mode-`0700` directory. It removes that directory if any step fails, so a partial collection is never left behind as evidence.
+
+### Pre-disable archive
+
+```sh
+node bin/k0-predisable-archive.mjs archive-plan.json artifact-dir new-output-dir
+```
+
+Takes the `archive-plan.json` from `collect` plus the exact artifact directory it names, seals them into one canonical `predisable-archive.json`, and re-verifies the written bytes before returning. Commit that file through a protected pull request, obtain independent review of its exact head, and merge it **while the fresh key is still enabled** — the verifier requires the checkpoint's `test` check and `main` push run to complete strictly before the key-disable audit timestamp, so a checkpoint merged after disable can never be repaired.
+
 ## Evaluate agent necessity
 
 ```sh
