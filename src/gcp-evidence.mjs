@@ -656,6 +656,11 @@ export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
         protoPayload.authenticationInfo = authenticationInfo;
       }
       if (payload.methodName === lookup.stsMethod) {
+        // Workload Identity logs exactly {@type, grantType}. The audience/subjectTokenType/
+        // requestedTokenType fields belong to Workforce Identity, which also carries a different
+        // @type (...SecurityTokenService.ExchangeTokenRequest). Both assertions below are therefore
+        // exact by design; do not widen them to accommodate a Workforce example.
+        // https://docs.cloud.google.com/iam/docs/audit-logging/examples-workload-identity
         const stsRequest = payload.request;
         if (!exactObject(stsRequest, STS_REQUEST_FIELDS)
             || stsRequest["@type"] !== "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest"
