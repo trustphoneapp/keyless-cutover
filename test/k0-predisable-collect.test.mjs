@@ -9,7 +9,7 @@ import { FirestoreChallengeStore } from "../src/firestore-challenge-store.mjs";
 import { createKeyProof, expectedKeyProofContext } from "../src/key-proof.mjs";
 import { parseGitHubEvidenceCheckpointReceipt } from "../src/k0-evidence-normalizer.mjs";
 import { verifyK0PreDisableEvidenceSemantics } from "../src/k0-evidence-semantics.mjs";
-import { collectK0PreDisable } from "../src/k0-predisable-collect.mjs";
+import { collectK0PreDisable, observeK0ForbiddenBefore } from "../src/k0-predisable-collect.mjs";
 import {
   createK0PreDisableArchive,
   parseK0PreDisableArchivePlanBytes,
@@ -620,14 +620,24 @@ const collectPlan = {
   forbidden_target: forbiddenTarget,
 };
 
+const googleAuthStub = {
+  getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }),
+};
+
 test("pre-disable collector emits a bundle input, archive plan, and checkpoint receipt that every verifier accepts", async () => {
   const { store, proof, receiptBytes } = await consumedProofReceipt();
-  const outputs = await collectK0PreDisable(Buffer.from(canonicalJson(collectPlan)), {
+  const planBytes = Buffer.from(canonicalJson(collectPlan));
+  // One harness across both phases, so the two forbidden-target reads share a single timeline and
+  // genuinely bracket H8. Phase one must run before any hostile probe exists.
+  const fetchImpl = fetchHarness(proof);
+  const forbiddenBeforeBytes = await observeK0ForbiddenBefore(planBytes, { googleAuth: googleAuthStub, fetchImpl });
+  const outputs = await collectK0PreDisable(planBytes, {
     installationToken,
-    googleAuth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    googleAuth: googleAuthStub,
     challengeStore: store,
     operatorReceiptBytes: receiptBytes,
-    fetchImpl: fetchHarness(proof),
+    forbiddenBeforeBytes,
+    fetchImpl,
   });
 
   const bundleInput = JSON.parse(outputs.bundleInputBytes.toString("utf8"));
@@ -667,4 +677,41 @@ test("pre-disable collector emits a bundle input, archive plan, and checkpoint r
     plan.evidence.some(({ id }) => id === plan.fragment.revisions.forbidden_after_source_id),
     false,
   );
+});
+
+test("phase two refuses a missing, mismatched, or noncanonical forbidden-before observation", async () => {
+  const { store, proof, receiptBytes } = await consumedProofReceipt();
+  const planBytes = Buffer.from(canonicalJson(collectPlan));
+  const collect = (forbiddenBeforeBytes) => collectK0PreDisable(planBytes, {
+    installationToken,
+    googleAuth: googleAuthStub,
+    challengeStore: store,
+    operatorReceiptBytes: receiptBytes,
+    forbiddenBeforeBytes,
+    fetchImpl: fetchHarness(proof),
+  });
+  const valid = JSON.parse(
+    (await observeK0ForbiddenBefore(planBytes, { googleAuth: googleAuthStub, fetchImpl: fetchHarness(proof) }))
+      .toString("utf8"),
+  );
+
+  await assert.rejects(collect(undefined), /forbidden-before observation bytes are invalid/);
+  await assert.rejects(collect(Buffer.alloc(0)), /forbidden-before observation bytes are invalid/);
+  await assert.rejects(collect(Buffer.from("{")), /forbidden-before observation is not JSON/);
+  for (const mutate of [
+    (value) => { value.revision = "forbidden-00002"; },
+    (value) => { value.release_marker = "other"; },
+    (value) => { value.image_digest = `sha256:${"0".repeat(64)}`; },
+    (value) => { value.service = "keyless-demo"; },
+    (value) => { value.observed_at = "not-a-time"; },
+    (value) => { delete value.observed_at; },
+    (value) => { value.extra = 1; },
+  ]) {
+    const mutated = structuredClone(valid);
+    mutate(mutated);
+    await assert.rejects(collect(Buffer.from(canonicalJson(mutated))), /forbidden-before observation/);
+  }
+  // Canonical bytes only: a re-serialised-but-reordered body is refused.
+  await assert.rejects(collect(Buffer.from(JSON.stringify({ observed_at: valid.observed_at, ...valid }))),
+    /forbidden-before observation/);
 });
