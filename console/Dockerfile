@@ -6,6 +6,13 @@ COPY package.json ./
 COPY src ./src
 COPY console ./console
 COPY docs/evidence/K0_CHECKPOINT_2026-08-13.json ./docs/evidence/K0_CHECKPOINT_2026-08-13.json
+RUN rm -rf -- \
+  /usr/local/lib/node_modules/npm \
+  /usr/local/lib/node_modules/corepack \
+  /usr/local/bin/npm \
+  /usr/local/bin/npx \
+  /usr/local/bin/corepack \
+  /usr/local/bin/yarn \
+  /usr/local/bin/yarnpkg
 USER node
 CMD ["node", "console/server.mjs"]
-

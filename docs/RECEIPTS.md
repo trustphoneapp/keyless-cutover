@@ -1,6 +1,6 @@
 # Verifiable receipt
 
-> KMS receipt work begins only after K0. A signature proves origin/integrity, not external facts; `PROVISIONAL/evidence_pending` and `FINAL/verified_cutover` are distinct.
+> Local code constructs only a deterministic pending receipt. A signature proves origin/integrity, not external facts, and never authorizes release without authenticated live recollection and issuance.
 
 ## Purpose
 
@@ -8,15 +8,16 @@ The receipt is an independently checkable account of what Keyless observed, prop
 
 ## Format
 
-1. K0 produces a version-2 evidence manifest. Every claim references one or more `E###` ledger entries containing an allowlisted source kind, bounded locator, observation time, SHA-256 artifact digest, and optional HTTPS inspection URL.
-2. Each ledger entry resolves to `artifacts/E###.json`. The verifier requires canonical JSON, exact envelope/manifest agreement, bounded size, a clean credential scan, and a recomputed matching digest. It then checks semantic agreement: hostile result IDs/run IDs/identity differences/control categories and unchanged revisions, exact ProofV2 key/digest, exact WIF hashes, human disable audit identity, fresh legacy denial, and the post-disable `wif-2` revision.
-3. The K0 verifier requires the correct evidence kinds for ProofV2, WIF readback, H1–H8, key disable, fresh legacy denial, post-disable continuity, and leak scan. Every evidence entry must be referenced.
-4. After K0 passes, create canonical receipt JSON from that verified manifest plus K1 agent/PR evidence.
-5. Hash it with SHA-256 and sign the digest using an asymmetric Cloud KMS key.
-6. Store the JSON, signature, public-key version, and evidence hashes.
-7. Publish the receipt ID and digest in a GitHub Check or PR comment as an external anchor.
+1. K0 v3 includes authenticated GitHub workflow-approval/deploy collectors and bounded GCP provider, WIF-audit, key-disable, and Cloud Run readback collectors. Every claim references one or more `E###` ledger entries containing an allowlisted source kind, bounded locator, observation time, SHA-256 artifact digest, and optional HTTPS inspection URL. The offline assembler validates supplied bytes and semantics but cannot by itself prove that those collectors produced them.
+2. Each ledger entry resolves to exact canonical `artifacts/E###.json` bytes. The verifier requires exact envelope/manifest agreement, bounded regular files, a clean credential scan, recomputed digests, exact directory enumeration, and no missing, duplicate, or unreferenced artifact.
+3. Semantic verification binds exact ProofV2 and reviewed GitHub run/workflow context, WIF provider/audit identity, authoritative Cloud Run revision/release/image state, H1–H8 enforcement points and bracketing unchanged-target observations, human disable state/audit identity, fresh legacy denial, post-disable `wif-2`, scope consistency, and event ordering. For the 48-hour maximum, it selects the earliest authoritative occurrence time, checkpoint-receipt `recorded_at`, or checkpoint event time across the final evidence and requires `manifest.assembled_at`—the latest authenticated final collection—to be no more than 48 hours later. Archive or checkpoint sealing and later recollection cannot reset, backdate, or extend that window.
+4. The shared offline loader captures canonical `manifest.json` and every artifact buffer once. The deterministic pending receipt binds those exact manifest bytes, their SHA-256 digest, ordered evidence digests, v3 scope/results/limitations, and `manifest.assembled_at`; rebuilding it is byte-identical.
+5. The only implemented receipt state is `K0_VERIFIED_RECEIPT_PENDING` with `authorization: RECOLLECTION_REQUIRED` and `release_ready: false`. Its raw bytes must themselves be canonical; whitespace, an extra trailing newline, reordered keys, truncation, or one changed byte fails.
+6. Production code can create an inert, domain-separated SHA-256 KMS digest request for one pinned full key version and can verify a canonical signature sidecar using the exact pending-receipt bytes, approved RSA algorithm, and out-of-band pinned public key.
+7. The published RC includes a fixed authenticated read-only recollection and pending-issuance path. It exists, is tested, and is merged, but it has not been executed against an eligible live transaction. It requires an exact reviewed/merged checkpoint archive created while a fresh disposable transaction's key remains enabled, a GitHub read token from the environment, read-only GCP ADC, and the unchanged 48-hour calculation in item 3. The already-disabled historical transaction has no such checkpoint, cannot satisfy v3, and must never be resumed by re-enabling its key. The filesafe CLI writes one canonical private JSON basename in the current working directory and re-verifies it through the atomically reserved handle.
+8. Production code still has no signer, private-key parameter, KMS client/call, signing command, or release fallback. A valid signature alone never changes authorization or release readiness; publishing an external anchor remains a later live gate.
 
-The repository currently includes the K0 v2 manifest verifier. The KMS receipt signer/verifier is intentionally not implemented until K0 passes. When implemented, changing one byte must fail verification.
+The deterministic mutation matrix currently rejects all 36/36 named bundle, artifact, receipt, signature, and trust-anchor mutations, including one-byte and noncanonical-byte changes, mixed or mismatched manifest/artifact snapshots, wrong digest/algorithm/key version/public key, and a valid second-key signature substituted against the pinned trust anchor. These are local false-safe controls, not a claim that a scoped live KMS signature exists.
 
 ## Required fields
 

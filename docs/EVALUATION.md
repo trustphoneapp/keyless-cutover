@@ -12,11 +12,23 @@ Security outcomes use deterministic or external oracles. Gemini never judges aut
 - No downstream role/resource widening.
 - H1–H8 reach and deny at their intended controls.
 - Forbidden service revision remains unchanged.
+- The canonical pre-disable archive checkpoint is independently reviewed, merged, and reread while the fresh disposable key remains enabled.
 - Human key disable and fresh Google `disabled: true` observation.
-- Fresh online legacy authentication fails; cached tokens/files are prohibited.
-- Fresh WIF succeeds after disable.
+- Fresh online legacy authentication fails after disable and before WIF-2; cached tokens/files are prohibited.
+- Fresh WIF succeeds after that denial and produces the exact post-disable `wif-2` readback.
+- Authenticated pending issuance, separately authorized scoped KMS signature verification, and the separate human release decision remain distinct gates; neither the issuer nor signature promotes local release readiness.
 - Zero credential material in repository, logs, artifacts, Firestore, model calls, manifests, or receipt.
 - Another authorized person reconstructs every result from source identifiers.
+
+## Source and runtime release gate
+
+- Clean clone installs the exact lockfile with `npm ci --legacy-peer-deps --ignore-scripts`.
+- `npm audit --omit=dev --audit-level=high`, registry-signature verification, and all deterministic tests pass.
+- Dependency-tree preflight permits only ADK 1.6.0's five unused database-driver peers and rejects every other problem.
+- `actionlint` passes every workflow and every external action is pinned to a full verified commit SHA.
+- ProofV2 uses pinned Node 24, a five-minute timeout, no persisted checkout credential, and one visible credential-free artifact path.
+- Agent, console, and demo images build for `linux/amd64`, run as a non-root user, expose healthy endpoints, and scan at zero critical/high findings.
+- Final images contain Node and application files but no npm or Corepack; production installation executes no package lifecycle scripts.
 
 ## Agent necessity corpus
 
@@ -68,7 +80,7 @@ The initial failure was not discarded: it exposed that the model treated the leg
 
 The passing local artifact is mode `0600`, contains 24 cases and 72 attempts, and passes a credential-shape scan. It is not committed because raw model outputs are evaluation evidence, not product source. A final independent reviewer must still hash and hold the frozen corpus and rerun the scorer before release.
 
-The hash-bound evidence summary is [Agent evaluation evidence](evidence/AGENT_EVAL_2026-08-13.md). The current non-final live transaction record is [K0 checkpoint](evidence/K0_CHECKPOINT_2026-08-13.json).
+The hash-bound evidence summary is [Agent evaluation evidence](evidence/AGENT_EVAL_2026-08-13.md). The independently reviewed exact-key transaction is recorded in the [ProofV2 receipt](evidence/PROOFV2_RECEIPT_2026-08-14.json). Live `wif-1` and H1–H8 reconstruction are recorded in the [pre-disable receipt](evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json). Exact key state plus the canonical numeric-service-account Admin Activity entry are recorded in the [disable receipt](evidence/K0_DISABLE_RECEIPT_2026-08-14.json). These are historical readiness only: the [K0 checkpoint](evidence/K0_CHECKPOINT_2026-08-13.json) predates the mandatory canonical v3 archive checkpoint and cannot become a completed v3 transaction.
 
 ## Typed model boundary
 
@@ -78,12 +90,12 @@ Models emit no CEL, IAM role, mutation, shell, resource identity, patch, authori
 
 ## Receipt tests
 
-- Missing required evidence cannot produce `FINAL`.
-- Canonical JSON and exact KMS key version/algorithm are recorded.
-- Valid receipt verifies using exported public key.
-- Twenty deterministic one-byte mutations fail.
+- Missing required evidence cannot produce a verifier-passing pending receipt or release authorization.
+- Canonical JSON and the exact pinned KMS key version/algorithm are recorded.
+- A test-only signature verifies only against the pinned out-of-band public key; a second valid key cannot substitute.
+- The 36/36 deterministic bundle/artifact/receipt/signature/trust mutations fail.
 - External identifiers, object generations, policy etags, commit/run/revision IDs, retrieval times, and limitations are reconstructable.
-- `PROVISIONAL/evidence_pending` is visually and semantically distinct from `FINAL/verified_cutover`.
+- The only locally representable receipt state is `K0_VERIFIED_RECEIPT_PENDING` with `RECOLLECTION_REQUIRED` and `release_ready: false`; no local release state exists.
 
 ## Performance and cost budgets
 

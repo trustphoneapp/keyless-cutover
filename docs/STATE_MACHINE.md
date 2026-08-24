@@ -1,12 +1,15 @@
 # State machine and failure recovery
 
-> Historical full-control-plane model. Hackathon v1 uses the evidence-derived phases in `ARCHITECTURE.md`; Firestore exists for challenge replay and minimal state, not Tasks/outbox orchestration.
+> Current fail-closed release sequence. Firestore remains limited to challenge replay and minimal state; the later Tasks/outbox sections are preserved as historical design only.
+
+The already-disabled August transaction is terminal `HISTORICAL_READINESS_ONLY`: it has no canonical v3 pre-disable archive checkpoint completed before disable. It cannot advance, must not be repaired by re-enabling its key, and supplies readiness context only. The sequence below applies to a separately authorized fresh disposable key transaction.
 
 ## Canonical states
 
 ```text
 NEW
 → OBSERVED
+→ LEGACY_BASELINE_PASSED
 → KEY_PROVED
 → PLAN_VALIDATED
 → PR_OPEN
@@ -16,11 +19,14 @@ NEW
 → PR_MERGED
 → PRE_DISABLE_CANARY_PASSED
 → EIGHT_DENIALS_PASSED
+→ PRE_DISABLE_ARCHIVE_CHECKPOINTED
 → READY_FOR_HUMAN_DISABLE
 → KEY_DISABLED_OBSERVED
-→ POST_DISABLE_CANARY_PASSED
 → LEGACY_REAUTH_DENIED
-→ RECEIPT_ISSUED
+→ POST_DISABLE_CANARY_PASSED
+→ AUTHENTICATED_PENDING_OUTPUT_VERIFIED
+→ KMS_SIGNATURE_VERIFIED
+→ AWAITING_HUMAN_RELEASE
 ```
 
 Side states:
@@ -32,13 +38,15 @@ Side states:
 - `FAILED_SAFE`
 - `ABORTED`
 - `ROLLBACK_REQUIRED`
+- `HISTORICAL_READINESS_ONLY`
 
 ## Transition invariants
 
 | Transition | Required facts |
 |---|---|
 | `NEW → OBSERVED` | Exact repo/owner IDs, workflow blob SHA, target project/service account/key inventory, branch/environment rules, and IAM policy etag captured |
-| `OBSERVED → KEY_PROVED` | Signed nonce probe verifies against the exact GCP public key; no raw private material leaves runner |
+| `OBSERVED → LEGACY_BASELINE_PASSED` | The canonical legacy workflow deploys `legacy_1` with the enabled fresh key. The verifier requires this run to start, and its revision to be created, strictly before `wif-1` starts; a baseline collected later cannot be reordered |
+| `LEGACY_BASELINE_PASSED → KEY_PROVED` | Signed nonce probe verifies against the exact GCP public key; no raw private material leaves runner |
 | `KEY_PROVED → PLAN_VALIDATED` | Typed IR complete; policy compiler passes; no privilege widening; support gate passes |
 | `PLAN_VALIDATED → PR_OPEN` | Current repo head and IAM etag equal plan preconditions; branch/PR are Keyless-owned and idempotent |
 | `PR_OPEN → PR_REVIEWED` | Independent review applies to exact head SHA; stale approvals dismissed |
@@ -46,12 +54,15 @@ Side states:
 | `APPLY_APPROVED → WIF_APPLIED` | Fresh provider/binding read back exactly; no unrelated IAM overwrite |
 | `WIF_APPLIED → PR_MERGED` | Human merge; merged tree exactly contains approved patch |
 | `PR_MERGED → PRE_DISABLE_CANARY_PASSED` | Exact merged SHA deploys `wif-1` through observed federated identity |
-| `PRE_DISABLE_CANARY_PASSED → EIGHT_DENIALS_PASSED` | All eight real negative cases reject at expected layer; no protected mutation |
-| `EIGHT_DENIALS_PASSED → READY_FOR_HUMAN_DISABLE` | Plan, commit, provider, IAM, key state, and canary freshness revalidated |
+| `PRE_DISABLE_CANARY_PASSED → EIGHT_DENIALS_PASSED` | All eight fresh negative cases, including H2, reject at their expected layer; no protected mutation |
+| `EIGHT_DENIALS_PASSED → PRE_DISABLE_ARCHIVE_CHECKPOINTED` | Fresh legacy baseline, ProofV2, WIF-1 parity, H1–H8, and forbidden-target observations are sealed in the canonical archive; its protected PR is independently reviewed and merged while the key remains enabled |
+| `PRE_DISABLE_ARCHIVE_CHECKPOINTED → READY_FOR_HUMAN_DISABLE` | Exact merged archive bytes, plan, provider, IAM, key state, protection, and canary freshness are revalidated |
 | `READY_FOR_HUMAN_DISABLE → KEY_DISABLED_OBSERVED` | Human disables exact key; fresh API GET observes `DISABLED` |
-| `KEY_DISABLED_OBSERVED → POST_DISABLE_CANARY_PASSED` | New GitHub job deploys `wif-2` with observed WIF principal |
-| `POST_DISABLE_CANARY_PASSED → LEGACY_REAUTH_DENIED` | New authentication attempt using the disabled key fails; no pre-minted token reused |
-| `LEGACY_REAUTH_DENIED → RECEIPT_ISSUED` | Evidence manifest complete; KMS signature generated; limitations embedded |
+| `KEY_DISABLED_OBSERVED → LEGACY_REAUTH_DENIED` | New hosted authentication attempt using the disabled key reaches Google and fails; no pre-minted token is reused |
+| `LEGACY_REAUTH_DENIED → POST_DISABLE_CANARY_PASSED` | Only after legacy denial, a new GitHub job deploys and reads back `wif-2` with observed WIF identity |
+| `POST_DISABLE_CANARY_PASSED → AUTHENTICATED_PENDING_OUTPUT_VERIFIED` | The local read-only issuer authentically recollects every final source, verifies v3, and writes its exact private pending output; authorization remains `RECOLLECTION_REQUIRED` |
+| `AUTHENTICATED_PENDING_OUTPUT_VERIFIED → KMS_SIGNATURE_VERIFIED` | A separately authorized scoped KMS operation signs the exact pending-receipt digest and pinned public verification succeeds; no release state changes |
+| `KMS_SIGNATURE_VERIFIED → AWAITING_HUMAN_RELEASE` | Deterministic processing stops with `release_ready: false`; a separate human reviews the evidence and owns any release decision outside local state |
 
 ## Approval invalidation
 
@@ -126,5 +137,6 @@ The migration document is current-state truth. Events and evidence are append-on
 - Before WIF mutation: clean abort.
 - After additive WIF mutation but before merge: reviewed compensation may remove only Keyless-owned resources.
 - After merge but before key disable: create a reviewed revert PR; keep key enabled.
-- After key disable: Keyless never re-enables. Human follows rollback instructions and explicitly re-enables the exact key if required.
+- Historical already-disabled key: never re-enable it; preserve the transaction as readiness evidence only.
+- Fresh transaction after key disable: Keyless never re-enables. A separately authorized human may roll back the fresh key/workflow only to restore service, which kills that transaction rather than allowing it to resume.
 - Key deletion is never part of Keyless.

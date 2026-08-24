@@ -42,7 +42,7 @@ Apply deterministic scanners before persistence and before model calls. Test raw
 
 ## Stored evidence
 
-Firestore stores normalized migration state and metadata. Immutable evidence artifacts are content-hashed; signed receipts reference their hashes and generations. Store sanitized API response subsets rather than indiscriminate logs.
+Firestore stores normalized migration state and metadata. Immutable evidence artifacts are content-hashed; an authentically issued pending receipt and its separate signature evidence reference their hashes and generations without asserting release authorization. Store sanitized API response subsets rather than indiscriminate logs.
 
 ## Retention and deletion
 

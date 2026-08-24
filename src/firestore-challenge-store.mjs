@@ -1,10 +1,21 @@
 import { Firestore } from "@google-cloud/firestore";
 
 import { issueKeyProofChallenge } from "./key-proof.mjs";
+import { isRfc3339, timestampAtOrBefore, timestampBefore } from "./rfc3339.mjs";
 
 const CHALLENGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
+const NUMERIC = /^\d+$/;
+const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/;
+const REF = /^refs\/[A-Za-z0-9._/-]+$/;
+const SERVICE_ACCOUNT = /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/;
+const NONCE = /^[A-Za-z0-9_-]{43}$/;
 const COLLECTION = "keyProofChallenges";
+const CONSUMED_FIELDS = new Set([
+  "status", "migration_id", "challenge_id", "nonce", "issued_at", "expires_at",
+  "owner_id", "repository_id", "workflow_path", "event_name", "ref", "environment",
+  "client_email", "proof_digest", "consumed_at",
+]);
 
 function valid(value, pattern, name) {
   if (typeof value !== "string" || !pattern.test(value)) throw new Error(`${name} is invalid`);
@@ -19,6 +30,63 @@ function validStoredChallenge(value, challengeId) {
     throw new Error("stored challenge timestamps are invalid");
   }
   return value;
+}
+
+function bounded(value, pattern) {
+  return typeof value === "string" && value.length > 0 && value.length <= 512
+    && !/[\r\n]/.test(value) && (!pattern || pattern.test(value));
+}
+
+function snapshotTime(value, name) {
+  let date;
+  try {
+    date = value instanceof Date ? value : value?.toDate?.();
+  } catch {
+    throw new Error(`challenge snapshot ${name} is invalid`);
+  }
+  if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
+    throw new Error(`challenge snapshot ${name} is invalid`);
+  }
+  return new Date(date.getTime()).toISOString();
+}
+
+function observedConsumedChallenge(value, challengeId, updateTime, readTime) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || Object.getPrototypeOf(value) !== Object.prototype
+      || Object.keys(value).length !== CONSUMED_FIELDS.size
+      || Object.keys(value).some((field) => !CONSUMED_FIELDS.has(field))
+      || value.status !== "CONSUMED" || value.challenge_id !== challengeId
+      || !bounded(value.migration_id) || !bounded(value.nonce, NONCE)
+      || !bounded(value.owner_id, NUMERIC) || !bounded(value.repository_id, NUMERIC)
+      || !bounded(value.workflow_path, WORKFLOW) || !bounded(value.event_name)
+      || !bounded(value.ref, REF) || !bounded(value.environment)
+      || !bounded(value.client_email, SERVICE_ACCOUNT) || !bounded(value.proof_digest, SHA256)
+      || !isRfc3339(value.issued_at) || !isRfc3339(value.expires_at) || !isRfc3339(value.consumed_at)
+      || !timestampBefore(value.issued_at, value.consumed_at)
+      || !timestampBefore(value.consumed_at, value.expires_at)
+      || !timestampAtOrBefore(value.consumed_at, updateTime)
+      || !timestampAtOrBefore(updateTime, readTime)) {
+    throw new Error("observed consumed challenge is invalid");
+  }
+  return {
+    status: "CONSUMED",
+    migration_id: value.migration_id,
+    challenge_id: value.challenge_id,
+    nonce: value.nonce,
+    issued_at: value.issued_at,
+    expires_at: value.expires_at,
+    owner_id: value.owner_id,
+    repository_id: value.repository_id,
+    workflow_path: value.workflow_path,
+    event_name: value.event_name,
+    ref: value.ref,
+    environment: value.environment,
+    client_email: value.client_email,
+    proof_digest: value.proof_digest,
+    consumed_at: value.consumed_at,
+    update_time: updateTime,
+    read_time: readTime,
+  };
 }
 
 export class FirestoreChallengeStore {
@@ -39,6 +107,15 @@ export class FirestoreChallengeStore {
     const snapshot = await this.collection.doc(challengeId).get();
     if (!snapshot.exists) return null;
     return validStoredChallenge(snapshot.data(), challengeId);
+  }
+
+  async observe(challengeId) {
+    valid(challengeId, CHALLENGE_ID, "challenge_id");
+    const snapshot = await this.collection.doc(challengeId).get();
+    if (!snapshot.exists) throw new Error("consumed challenge is missing");
+    const updateTime = snapshotTime(snapshot.updateTime, "update time");
+    const readTime = snapshotTime(snapshot.readTime, "read time");
+    return observedConsumedChallenge(snapshot.data(), challengeId, updateTime, readTime);
   }
 
   async consume({ challenge_id: challengeId, expected_status: expectedStatus, consumed_status: consumedStatus, proof_digest: proofDigest }) {

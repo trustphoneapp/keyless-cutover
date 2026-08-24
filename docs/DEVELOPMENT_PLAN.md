@@ -3,12 +3,13 @@
 ## Immediate blockers
 
 - The public repository, protected `main`, private `production` environment, billed GCP project, ADC, live WIF, Cloud Run services, Firestore, and Vertex Gemini access exist.
-- No independent reviewer/key operator or genuinely foreign-owner repository is established. The same-owner wrong-repository H2 probe passed; it does not satisfy H1.
-- The protected merge, key disable, and post-disable continuity actions remain intentionally unreachable without that second human.
+- Independent collaborator `cherala2002` provides protected PR and `production` review. The independently approved ProofV2 transaction passed; foreign-owner H1 and H2–H8 were reconstructed at their intended controls.
+- The recorded WIF cutover, `wif-1`, H1–H8, and exact key disable plus matching Admin Activity are historical readiness evidence. Because no canonical v3 archive checkpoint was reviewed and merged before disable, that transaction is terminal and its key must never be re-enabled to resume it.
+- The current published RC includes the local read-only pending issuer. A separately authorized fresh disposable key transaction remains human-gated from three unused release markers and secret confirmation through archive checkpoint, disable, legacy denial, `wif-2`, pending issuance, scoped signature verification, and separate human release.
 
-The technical K0 substrate is running. The human-gated K0 transaction starts only when independent authority exists.
+No valid v3 K0 transaction is currently in progress. Every fresh live action stays under the independent authority and ordering below; local v3 reconstruction and historical evidence cannot substitute for it.
 
-The exact independent-review, foreign-owner H1, merge, disable, verification, and rollback sequence is frozen in `docs/REVIEWER_RUNBOOK.md`. The cumulative non-cutover release is PR #11; after it merges, only the separately reviewed compiler-produced cutover PR #3 should alter the canonical deployment workflow.
+The exact independent-review, foreign-owner H1, archive-before-disable, verification, and rollback sequence is frozen in `docs/REVIEWER_RUNBOOK.md`, together with the release-marker, `production`-approval, and actor/reviewer constraints that make it executable. Historical PRs #11 and #3 are readiness evidence only. PRs #18 and #19 are merged and the 2026-08-15 protection tuple was read back. PR #27 restored the canonical cutover path; the compiler-owned WIF cutover is draft PR #28 and must not merge before the fresh legacy baseline exists. `KEYLESS_K0_ENABLED` is deliberately `false`. The next live change is a separately authorized fresh disposable key transaction; do not start it by changing `demo/release.txt` until three unused release markers are pinned and the operator is ready for H4 plus baseline dispatch.
 
 ## C0 — repository and authority baseline, 2h
 
@@ -50,23 +51,21 @@ Stop if the exact key remains ambiguous, any replay wins twice, or private mater
 
 ## C3 — authoritative K0, 12h within 48 wall-clock hours
 
-1. Human reviews and applies the exact WIF provider and service-account impersonation binding.
-2. Read back the provider, audience, mappings, condition, IAM policy version/etag, and normalized permission footprint.
-3. Wait with bounded polling; IAM changes may take minutes and can exceed seven minutes.
-4. Merge the static-key → WIF patch and deploy `wif-1`.
-5. Execute H1–H8 at their intended controls.
-6. Verify `keyless-forbidden` is unchanged.
-7. Independent human disables the exact key.
-8. Re-read `disabled: true` through Google.
-9. Dispatch the separate protected `k0-legacy-auth-check.yml` workflow on a fresh hosted runner, force a new online Google token/API request with the legacy key, and observe a Google key-related denial. The canonical deploy workflow has already been replaced and cannot provide this probe.
-10. On another fresh run, deploy `wif-2` through OIDC/WIF.
-11. Assemble a sanitized manifest and run credential scanning.
+1. Merge the protected RC, repair `required_linear_history: true`, and independently read back protection. **Done** (PRs #18/#19 and the 2026-08-15 read-back).
+2. Authorize a new disposable key transaction and collect a fresh legacy baseline, ProofV2, WIF-1/provider/IAM parity, and H1–H8 including H2; verify the forbidden target remains unchanged.
+3. Build the canonical pre-disable archive, independently review and merge its protected PR, and reread the exact bytes while the key is enabled.
+4. Have the separately authenticated human operator disable the exact fresh key, then reread key state and matching Admin Activity.
+5. Run the fresh hosted legacy probe and observe a recognized Google denial before WIF-2.
+6. Deploy and read back `wif-2`, WIF audit/parity, and the unchanged forbidden revision.
+7. Run authenticated pending issuance, separately authorize and verify the scoped KMS signature, then stop for the separate human release decision.
 
-Implemented acceptance command:
+Accepted local bundle verification command:
 
 ```sh
-npm run verify:k0 -- .keyless/evidence/k0/manifest.json
+node bin/k0-bundle.mjs verify .keyless/evidence/k0
 ```
+
+This exact offline loader is not authenticated recollection and cannot issue or authorize a release receipt.
 
 Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, forbidden mutation, fresh legacy success, or WIF failure kills Keyless.
 
@@ -77,11 +76,11 @@ Any non-run, wrong enforcement point, mock, hand repair, leak, hostile success, 
 | C4 | Typed JSON schemas, policy/compiler, plan digest, exact patch and refusal tests | All unknown/unsafe inputs hold; compilation is byte-identical |
 | C5 | One Cloud Run ADK Taskmaster using Vertex Gemini; evidence and recovery only | Ablation thresholds pass; model has no mutation/policy tools |
 | C6 | Selected-repo GitHub App creates compiler-owned draft PR | Real PR opens; no merge or IAM authority |
-| C7 | Firestore evidence view, canonical receipt, asymmetric KMS sign/verify | Missing evidence blocks final; one-byte mutations fail |
-| C8 | Repeat live harness and minimal evidence-derived console | UI cannot synthesize `PASS`; external state is re-read |
+| C7 | Local v3 bundle verifier, deterministic pending receipt, read-only pending issuer, inert KMS request, and pinned public verification are complete; authenticated live execution/evidence and a scoped real signature remain | Missing evidence or live provenance keeps `RECOLLECTION_REQUIRED`; 36/36 deterministic mutations fail |
+| C8 | Repeat live harness and progressive evidence-derived console; local private-snapshot/FIFO controls are complete, hosted update remains | UI cannot synthesize `PASS` or release readiness; external state is re-read |
 | C9 | 36-bundle eval, CI, lockfile, quickstart, architecture, claim audit, rehearsals, video | One release command passes from a clean clone |
 
-Current live progress on August 13: C0 and the technical portions of C1–C2 are complete. `legacy-1`, exact WIF readback, live ProofV2/Firestore replay rejection, a private Cloud Run ADK service, a real dual-auth Vertex call, compiler-produced draft PR, H2 wrong-repository denial, and a public fail-closed Cloud Run evidence console exist. The second 72-call sealed evaluation passes every published gate. PR #3 now passes CI after freezing the legacy fixture. C3 remains incomplete because independent approval, H1, merge, the rest of H1–H8, key disable, fresh legacy rejection, and `wif-2` are still missing.
+Current progress through August 24: the independently approved ProofV2, WIF workflow, `wif-1`, H1–H8, unchanged forbidden target, and exact key-disable audit exist only as historical readiness evidence. The absent pre-disable archive checkpoint makes that transaction ineligible for v3. The private ADK service, Vertex call, console, sealed evaluation, published v3 assembly, pending issuer, public signature verifier, and tamper tests remain useful implementation evidence. Since August 15 the WIF audit normalizer was corrected to the shape Cloud Audit Logs actually return and re-anchored to the deploy job, `sts.googleapis.com` data-access audit logging was enabled on the project on August 24 and is not retroactive, and `bin/k0-predisable-collect.mjs` and `bin/k0-predisable-archive.mjs` now drive the collectors from real executables — all unit-tested, none exercised against a live transaction. C3 must continue with a separately authorized fresh disposable transaction; overall status remains **NO-GO**.
 
 ## Calendar
 

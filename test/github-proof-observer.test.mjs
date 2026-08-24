@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
 import { fetchGitHubProofObservation } from "../src/github-proof-observer.mjs";
@@ -7,7 +8,7 @@ const installationToken = `ghs_${"t".repeat(36)}`;
 
 const workflow = `name: K0 deploy
 jobs:
-  deploy:
+  proof:
     runs-on: ubuntu-latest
     environment: production
 `;
@@ -16,9 +17,10 @@ const run = {
   run_attempt: 2,
   status: "completed",
   conclusion: "success",
-  path: ".github/workflows/k0-deploy.yml",
+  path: ".github/workflows/k0-proof-v2.yml",
   head_sha: "b".repeat(40),
   head_branch: "main",
+  run_started_at: "2026-08-13T12:00:00.123456789Z",
   event: "workflow_dispatch",
   actor: { id: 111, login: "operator" },
   triggering_actor: { id: 111, login: "operator" },
@@ -29,13 +31,24 @@ const run = {
   },
 };
 
-function fetchFixture({ approved = true, path = run.path } = {}) {
+function fetchFixture({ approved = true, path = run.path, reviewerId = 444, mutateJobs } = {}) {
+  const jobsResponse = { total_count: 1, jobs: [{
+    id: 555,
+    name: "proof",
+    status: "completed",
+    conclusion: "success",
+    runner_group_name: "GitHub Actions",
+    labels: ["ubuntu-latest"],
+  }] };
+  mutateJobs?.(jobsResponse);
   return async (url) => {
     let value;
     if (url.includes("/contents/")) {
       value = { encoding: "base64", content: Buffer.from(workflow).toString("base64"), sha: "a".repeat(40) };
     } else if (url.endsWith("/approvals")) {
-      value = approved ? [{ state: "approved", user: { id: 444 }, environments: [{ name: "production" }] }] : [];
+      value = approved ? [{ state: "approved", user: { id: reviewerId, login: "reviewer" }, environments: [{ name: "production" }] }] : [];
+    } else if (url.includes("/jobs?")) {
+      value = jobsResponse;
     } else {
       value = { ...run, path };
     }
@@ -47,7 +60,7 @@ const input = {
   owner: "trustphoneapp",
   repository: "keyless-cutover",
   runId: "456789123",
-  workflowPath: ".github/workflows/k0-deploy.yml",
+  workflowPath: ".github/workflows/k0-proof-v2.yml",
   environment: "production",
   token: installationToken,
 };
@@ -57,9 +70,10 @@ test("GitHub observer rebuilds proof context from completed run, blob, and indep
   assert.deepEqual(observed, {
     owner_id: "333",
     repository_id: "222",
-    workflow_path: ".github/workflows/k0-deploy.yml",
-    workflow_ref: "trustphoneapp/keyless-cutover/.github/workflows/k0-deploy.yml@refs/heads/main",
+    workflow_path: ".github/workflows/k0-proof-v2.yml",
+    workflow_ref: "trustphoneapp/keyless-cutover/.github/workflows/k0-proof-v2.yml@refs/heads/main",
     workflow_blob_sha: "a".repeat(40),
+    workflow_sha256: createHash("sha256").update(workflow).digest("hex"),
     head_sha: "b".repeat(40),
     run_id: "456789123",
     run_attempt: "2",
@@ -69,7 +83,81 @@ test("GitHub observer rebuilds proof context from completed run, blob, and indep
     ref: "refs/heads/main",
     environment: "production",
     runner_environment: "github-hosted",
+    started_at: run.run_started_at,
+    release_marker: null,
+    environment_review: {
+      state: "approved",
+      environment: "production",
+      reviewer_id: "444",
+      reviewer_login: "reviewer",
+    },
   });
+});
+
+test("GitHub observer accepts a streamed API response without Content-Length", async () => {
+  const base = fetchFixture();
+  const observed = await fetchGitHubProofObservation({
+    ...input,
+    fetchImpl: async (url, options) => {
+      const response = await base(url, options);
+      const text = await response.text();
+      return {
+        ...response,
+        headers: { get: (name) => name.toLowerCase() === "content-length" ? null : response.headers.get(name) },
+        body: {
+          getReader() {
+            let used = false;
+            return {
+              async read() {
+                if (used) return { done: true, value: undefined };
+                used = true;
+                return { done: false, value: Buffer.from(text) };
+              },
+              async cancel() {},
+            };
+          },
+        },
+      };
+    },
+  });
+  assert.equal(observed.run_id, "456789123");
+});
+
+test("GitHub observer accepts a gzip-style response whose Content-Length is smaller than the decoded body", async () => {
+  const base = fetchFixture();
+  const observed = await fetchGitHubProofObservation({
+    ...input,
+    fetchImpl: async (url, options) => {
+      const response = await base(url, options);
+      const text = await response.text();
+      const compressedLength = String(Math.max(1, Math.floor(Buffer.byteLength(text) / 4)));
+      return {
+        ...response,
+        headers: {
+          get: (name) => {
+            const key = name.toLowerCase();
+            if (key === "content-length") return compressedLength;
+            if (key === "content-encoding") return "gzip";
+            return response.headers.get(name);
+          },
+        },
+        body: {
+          getReader() {
+            let used = false;
+            return {
+              async read() {
+                if (used) return { done: true, value: undefined };
+                used = true;
+                return { done: false, value: Buffer.from(text) };
+              },
+              async cancel() {},
+            };
+          },
+        },
+      };
+    },
+  });
+  assert.equal(observed.run_id, "456789123");
 });
 
 test("GitHub observer fails closed on wrong workflow or self-approval", async () => {
@@ -81,4 +169,22 @@ test("GitHub observer fails closed on wrong workflow or self-approval", async ()
     fetchGitHubProofObservation({ ...input, fetchImpl: fetchFixture({ approved: false }) }),
     /approval/,
   );
+  await assert.rejects(
+    fetchGitHubProofObservation({ ...input, fetchImpl: fetchFixture({ reviewerId: run.actor.id }) }),
+    /approval/,
+  );
+});
+
+test("GitHub observer requires one bounded authoritative GitHub-hosted ProofV2 job", async () => {
+  const mutations = [
+    (page) => { page.jobs[0].runner_group_name = "Self-hosted"; },
+    (page) => { page.jobs[0].labels = ["linux", "x64"]; },
+    (page) => { page.total_count = 2; },
+  ];
+  for (const mutateJobs of mutations) {
+    await assert.rejects(fetchGitHubProofObservation({
+      ...input,
+      fetchImpl: fetchFixture({ mutateJobs }),
+    }));
+  }
 });

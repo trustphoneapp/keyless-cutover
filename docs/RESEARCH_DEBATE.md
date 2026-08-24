@@ -14,7 +14,7 @@ Taskmaster replaces Fortified Enterprise Fleet. The broad autonomous control pla
 
 | Agent | Area | Decisive finding |
 |---:|---|---|
-| 1 | Rules and winners | Current Fleet category conflicts with the single-workflow product; current Stage One fails. |
+| 1 | Rules and winners | At debate time, Fleet conflicted with the single-workflow product and the mandatory served Google path was absent. |
 | 2 | Google stack | Deep integration means indispensable services, not service count; Taskmaster projects near 90 only after K0. |
 | 3 | Security/state | Current proof and IAM claims could issue false-safe evidence; ProofV2, human IAM, and exact denial oracles are mandatory. |
 | 4 | Implementation | Real K0 is 25–31 person-hours, not 12, and requires GCP auth/billing and a second human. |
@@ -25,9 +25,9 @@ Taskmaster replaces Fortified Enterprise Fleet. The broad autonomous control pla
 | 9 | Product/buyer | Exact buyer is platform security closing a proactive key-retirement ticket; do not claim incident response. |
 | 10 | Chair | Taskmaster, Cloud Run ADK, Firestore replay/state, human IAM, KMS after K0; BUILD remains conditional. |
 
-## Judge-style score range
+## Historical judge-style score range
 
-The nine independent current estimates ranged from 32 to 69, with every evaluator noting a Stage One failure because no mandatory served Google implementation exists. The chair set the current counterfactual at **52/100** and the fully gated Taskmaster projection at **90/100**.
+At the August 12 pre-implementation debate, nine estimates ranged from 32 to 69 because the mandatory served Google implementation did not yet exist; the chair recorded a **52/100** counterfactual and a **90/100** fully gated projection. Those numbers are historical planning inputs, not a current project score. The served Cloud Run ADK/Vertex path now exists, while any final judging claim still waits on the incomplete K0, live receipt-signature, hosted-console-update, and video gates.
 
 These are internal estimates under the official 40/30/30 rubric, not organizer scores or a guarantee.
 
@@ -64,7 +64,7 @@ Gemini interprets redacted workflow evidence and diagnoses bounded failures. It 
 
 ### Exact-key proof
 
-The debate originally found only a partial ProofV2 payload primitive. The implementation now includes server-issued challenges, transactional consumption, completed-run/workflow/review GitHub observation, and ADC-backed Google `keys.get`. A fresh hosted run consumed one live Firestore challenge, matched the exact active key, and rejected replay; it remains readiness evidence because an independent protected-environment review was absent.
+The debate originally found only a partial ProofV2 payload primitive. The implementation now includes server-issued challenges, transactional consumption, completed-run/workflow/review GitHub observation, and ADC-backed Google `keys.get`. A fresh hosted run consumed one live Firestore challenge, matched the exact active key, rejected replay, and later received independent protected-environment review.
 
 ### Demo truth
 
@@ -74,4 +74,4 @@ The full cutover is asynchronous and cannot be honestly completed in four minute
 
 Objection: Google/GitHub already document WIF, StepSecurity finds replaceable secrets, and an LLM wrapper cannot prove all key consumers.
 
-Rebuttal: Keyless does not sell detection or YAML. It proves the exact key, compiles a no-added-privilege trust path, opens a reviewed PR, tests authorized and hostile identities, waits for a human disable, verifies fresh legacy failure and post-disable continuity, and produces scoped evidence. Unknown external consumers produce `HOLD`; universal absence is never claimed.
+Rebuttal: Keyless does not sell detection or YAML. It proves the exact key, compiles a no-added-privilege trust path, opens a reviewed PR, tests authorized and hostile identities, checkpoints their canonical pre-disable evidence while the fresh key remains enabled, waits for a human disable, verifies fresh legacy failure before post-disable continuity, and authentically issues only a pending receipt. Scoped KMS verification and the human release decision remain separate gates. Unknown external consumers produce `HOLD`; universal absence is never claimed.

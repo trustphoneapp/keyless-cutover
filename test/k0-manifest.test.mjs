@@ -1,196 +1,850 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { createEvidenceArtifact, verifyEvidenceArtifacts } from "../src/evidence-artifact.mjs";
-import { verifyK0EvidenceSemantics } from "../src/k0-evidence-semantics.mjs";
-import { verifyK0Manifest } from "../src/k0-manifest.mjs";
+import { assembleK0Bundle, verifyK0Bundle } from "../src/k0-bundle.mjs";
+import { createCredentialScan } from "../src/credential-scan.mjs";
+import { canonicalJson, createEvidenceArtifact, verifyEvidenceArtifacts } from "../src/evidence-artifact.mjs";
+import { verifyK0EvidenceSemantics, verifyK0PreDisableEvidenceSemantics } from "../src/k0-evidence-semantics.mjs";
+import { verifyK0Manifest, verifyK0PreDisableFragment } from "../src/k0-manifest.mjs";
+import { createGcpEvidenceReader } from "../src/gcp-evidence.mjs";
+import { computePreexistingWifParityHash } from "../src/gcp-evidence.mjs";
+import {
+  evidenceByKind,
+  mutateCheckpointReceipt,
+  refreshCheckpointReceipt,
+  refreshFinalCredentialScan,
+  validK0BundleInput,
+  validWifAuditLog,
+} from "./fixtures/k0-bundle.mjs";
 
-function validManifest() {
-  const evidence = [];
-  const source = (kind, name) => {
-    const id = `E${String(evidence.length + 1).padStart(3, "0")}`;
-    evidence.push({
-      id,
-      kind,
-      locator: `${kind.toLowerCase()}:${name}`,
-      observed_at: "2026-08-13T12:00:00Z",
-      sha256: String(evidence.length % 10).repeat(64),
-      public_url: `https://example.test/evidence/${id}`,
-    });
-    return id;
-  };
-  const allowedRevision = source("CLOUD_RUN_REVISION", "allowed-before-hostile");
-  const forbiddenRevision = source("CLOUD_RUN_REVISION", "forbidden-before-hostile");
-  const hostiles = Object.entries({
-    H1: ["WRONG_OWNER_ID", "WIF_PROVIDER_CONDITION"],
-    H2: ["WRONG_REPOSITORY_ID", "WIF_PROVIDER_CONDITION"],
-    H3: ["WRONG_REF", "WIF_PROVIDER_CONDITION"],
-    H4: ["WRONG_WORKFLOW_REF", "WIF_PROVIDER_CONDITION"],
-    H5: ["WRONG_EVENT", "WIF_PROVIDER_CONDITION"],
-    H6: ["WRONG_ENVIRONMENT", "WIF_PROVIDER_CONDITION"],
-    H7: ["WRONG_AUDIENCE", "STS_AUDIENCE"],
-    H8: ["FORBIDDEN_RESOURCE", "CLOUD_RUN_IAM"],
-  }).map(([id, [identity_case, expected_control]]) => ({
-    id,
-    identity_case,
-    expected_control,
-    reached_control: true,
-    outcome: "DENIED",
-    target_revision_before: id === "H8" ? "forbidden-00001" : "allowed-00001",
-    target_revision_after: id === "H8" ? "forbidden-00001" : "allowed-00001",
-    source_ids: [
-      source("GITHUB_RUN", `${id}-run`),
-      source(id === "H8" ? "CLOUD_RUN_IAM_RESULT" : "STS_CLIENT_RESULT", `${id}-result`),
-      id === "H8" ? forbiddenRevision : allowedRevision,
-    ],
-  }));
-  return {
-    version: 2,
-    scope: {
-      owner_id: "1",
-      repository_id: "2",
-      workflow_path: ".github/workflows/k0-deploy.yml",
-      project_number: "3",
-      service_account_email: "deploy@example.iam.gserviceaccount.com",
-      key_id: "a".repeat(40),
-      allowed_service: "keyless-demo",
-      forbidden_service: "keyless-forbidden",
-    },
-    revisions: {
-      legacy_1: "keyless-demo-legacy-1",
-      wif_1: "keyless-demo-wif-1",
-      wif_2: "keyless-demo-wif-2",
-      forbidden_before: "forbidden-00001",
-      forbidden_after: "forbidden-00001",
-    },
-    evidence,
-    proof: {
-      challenge_status: "CONSUMED",
-      challenge_id: "challenge-1",
-      proof_digest: "b".repeat(64),
-      key_id: "a".repeat(40),
-      source_ids: [
-        source("GITHUB_RUN", "proof-run"),
-        source("GITHUB_ENVIRONMENT_REVIEW", "proof-review"),
-        source("PROOFV2_ARTIFACT", "proof-artifact"),
-        source("GCP_IAM_KEY", "proof-key"),
-      ],
-    },
-    wif: {
-      no_added_downstream_permissions: true,
-      provider: "projects/3/locations/global/workloadIdentityPools/keyless/providers/github",
-      config_hash: "c".repeat(64),
-      iam_diff_hash: "d".repeat(64),
-      source_ids: [source("GCP_WIF_PROVIDER", "provider"), source("GCP_IAM_POLICY", "policy")],
-    },
-    hostile_tests: hostiles,
-    disable: {
-      key_id: "a".repeat(40),
-      observed_disabled: true,
-      human_actor: "key-operator@example.com",
-      source_ids: [source("GCP_IAM_KEY", "disabled-key"), source("GCP_AUDIT_ENTRY", "disable-entry")],
-    },
-    legacy_after_disable: {
-      fresh_runner: true,
-      fresh_online_request: true,
-      outcome: "DENIED",
-      source_ids: [source("GITHUB_RUN", "legacy-denied"), source("GOOGLE_AUTH_RESULT", "legacy-auth")],
-    },
-    post_disable: {
-      fresh_runner: true,
-      outcome: "SUCCEEDED",
-      revision: "keyless-demo-wif-2",
-      source_ids: [source("GITHUB_RUN", "wif-2"), source("CLOUD_RUN_REVISION", "wif-2-revision")],
-    },
-    leak_scan: { outcome: "CLEAN", source_ids: [source("LEAK_SCAN", "credential-scan")] },
-    limitations: ["Previously minted access tokens are not proven revoked."],
-  };
+const inactiveLegacyBytes = await readFile(new URL("../k0/templates/k0-deploy.legacy.yml", import.meta.url));
+const inactiveLegacyBlobSha = createHash("sha1")
+  .update(Buffer.from(`blob ${inactiveLegacyBytes.length}\0`)).update(inactiveLegacyBytes).digest("hex");
+const inactiveLegacySha256 = createHash("sha256").update(inactiveLegacyBytes).digest("hex");
+const PRE_DISABLE_FIELDS = [
+  "scope", "revisions", "approved_workflows", "legacy_baseline", "proof", "cutover", "wif", "hostile_tests",
+];
+
+function preDisableCandidate(input) {
+  const fragment = Object.fromEntries(PRE_DISABLE_FIELDS.map((field) => [field, structuredClone(input.manifest[field])]));
+  const ids = new Set([
+    ...fragment.legacy_baseline.source_ids,
+    ...fragment.proof.source_ids,
+    ...fragment.cutover.source_ids,
+    ...fragment.wif.source_ids,
+    ...Object.values(fragment.approved_workflows).map(({ source_id: sourceId }) => sourceId),
+    ...fragment.hostile_tests.flatMap(({ source_ids: sourceIds }) => sourceIds),
+  ]);
+  const artifacts = new Map();
+  const evidence = input.evidence.filter(({ id }) => ids.has(id)).map((envelope) => {
+    const created = createEvidenceArtifact(envelope);
+    artifacts.set(envelope.id, Buffer.from(created.artifact));
+    return {
+      id: envelope.id,
+      kind: envelope.kind,
+      locator: envelope.locator,
+      observed_at: envelope.observed_at,
+      sha256: created.sha256,
+      ...(envelope.public_url === undefined ? {} : { public_url: envelope.public_url }),
+    };
+  }).toSorted((left, right) => left.id.localeCompare(right.id));
+  return { fragment, evidence, artifacts };
 }
 
-test("K0 manifest resolves every security claim to typed hashed evidence", () => {
-  const manifest = validManifest();
-  assert.deepEqual(verifyK0Manifest(manifest), { ok: true, errors: [] });
+function replaceArtifact(bundle, id, mutate) {
+  const envelope = JSON.parse(bundle.artifacts.get(id).toString("utf8"));
+  mutate(envelope);
+  const created = createEvidenceArtifact(envelope);
+  bundle.artifacts.set(id, Buffer.from(created.artifact));
+  const ledger = bundle.manifest.evidence.find((entry) => entry.id === id);
+  ledger.kind = envelope.kind;
+  ledger.locator = envelope.locator;
+  ledger.observed_at = envelope.observed_at;
+  ledger.sha256 = created.sha256;
+}
 
-  for (const mutate of [
-    (value) => { value.hostile_tests[3].reached_control = false; },
-    (value) => { value.hostile_tests[7].outcome = "NOT_RUN"; },
-    (value) => { value.hostile_tests[0].identity_case = "WRONG_REF"; },
-    (value) => { value.hostile_tests[0].target_revision_after = "changed"; },
-    (value) => { value.revisions.forbidden_after = "changed"; },
-    (value) => { value.disable.key_id = "b".repeat(40); },
-    (value) => { value.legacy_after_disable.fresh_online_request = false; },
-    (value) => { value.post_disable.revision = "stale"; },
-    (value) => { value.evidence.find(({ kind }) => kind === "STS_CLIENT_RESULT").kind = "GITHUB_RUN"; },
-    (value) => { value.evidence.push({ ...value.evidence[0], id: "E099" }); },
-    (value) => { value.evidence[0].locator = "-----BEGIN PRIVATE KEY-----"; },
-  ]) {
-    const changed = validManifest();
-    mutate(changed);
-    assert.equal(verifyK0Manifest(changed).ok, false);
+async function semanticResult(bundle) {
+  return verifyK0EvidenceSemantics(bundle.manifest, async (id) => bundle.artifacts.get(id));
+}
+
+test("offline assembler creates one canonical, fully verified K0 bundle", async () => {
+  const input = validK0BundleInput();
+  const bundle = await assembleK0Bundle(input);
+  assert.deepEqual(verifyK0Manifest(bundle.manifest), { ok: true, errors: [] });
+  assert.deepEqual(
+    await verifyEvidenceArtifacts(bundle.manifest, async (id) => bundle.artifacts.get(id)),
+    { ok: true, errors: [] },
+  );
+  assert.deepEqual(
+    await verifyK0EvidenceSemantics(bundle.manifest, async (id) => bundle.artifacts.get(id)),
+    { ok: true, errors: [] },
+  );
+  assert.equal(bundle.manifestBytes.toString("utf8"), canonicalJson(bundle.manifest));
+  assert.equal(bundle.artifacts.size, bundle.manifest.evidence.length);
+  assert.equal(bundle.manifest.version, 3);
+  assert.deepEqual(bundle.manifest.approved_workflows.baseline, {
+    workflow_path: ".github/workflows/k0-deploy.yml",
+    workflow_blob_sha: inactiveLegacyBlobSha,
+    workflow_sha256: inactiveLegacySha256,
+    source_id: bundle.manifest.approved_workflows.baseline.source_id,
+  });
+  for (const name of ["wif-1-revision", "wif-2-revision"]) {
+    const revision = evidenceByKind(input, "CLOUD_RUN_REVISION", name).data;
+    assert.equal(["run_id", "run_attempt", "head_sha", "project_number"].some((field) => field in revision), false);
   }
 });
 
-test("K0 evidence ledger resolves to canonical artifact bytes", async () => {
-  const manifest = validManifest();
-  const artifacts = new Map();
-  const dataFor = (entry) => {
-    const suffix = entry.locator.split(":").at(-1);
-    if (entry.kind === "GITHUB_RUN") {
-      const hostile = suffix.match(/h[1-8]/i)?.[0].toUpperCase();
-      const number = hostile?.slice(1);
-      const value = {
-        run_id: hostile ? `200${number}` : "1001", run_attempt: "1", head_sha: "a".repeat(40),
-        workflow_path: ".github/workflows/k0-deploy.yml", workflow_ref: "owner/repo/.github/workflows/k0-deploy.yml@refs/heads/main",
-        owner_id: "1", repository_id: "2", event: "push", ref: "refs/heads/main", environment: "production", conclusion: "success",
-      };
-      if (hostile === "H1") value.owner_id = "999";
-      if (hostile === "H2") value.repository_id = "999";
-      if (hostile === "H3") {
-        value.ref = "refs/heads/keyless-h3";
-        value.workflow_ref = "owner/repo/.github/workflows/k0-deploy.yml@refs/heads/keyless-h3";
-      }
-      if (hostile === "H4") {
-        value.workflow_path = ".github/workflows/k0-hostile-wrong-workflow.yml";
-        value.workflow_ref = "owner/repo/.github/workflows/k0-hostile-wrong-workflow.yml@refs/heads/main";
-      }
-      if (hostile === "H5") value.event = "workflow_dispatch";
-      if (hostile === "H6") value.environment = "staging";
-      return value;
-    }
-    if (entry.kind === "GITHUB_ENVIRONMENT_REVIEW") return { run_id: "1001", environment: "production", actor_id: "10", reviewer_id: "11", state: "approved" };
-    if (entry.kind === "PROOFV2_ARTIFACT") return { challenge_id: manifest.proof.challenge_id, proof_digest: manifest.proof.proof_digest, key_id: manifest.scope.key_id, verified: true, consumed: true };
-    if (entry.kind === "GCP_IAM_KEY") return { name: `projects/-/serviceAccounts/${manifest.scope.service_account_email}/keys/${manifest.scope.key_id}`, key_id: manifest.scope.key_id, key_type: "USER_MANAGED", algorithm: "KEY_ALG_RSA_2048", disabled: suffix.includes("disabled") };
-    if (entry.kind === "GCP_WIF_PROVIDER") return { name: manifest.wif.provider, config_hash: manifest.wif.config_hash, state: "ACTIVE" };
-    if (entry.kind === "GCP_IAM_POLICY") return { policy_hash: "e".repeat(64), iam_diff_hash: manifest.wif.iam_diff_hash, etag: "etag-1", no_added_downstream_permissions: true };
-    if (entry.kind === "STS_CLIENT_RESULT") {
-      const hostile_id = suffix.match(/h[1-7]/i)[0].toUpperCase();
-      return { hostile_id, run_id: `200${hostile_id.slice(1)}`, outcome: "DENIED", reached_sts: true, error_category: hostile_id === "H7" ? "AUDIENCE_DENIED" : "WIF_CONDITION_DENIED", log_sha256: "1".repeat(64) };
-    }
-    if (entry.kind === "CLOUD_RUN_IAM_RESULT") return { hostile_id: "H8", run_id: "2008", outcome: "DENIED", reached_cloud_run: true, target: manifest.scope.forbidden_service, log_sha256: "2".repeat(64) };
-    if (entry.kind === "CLOUD_RUN_REVISION") return suffix.includes("wif-2")
-      ? { service: manifest.scope.allowed_service, revision: manifest.revisions.wif_2 }
-      : suffix.includes("forbidden")
-        ? { service: manifest.scope.forbidden_service, revision: manifest.revisions.forbidden_before }
-        : { service: manifest.scope.allowed_service, revision: "allowed-00001" };
-    if (entry.kind === "GCP_AUDIT_ENTRY") return { method_name: "google.iam.admin.v1.DisableServiceAccountKey", resource_name: `keys/${manifest.scope.key_id}`, principal_email: manifest.disable.human_actor, insert_id: "audit-1", timestamp: "2026-08-13T12:01:00Z" };
-    if (entry.kind === "GOOGLE_AUTH_RESULT") return { key_id: manifest.scope.key_id, run_id: "3001", outcome: "DENIED", fresh_runner: true, fresh_online_request: true, log_sha256: "3".repeat(64) };
-    if (entry.kind === "LEAK_SCAN") return { outcome: "CLEAN", scanner: "gitleaks", scope_hash: "f".repeat(64) };
-    throw new Error(`unhandled kind ${entry.kind}`);
-  };
-  for (const entry of manifest.evidence) {
-    const created = createEvidenceArtifact({
-      id: entry.id,
-      kind: entry.kind,
-      locator: entry.locator,
-      observed_at: entry.observed_at,
-      data: dataFor(entry),
-    });
-    entry.sha256 = created.sha256;
-    artifacts.set(entry.id, created.artifact);
+test("shared pre-disable verifier accepts only the exact complete fragment", async () => {
+  const candidate = preDisableCandidate(validK0BundleInput());
+  assert.deepEqual(verifyK0PreDisableFragment(candidate.fragment, candidate.evidence), { ok: true, errors: [] });
+  const calls = new Map();
+  assert.deepEqual(await verifyK0PreDisableEvidenceSemantics(
+    candidate.fragment,
+    candidate.evidence,
+    async (id) => {
+      calls.set(id, (calls.get(id) ?? 0) + 1);
+      return candidate.artifacts.get(id);
+    },
+  ), { ok: true, errors: [] });
+  assert.equal([...calls.values()].every((count) => count === 1), true);
+
+  for (const field of ["checkpoint", "disable", "legacy_after_disable", "post_disable", "final"]) {
+    const changed = structuredClone(candidate.fragment);
+    changed[field] = {};
+    assert.equal(verifyK0PreDisableFragment(changed, candidate.evidence).ok, false, field);
+    assert.equal((await verifyK0PreDisableEvidenceSemantics(
+      changed,
+      candidate.evidence,
+      async (id) => candidate.artifacts.get(id),
+    )).ok, false, field);
   }
-  assert.equal(verifyK0Manifest(manifest).ok, true);
-  assert.deepEqual(await verifyEvidenceArtifacts(manifest, async (id) => artifacts.get(id)), { ok: true, errors: [] });
-  assert.deepEqual(await verifyK0EvidenceSemantics(manifest, async (id) => artifacts.get(id)), { ok: true, errors: [] });
-  artifacts.set("E001", artifacts.get("E001").replace("allowed-00001", "changed-00001"));
-  assert.equal((await verifyEvidenceArtifacts(manifest, async (id) => artifacts.get(id))).ok, false);
+  const extraEvidence = [...candidate.evidence, { ...candidate.evidence[0], id: "E099" }];
+  assert.equal(verifyK0PreDisableFragment(candidate.fragment, extraEvidence).ok, false);
+  assert.equal(verifyK0PreDisableFragment(candidate.fragment, [...candidate.evidence, candidate.evidence[0]]).ok, false);
+  const missingSection = structuredClone(candidate.fragment);
+  delete missingSection.legacy_baseline;
+  assert.equal(verifyK0PreDisableFragment(missingSection, candidate.evidence).ok, false);
+
+  const full = await assembleK0Bundle(validK0BundleInput());
+  const incomplete = structuredClone(full.manifest);
+  for (const field of ["checkpoint", "disable", "legacy_after_disable", "post_disable", "leak_scan"]) delete incomplete[field];
+  assert.equal(verifyK0Manifest(incomplete).ok, false);
+  await assert.rejects(() => verifyK0Bundle({ manifest: incomplete, artifacts: full.artifacts }));
+});
+
+test("shared and full verifiers reject the same pre-disable attacks", async () => {
+  const attacks = [
+    ["proof key state", (input) => { evidenceByKind(input, "GCP_IAM_KEY", "proof-key").data.disabled = true; }],
+    ["proof binding", (input) => { evidenceByKind(input, "PROOFV2_ARTIFACT").data.run_attempt = "2"; }],
+    ["proof event", (input) => { evidenceByKind(input, "GITHUB_RUN", "proof-run").data.event = "push"; }],
+    ["proof review actor", (input) => { evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "proof-review").data.actor_id = "999"; }],
+    ["proof state missing", (input) => {
+      const stateId = evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").id;
+      input.manifest.proof.source_ids = input.manifest.proof.source_ids.filter((id) => id !== stateId);
+    }],
+    ["proof state status", (input) => { evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").data.status = "ISSUED"; }],
+    ["proof state digest", (input) => { evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").data.proof_digest = "f".repeat(64); }],
+    ["proof state scope", (input) => { evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").data.owner_id = "999"; }],
+    ["proof state run", (input) => { evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").data.run_id = "999"; }],
+    ["proof state key", (input) => { evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").data.key_id = "f".repeat(40); }],
+    ["proof state receipt", (input) => { evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").data.receipt_sha256 = "f".repeat(64); }],
+    ["proof state time", (input) => {
+      evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").data.update_time = "2026-08-13T11:31:59Z";
+    }],
+    ["proof state backdated observation", (input) => {
+      evidenceByKind(input, "PROOFV2_CHALLENGE_STATE").observed_at = "2026-08-13T11:32:00Z";
+    }],
+    ["baseline key", (input) => {
+      const key = evidenceByKind(input, "GCP_IAM_KEY", "legacy-baseline-key").data;
+      key.key_id = "b".repeat(40);
+      key.name = `projects/-/serviceAccounts/${input.manifest.scope.service_account_email}/keys/${key.key_id}`;
+    }],
+    ["baseline workflow", (input) => { evidenceByKind(input, "GITHUB_RUN", "legacy-baseline").data.workflow_sha256 = "9".repeat(64); }],
+    ["baseline run", (input) => { input.manifest.legacy_baseline.run_id = "9999"; }],
+    ["baseline self review", (input) => {
+      evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "legacy-baseline-review").data.reviewer_id = "10";
+    }],
+    ["baseline release", (input) => { input.manifest.legacy_baseline.release_marker = "wrong"; }],
+    ["baseline revision", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "legacy-baseline-revision").data.revision = "wrong-00001";
+    }],
+    ["baseline stale revision", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "legacy-baseline-revision").data.create_time = "2026-08-13T10:45:59Z";
+    }],
+    ["baseline after wif-1", (input) => {
+      const run = evidenceByKind(input, "GITHUB_RUN", "legacy-baseline");
+      const revision = evidenceByKind(input, "CLOUD_RUN_REVISION", "legacy-baseline-revision");
+      run.data.started_at = "2026-08-13T11:31:30Z";
+      run.observed_at = "2026-08-13T11:33:00Z";
+      revision.data.create_time = "2026-08-13T11:32:00Z";
+      revision.observed_at = "2026-08-13T11:33:00Z";
+    }],
+    ["cutover repository", (input) => { evidenceByKind(input, "GITHUB_PULL_REQUEST", "cutover-pr").data.repository_id = "999"; }],
+    ["wif-1 before cutover merge", (input) => {
+      evidenceByKind(input, "GITHUB_RUN", "wif-1").data.started_at = "2026-08-13T10:50:00Z";
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.create_time = "2026-08-13T10:51:00Z";
+    }],
+    ["wif-1 self review", (input) => { evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "wif-1-review").data.reviewer_id = "10"; }],
+    ["wif-1 stale revision", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.create_time = "2026-08-13T11:29:59Z";
+    }],
+    ["wif-1 project", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.project_id = "wrong-project";
+    }],
+    ["WIF project", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").data.project_number = "999"; }],
+    ["WIF parity mode", (input) => { input.manifest.wif.mode = "ADDITIVE"; }],
+    ["WIF parity observation inversion", (input) => {
+      const parity = evidenceByKind(input, "GCP_WIF_PARITY").data;
+      [parity.observed_before_at, parity.observed_after_at] = [parity.observed_after_at, parity.observed_before_at];
+      parity.parity_hash = computePreexistingWifParityHash(parity);
+      input.manifest.wif.parity_hash = parity.parity_hash;
+    }],
+    ["WIF etag hash substitution", (input) => {
+      evidenceByKind(input, "GCP_WIF_PARITY").data.allowed_etag_sha256 = "9".repeat(64);
+    }],
+    ["WIF raw etag field", (input) => {
+      evidenceByKind(input, "GCP_WIF_PARITY").data.allowed_policy_before_etag = "opaque";
+    }],
+    ["WIF coherent parity substitution", (input) => {
+      const parity = evidenceByKind(input, "GCP_WIF_PARITY").data;
+      parity.project_id = "wrong-project";
+      parity.parity_hash = computePreexistingWifParityHash(parity);
+      input.manifest.wif.parity_hash = parity.parity_hash;
+    }],
+    ["WIF coherent region substitution", (input) => {
+      const parity = evidenceByKind(input, "GCP_WIF_PARITY").data;
+      parity.region = "us-east1";
+      parity.parity_hash = computePreexistingWifParityHash(parity);
+      input.manifest.wif.parity_hash = parity.parity_hash;
+    }],
+    ["WIF allowed and forbidden service substitution", (input) => {
+      const parity = evidenceByKind(input, "GCP_WIF_PARITY").data;
+      [parity.allowed_service, parity.forbidden_service] = [parity.forbidden_service, parity.allowed_service];
+      parity.parity_hash = computePreexistingWifParityHash(parity);
+      input.manifest.wif.parity_hash = parity.parity_hash;
+    }],
+    ["old additive WIF artifact", (input) => {
+      const parity = evidenceByKind(input, "GCP_WIF_PARITY");
+      parity.kind = "GCP_WIF_PROVIDER";
+      parity.data = {
+        name: input.manifest.wif.provider,
+        config_hash: input.manifest.wif.config_hash,
+        state: "ACTIVE",
+        project_id: input.manifest.scope.project_id,
+        project_number: input.manifest.scope.project_number,
+        service_account_email: input.manifest.scope.service_account_email,
+        service_account_unique_id: input.manifest.scope.service_account_unique_id,
+      };
+    }],
+    ["H1 path", (input) => {
+      evidenceByKind(input, "GITHUB_RUN", "H1-run").data.workflow_path = input.manifest.scope.h2_workflow_path;
+    }],
+    ["H1 late approval", (input) => {
+      const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "h1-workflow-approval");
+      approval.data.reviewed_at = "2026-08-13T11:51:00Z";
+      approval.data.merged_at = "2026-08-13T11:52:00Z";
+      approval.observed_at = "2026-08-13T11:53:00Z";
+    }],
+    ["H2 late approval", (input) => {
+      const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "h2-workflow-approval");
+      approval.data.reviewed_at = "2026-08-13T11:49:00Z";
+      approval.data.merged_at = "2026-08-13T11:51:00Z";
+      approval.observed_at = "2026-08-13T11:52:00Z";
+    }],
+    ["H4 late approval", (input) => {
+      const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "h4-workflow-approval");
+      approval.data.reviewed_at = "2026-08-13T11:51:00Z";
+      approval.data.merged_at = "2026-08-13T11:52:00Z";
+      approval.observed_at = "2026-08-13T11:53:00Z";
+    }],
+    ["H1 H2 approval swap", (input) => {
+      const h1 = input.manifest.approved_workflows.h1.source_id;
+      input.manifest.approved_workflows.h1.source_id = input.manifest.approved_workflows.h2.source_id;
+      input.manifest.approved_workflows.h2.source_id = h1;
+    }],
+    ["H7 workflow", (input) => { evidenceByKind(input, "GITHUB_RUN", "H7-run").data.workflow_sha256 = "9".repeat(64); }],
+    ["legacy approval", (input) => { input.manifest.approved_workflows.legacy.workflow_sha256 = "9".repeat(64); }],
+    ["forbidden region", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-before").data.region = "us-east1";
+    }],
+    ["backdated observation", (input) => {
+      evidenceByKind(input, "STS_CLIENT_RESULT", "H1-result").observed_at = "2026-08-13T11:49:59Z";
+    }],
+    ["H3 wrong provider", (input) => {
+      evidenceByKind(input, "STS_CLIENT_RESULT", "H3-result").data.provider = `${input.manifest.wif.provider}-fresh-wif1`;
+    }],
+    ["H8 bracket", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-after-hostile").observed_at = "2026-08-13T11:40:00Z";
+    }],
+    ["hostile source count", (input) => { input.manifest.hostile_tests[7].source_ids.pop(); }],
+    ["forbidden source identity", (input) => {
+      input.manifest.revisions.forbidden_after_hostile_source_id = input.manifest.revisions.forbidden_before_source_id;
+    }],
+    ["missing baseline source", (input) => { input.manifest.legacy_baseline.source_ids.pop(); }],
+    ["public_url array", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").public_url = ["https://example.test/x"]; }],
+    ["public_url newline", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").public_url = "https://example.test/x\nevil"; }],
+  ];
+  for (const [label, mutate] of attacks) {
+    const input = validK0BundleInput();
+    mutate(input);
+    refreshCheckpointReceipt(input);
+    if (label === "H8 bracket") {
+      const id = evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-after-hostile").id;
+      mutateCheckpointReceipt(input, (receipt) => {
+        receipt.evidence.find((record) => record.id === id).recorded_at = "2026-08-13T11:40:00Z";
+      });
+    }
+    const candidate = preDisableCandidate(input);
+    assert.equal((await verifyK0PreDisableEvidenceSemantics(
+      candidate.fragment,
+      candidate.evidence,
+      async (id) => candidate.artifacts.get(id),
+    )).ok, false, `shared: ${label}`);
+    await assert.rejects(() => assembleK0Bundle(input), undefined, `full: ${label}`);
+  }
+});
+
+test("authoritative Cloud Run wif-1 and wif-2 readbacks feed the assembler unchanged", async () => {
+  const input = validK0BundleInput();
+  const collect = async (revision, releaseMarker, createTime) => createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async (url) => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(url.includes("/revisions/") ? {
+        name: `projects/${input.manifest.scope.project_id}/locations/${input.manifest.scope.region}/services/${input.manifest.scope.allowed_service}/revisions/${revision}`,
+        createTime,
+        containers: [{
+          image: `us-docker.pkg.dev/example/app@sha256:${"a".repeat(64)}`,
+          env: [{ name: "RELEASE", value: releaseMarker }],
+        }],
+      } : { latestReadyRevision: revision }),
+    }),
+  }).readCloudRunRevision({
+    projectId: input.manifest.scope.project_id,
+    region: input.manifest.scope.region,
+    service: input.manifest.scope.allowed_service,
+  });
+  evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data = await collect(
+    input.manifest.revisions.wif_1,
+    input.manifest.cutover.wif_1_release_marker,
+    "2026-08-13T11:31:00Z",
+  );
+  evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision").data = await collect(
+    input.manifest.revisions.wif_2,
+    input.manifest.post_disable.release_marker,
+    "2026-08-13T12:13:45Z",
+  );
+  const audit = JSON.parse(validWifAuditLog(input.manifest));
+  const auditReader = createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify(audit) }),
+  });
+  evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data = JSON.parse(await auditReader.readWifAuditEvidence({
+    projectId: input.manifest.scope.project_id,
+    provider: input.manifest.wif.provider,
+    serviceAccountEmail: input.manifest.scope.service_account_email,
+    serviceAccountUniqueId: input.manifest.scope.service_account_unique_id,
+    startTime: "2026-08-13T12:13:00Z",
+    endTime: "2026-08-13T12:14:00Z",
+  }));
+  refreshCheckpointReceipt(input);
+  await assembleK0Bundle(input);
+});
+
+test("assembler orders artifact maps deterministically and accepts only bound Google key resource variants", async () => {
+  const reversed = validK0BundleInput();
+  reversed.evidence.reverse();
+  const ordered = await assembleK0Bundle(reversed);
+  assert.deepEqual([...ordered.artifacts.keys()], [...ordered.artifacts.keys()].toSorted());
+
+  const base = validK0BundleInput();
+  const scope = base.manifest.scope;
+  const names = [
+    `projects/-/serviceAccounts/${scope.service_account_email}/keys/${scope.key_id}`,
+    `projects/${scope.project_id}/serviceAccounts/${scope.service_account_email}/keys/${scope.key_id}`,
+    `projects/-/serviceAccounts/${scope.service_account_unique_id}/keys/${scope.key_id}`,
+    `projects/${scope.project_id}/serviceAccounts/${scope.service_account_unique_id}/keys/${scope.key_id}`,
+  ];
+  for (const name of names) {
+    const input = validK0BundleInput();
+    evidenceByKind(input, "GCP_IAM_KEY", "proof-key").data.name = name;
+    refreshCheckpointReceipt(input);
+    refreshFinalCredentialScan(input);
+    await assembleK0Bundle(input);
+  }
+  const wrong = validK0BundleInput();
+  evidenceByKind(wrong, "GCP_IAM_KEY", "proof-key").data.name = `projects/wrong-project/serviceAccounts/${scope.service_account_email}/keys/${scope.key_id}`;
+  await assert.rejects(() => assembleK0Bundle(wrong), /resource/);
+});
+
+test("strict post-disable and scope contracts reject false-safe evidence", async () => {
+  const mutations = [
+    ["obsolete v2 contract", (input) => { input.manifest.version = 2; }],
+    ["missing legacy baseline", (input) => { delete input.manifest.legacy_baseline; }],
+    ["legacy baseline key", (input) => {
+      const key = evidenceByKind(input, "GCP_IAM_KEY", "legacy-baseline-key").data;
+      key.key_id = "b".repeat(40);
+      key.name = `projects/-/serviceAccounts/${input.manifest.scope.service_account_email}/keys/${key.key_id}`;
+      refreshCheckpointReceipt(input);
+    }],
+    ["legacy baseline workflow", (input) => {
+      const run = evidenceByKind(input, "GITHUB_RUN", "legacy-baseline").data;
+      run.workflow_blob_sha = "9".repeat(40);
+      run.workflow_sha256 = "9".repeat(64);
+      refreshCheckpointReceipt(input);
+    }],
+    ["legacy baseline run", (input) => { input.manifest.legacy_baseline.run_id = "9999"; }],
+    ["missing legacy baseline source", (input) => { input.manifest.legacy_baseline.source_ids.pop(); }],
+    ["legacy baseline reviewer", (input) => {
+      evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "legacy-baseline-review").data.reviewer_id = "10";
+    }],
+    ["legacy baseline release", (input) => { input.manifest.legacy_baseline.release_marker = "wrong"; }],
+    ["legacy baseline revision", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "legacy-baseline-revision").data.revision = "wrong-00001";
+      refreshCheckpointReceipt(input);
+    }],
+    ["uncheckpointed legacy baseline", (input) => {
+      const id = input.manifest.legacy_baseline.source_ids[0];
+      mutateCheckpointReceipt(input, (receipt) => {
+        receipt.evidence = receipt.evidence.filter((record) => record.id !== id);
+      });
+    }],
+    ["legacy key", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.key_id = "b".repeat(40); }],
+    ["legacy run", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.run_id = "9999"; }],
+    ["legacy attempt", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.run_attempt = "2"; }],
+    ["legacy SHA", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.head_sha = "1".repeat(40); }],
+    ["legacy owner", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.owner_id = "999"; }],
+    ["legacy workflow", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.workflow_path = input.manifest.scope.workflow_path; }],
+    ["legacy workflow ref", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.workflow_ref = "owner/repo/.github/workflows/wrong.yml@refs/heads/main"; }],
+    ["legacy ref", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.ref = "refs/heads/wrong"; }],
+    ["legacy Google reach", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.reached_google = false; }],
+    ["legacy category", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.rejection_category = "NETWORK_ERROR"; }],
+    ["stale legacy", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.rejected_at = "2026-08-13T12:09:59Z"; }],
+    ["synthesized WIF run", (input) => { evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.run_id = "9999"; }],
+    ["wif-2 run", (input) => { evidenceByKind(input, "GITHUB_RUN", "wif-2").data.run_id = "9999"; }],
+    ["wif-2 attempt", (input) => { evidenceByKind(input, "GITHUB_RUN", "wif-2").data.run_attempt = "2"; }],
+    ["wif-2 SHA", (input) => { evidenceByKind(input, "GITHUB_RUN", "wif-2").data.head_sha = "1".repeat(40); }],
+    ["wif-2 unbound review", (input) => { evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "wif-2-review").data.run_id = "9999"; }],
+    ["wif-1 self review", (input) => { evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "wif-1-review").data.reviewer_id = "10"; }],
+    ["wif-2 provider", (input) => { evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries[0].protoPayload.resourceName += "-wrong"; }],
+    ["wif-2 project", (input) => { evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries[0].resource.labels.project_id = "wrong-project"; }],
+    ["wif-2 service account", (input) => { evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries[1].resource.labels.email_id = "wrong@example.iam.gserviceaccount.com"; }],
+    ["wif-2 service account ID", (input) => { evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries[1].resource.labels.unique_id = "999"; }],
+    ["wif-2 IdP subject", (input) => { evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries[0].protoPayload.authenticationInfo.principalSubject = "wrong"; }],
+    ["wif-2 mapped principal", (input) => { evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries[0].protoPayload.metadata.mapped_principal = "wrong"; }],
+    ["stale wif-2", (input) => {
+      const entries = evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries;
+      entries[0].timestamp = "2026-08-13T12:09:58Z";
+      entries[1].timestamp = "2026-08-13T12:09:59Z";
+    }],
+    ["pre-run STS exchange", (input) => {
+      evidenceByKind(input, "GCP_WIF_AUDIT_LOG").data.entries[0].timestamp = "2026-08-13T12:12:59Z";
+    }],
+    ["wif-2 revision", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision").data.revision = "wrong-00001"; }],
+    ["synthesized Cloud run attribution", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision").data.run_id = "3002"; }],
+    ["wif-2 region", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision").data.region = "us-east1"; }],
+    ["missing wif-2 image digest", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision").data.image_digest = null; }],
+    ["pre-existing wif-2 revision", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision").data.create_time = "2026-08-13T12:12:59Z"; }],
+    ["pre-existing wif-1 revision", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.create_time = "2026-08-13T11:29:59Z"; }],
+    ["wrong-run release marker", (input) => { evidenceByKind(input, "GITHUB_RUN", "wif-2").data.release_marker = "wrong-run"; }],
+    ["wif-1 project", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-1-revision").data.project_id = "wrong-project"; }],
+    ["forbidden region", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-before").data.region = "us-east1"; }],
+    ["early wif-2 revision", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision").observed_at = "2026-08-13T12:09:59Z"; }],
+    ["disable actor", (input) => { evidenceByKind(input, "GCP_AUDIT_ENTRY").data.principal_email = "other@example.com"; }],
+    ["disable service account", (input) => { evidenceByKind(input, "GCP_AUDIT_ENTRY").data.service_account_unique_id = "999"; }],
+    ["disable method", (input) => { evidenceByKind(input, "GCP_AUDIT_ENTRY").data.method_name = "DeleteServiceAccountKey"; }],
+    ["disable status", (input) => { evidenceByKind(input, "GCP_AUDIT_ENTRY").data.status = "FAILED"; }],
+    ["cutover repository", (input) => { evidenceByKind(input, "GITHUB_PULL_REQUEST", "cutover-pr").data.repository_id = "999"; }],
+    ["unapproved legacy bytes", (input) => { evidenceByKind(input, "GITHUB_RUN", "legacy-denied").data.workflow_sha256 = "9".repeat(64); }],
+    ["unapproved H7 bytes", (input) => { evidenceByKind(input, "GITHUB_RUN", "H7-run").data.workflow_sha256 = "9".repeat(64); }],
+    ["self-asserted legacy approval", (input) => { input.manifest.approved_workflows.legacy.workflow_sha256 = "9".repeat(64); }],
+    ["proof run binding", (input) => { evidenceByKind(input, "PROOFV2_ARTIFACT").data.run_attempt = "2"; }],
+    ["proof event", (input) => { evidenceByKind(input, "GITHUB_RUN", "proof-run").data.event = "push"; }],
+    ["proof review actor", (input) => { evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW").data.actor_id = "999"; }],
+    ["project drift", (input) => { evidenceByKind(input, "GCP_WIF_PARITY").data.project_number = "999"; }],
+    ["unbracketed forbidden observation", (input) => { evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-after").observed_at = "2026-08-13T12:13:44Z"; }],
+    ["H1 path swapped with H2", (input) => {
+      evidenceByKind(input, "GITHUB_RUN", "H1-run").data.workflow_path = input.manifest.scope.h2_workflow_path;
+    }],
+    ["H1/H2 approvals swapped", (input) => {
+      const h1 = input.manifest.approved_workflows.h1.source_id;
+      input.manifest.approved_workflows.h1.source_id = input.manifest.approved_workflows.h2.source_id;
+      input.manifest.approved_workflows.h2.source_id = h1;
+    }],
+    ["early post event", (input) => { evidenceByKind(input, "GITHUB_RUN", "wif-2").data.started_at = "2026-08-13T12:09:59Z"; }],
+    ["occurrence after observation", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.rejected_at = "2026-08-13T12:12:00.000000001Z"; }],
+    ["observation after assembly", (input) => { input.manifest.assembled_at = "2026-08-13T12:15:00Z"; }],
+    ["over 48 hours", (input) => { input.manifest.assembled_at = "2026-08-15T12:00:00Z"; }],
+    ["consistent post workflow drift", (input) => {
+      const sha = "1".repeat(40);
+      input.manifest.post_disable.head_sha = sha;
+      const run = evidenceByKind(input, "GITHUB_RUN", "wif-2");
+      run.data.head_sha = sha;
+      run.data.workflow_sha256 = "1".repeat(64);
+      run.data.workflow_blob_sha = "1".repeat(40);
+    }],
+    ["extra payload field", (input) => { evidenceByKind(input, "GOOGLE_AUTH_RESULT").data.untrusted = true; }],
+    ["unreferenced evidence", (input) => { input.evidence.push({ ...structuredClone(input.evidence.at(-1)), id: "E099" }); }],
+    ["duplicate evidence", (input) => { input.evidence.push(structuredClone(input.evidence.at(-1))); }],
+  ];
+  for (const [label, mutate] of mutations) {
+    const input = validK0BundleInput();
+    mutate(input);
+    await assert.rejects(() => assembleK0Bundle(input), undefined, label);
+  }
+});
+
+test("checkpoint timing uses authoritative occurrences and permits late authenticated recollection", async () => {
+  const late = validK0BundleInput();
+  const preDisableIds = new Set(JSON.parse(Buffer.from(
+    evidenceByKind(late, "GITHUB_EVIDENCE_CHECKPOINT").data.receipt.bytes_base64,
+    "base64",
+  )).evidence.map(({ id }) => id));
+  for (const item of late.evidence) {
+    if (preDisableIds.has(item.id)) item.observed_at = "2026-08-13T12:18:30Z";
+  }
+  refreshFinalCredentialScan(late);
+  await assembleK0Bundle(late);
+
+  const attacks = [
+    ["backdated observation", (input) => {
+      evidenceByKind(input, "STS_CLIENT_RESULT", "H1-result").observed_at = "2026-08-13T11:49:59Z";
+    }],
+    ["pre-disable event after disable", (input) => {
+      evidenceByKind(input, "STS_CLIENT_RESULT", "H1-result").data.denied_at = "2026-08-13T12:10:01Z";
+      refreshCheckpointReceipt(input);
+    }],
+    ["H1 approval reviewed after run and denial", (input) => {
+      const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "h1-workflow-approval");
+      approval.data.reviewed_at = "2026-08-13T11:51:00Z";
+      approval.data.merged_at = "2026-08-13T11:52:00Z";
+      approval.observed_at = "2026-08-13T12:00:00Z";
+      refreshCheckpointReceipt(input);
+      mutateCheckpointReceipt(input, (receipt) => {
+        receipt.evidence.find(({ id }) => id === approval.id).recorded_at = "2026-08-13T11:53:00Z";
+      });
+    }],
+    ["H2 approval merged after run and denial", (input) => {
+      const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "h2-workflow-approval");
+      approval.data.reviewed_at = "2026-08-13T11:49:00Z";
+      approval.data.merged_at = "2026-08-13T11:51:00Z";
+      approval.observed_at = "2026-08-13T12:00:00Z";
+      refreshCheckpointReceipt(input);
+      mutateCheckpointReceipt(input, (receipt) => {
+        receipt.evidence.find(({ id }) => id === approval.id).recorded_at = "2026-08-13T11:52:00Z";
+      });
+    }],
+    ["post-disable event before disable", (input) => {
+      evidenceByKind(input, "GITHUB_RUN", "wif-2").data.started_at = "2026-08-13T12:09:59Z";
+    }],
+    ["uncheckpointed historical fact", (input) => {
+      mutateCheckpointReceipt(input, (receipt) => { receipt.evidence.pop(); });
+    }],
+    ["H8 not bracketed by reviewed records", (input) => {
+      const id = evidenceByKind(input, "CLOUD_RUN_REVISION", "forbidden-after-hostile").id;
+      mutateCheckpointReceipt(input, (receipt) => {
+        receipt.evidence.find((record) => record.id === id).recorded_at = "2026-08-13T11:40:00Z";
+      });
+    }],
+    ["assembly after 48-hour deadline", (input) => { input.manifest.assembled_at = "2026-08-15T12:00:00Z"; }],
+  ];
+  for (const [label, mutate] of attacks) {
+    const input = validK0BundleInput();
+    mutate(input);
+    await assert.rejects(() => assembleK0Bundle(input), undefined, label);
+  }
+});
+
+test("fresh legacy rejection strictly precedes the complete wif-2 transaction", async () => {
+  const moveWif2 = (input, startedAt) => {
+    const legacyResult = evidenceByKind(input, "GOOGLE_AUTH_RESULT", "legacy-auth");
+    const run = evidenceByKind(input, "GITHUB_RUN", "wif-2");
+    const review = evidenceByKind(input, "GITHUB_ENVIRONMENT_REVIEW", "wif-2-review");
+    const audit = evidenceByKind(input, "GCP_WIF_AUDIT_LOG", "wif-2-audit");
+    const revision = evidenceByKind(input, "CLOUD_RUN_REVISION", "wif-2-revision");
+    legacyResult.data.rejected_at = "2026-08-13T12:11:35Z";
+    legacyResult.observed_at = "2026-08-13T12:12:10Z";
+    run.data.started_at = startedAt;
+    audit.data.entries[0].timestamp = "2026-08-13T12:11:40Z";
+    audit.data.entries[1].timestamp = "2026-08-13T12:11:50Z";
+    revision.data.create_time = "2026-08-13T12:12:00Z";
+    for (const item of [run, review, audit, revision]) item.observed_at = "2026-08-13T12:12:10Z";
+    refreshFinalCredentialScan(input);
+  };
+
+  for (const [label, startedAt] of [
+    ["wif-2 starts before legacy rejection", "2026-08-13T12:11:34.999999999Z"],
+    ["wif-2 starts exactly at legacy rejection", "2026-08-13T12:11:35Z"],
+  ]) {
+    const input = validK0BundleInput();
+    moveWif2(input, startedAt);
+    await assert.rejects(
+      () => assembleK0Bundle(input),
+      /fresh legacy denial must strictly precede post-disable WIF run/,
+      label,
+    );
+  }
+
+  const validBoundary = validK0BundleInput();
+  moveWif2(validBoundary, "2026-08-13T12:11:35.000000001Z");
+  await assembleK0Bundle(validBoundary);
+});
+
+test("legacy baseline must be fresh, checkpointed, and strictly before wif-1", async () => {
+  const attacks = [
+    ["stale pre-run revision", (input) => {
+      evidenceByKind(input, "CLOUD_RUN_REVISION", "legacy-baseline-revision").data.create_time = "2026-08-13T10:45:59Z";
+      refreshCheckpointReceipt(input);
+    }],
+    ["baseline after wif-1", (input) => {
+      const run = evidenceByKind(input, "GITHUB_RUN", "legacy-baseline");
+      const revision = evidenceByKind(input, "CLOUD_RUN_REVISION", "legacy-baseline-revision");
+      run.data.started_at = "2026-08-13T11:31:30Z";
+      run.observed_at = "2026-08-13T11:33:00Z";
+      revision.data.create_time = "2026-08-13T11:32:00Z";
+      revision.observed_at = "2026-08-13T11:33:00Z";
+      refreshCheckpointReceipt(input);
+      mutateCheckpointReceipt(input, (receipt) => {
+        for (const id of [run.id, revision.id]) {
+          receipt.evidence.find((record) => record.id === id).recorded_at = "2026-08-13T11:33:00Z";
+        }
+      });
+    }],
+    ["baseline after disable", (input) => {
+      const run = evidenceByKind(input, "GITHUB_RUN", "legacy-baseline");
+      const revision = evidenceByKind(input, "CLOUD_RUN_REVISION", "legacy-baseline-revision");
+      run.data.started_at = "2026-08-13T12:10:01Z";
+      run.observed_at = "2026-08-13T12:11:00Z";
+      revision.data.create_time = "2026-08-13T12:10:02Z";
+      revision.observed_at = "2026-08-13T12:11:00Z";
+      refreshCheckpointReceipt(input);
+      mutateCheckpointReceipt(input, (receipt) => {
+        for (const id of [run.id, revision.id]) {
+          receipt.evidence.find((record) => record.id === id).recorded_at = "2026-08-13T12:10:03Z";
+        }
+      });
+    }],
+  ];
+  for (const [label, mutate] of attacks) {
+    const input = validK0BundleInput();
+    mutate(input);
+    await assert.rejects(() => assembleK0Bundle(input), undefined, label);
+  }
+});
+
+test("coherent active-WIF workflow substitution cannot satisfy the legacy baseline pin", async () => {
+  const input = validK0BundleInput();
+  const activeBytes = await readFile(new URL("../k0/templates/k0-deploy.wif.yml", import.meta.url));
+  const activeBlobSha = createHash("sha1")
+    .update(Buffer.from(`blob ${activeBytes.length}\0`)).update(activeBytes).digest("hex");
+  const activeSha256 = createHash("sha256").update(activeBytes).digest("hex");
+  input.manifest.approved_workflows.baseline.workflow_blob_sha = activeBlobSha;
+  input.manifest.approved_workflows.baseline.workflow_sha256 = activeSha256;
+  const approval = evidenceByKind(input, "GITHUB_PULL_REQUEST", "baseline-workflow-approval").data;
+  approval.workflow_blob_sha = activeBlobSha;
+  approval.workflow_sha256 = activeSha256;
+  const run = evidenceByKind(input, "GITHUB_RUN", "legacy-baseline").data;
+  run.workflow_blob_sha = activeBlobSha;
+  run.workflow_sha256 = activeSha256;
+  refreshCheckpointReceipt(input);
+  const candidate = preDisableCandidate(input);
+  assert.equal((await verifyK0PreDisableEvidenceSemantics(
+    candidate.fragment,
+    candidate.evidence,
+    async (id) => candidate.artifacts.get(id),
+  )).ok, false);
+  await assert.rejects(() => assembleK0Bundle(input), /legacy baseline approved workflow bytes do not match the inactive fixture/);
+});
+
+test("checkpoint binds protected review, receipt bytes, push run, and required check", async () => {
+  const attacks = [
+    ["protection", (checkpoint) => { checkpoint.protection.require_last_push_approval = false; }],
+    ["linear history false", (checkpoint) => { checkpoint.protection.required_linear_history = false; }],
+    ["linear history missing", (checkpoint) => { delete checkpoint.protection.required_linear_history; }],
+    ["review", (checkpoint) => { checkpoint.pull.reviewer_id = checkpoint.pull.author_id; }],
+    ["head", (checkpoint) => { checkpoint.pull.review_commit_sha = "d".repeat(40); }],
+    ["merge", (checkpoint) => { checkpoint.run.head_sha = "d".repeat(40); }],
+    ["blob", (checkpoint) => { checkpoint.receipt.blob_sha = "d".repeat(40); }],
+    ["content", (checkpoint) => { checkpoint.receipt.bytes_base64 = Buffer.from("{}\n").toString("base64"); }],
+    ["archive path", (checkpoint) => { checkpoint.archive.path = checkpoint.receipt.path; }],
+    ["archive blob", (checkpoint) => { checkpoint.archive.blob_sha = "not-a-sha"; }],
+    ["archive digest", (checkpoint) => { checkpoint.archive.ledger_sha256 = "0"; }],
+    ["archive seal", (checkpoint) => { checkpoint.archive.sealed_at = checkpoint.pull.merged_at; }],
+    ["check", (checkpoint) => { checkpoint.check.name = "not-test"; }],
+    ["app", (checkpoint) => { checkpoint.check.app_id = "1"; }],
+    ["time", (checkpoint) => { checkpoint.check.completed_at = "2026-08-13T12:10:01Z"; }],
+    ["run completion", (checkpoint) => { checkpoint.run.completed_at = "2026-08-13T12:10:01Z"; }],
+  ];
+  for (const [label, mutate] of attacks) {
+    const input = validK0BundleInput();
+    mutate(evidenceByKind(input, "GITHUB_EVIDENCE_CHECKPOINT").data);
+    await assert.rejects(() => assembleK0Bundle(input), undefined, label);
+  }
+});
+
+test("checkpoint semantics reject noncanonical receipt and archive path substitutions", async () => {
+  const invalidPaths = [
+    "docs/evidence/../bad.json",
+    "docs/evidence/./bad.json",
+    "docs/evidence//bad.json",
+    "docs/evidence/bad.json/",
+    "/docs/evidence/bad.json",
+    "docs\\evidence\\bad.json",
+    "docs/evidence/%2e%2e/bad.json",
+    "docs/evidence/bad.json?raw=1",
+    "docs/evidence/bad.json#fragment",
+    "docs/evidence/bad\u0000.json",
+    "docs/ｅvidence/bad.json",
+    `docs/evidence/${"a".repeat(247)}.json`,
+  ];
+  for (const field of ["receipt", "archive"]) {
+    for (const path of invalidPaths) {
+      const input = validK0BundleInput();
+      evidenceByKind(input, "GITHUB_EVIDENCE_CHECKPOINT").data[field].path = path;
+      await assert.rejects(() => assembleK0Bundle(input), undefined, `${field}: ${JSON.stringify(path)}`);
+    }
+  }
+});
+
+test("manifest pins distinct forbidden observations and exact source sets", async () => {
+  const bundle = await assembleK0Bundle(validK0BundleInput());
+  for (const mutate of [
+    (manifest) => { manifest.revisions.forbidden_after_source_id = manifest.revisions.forbidden_before_source_id; },
+    (manifest) => { manifest.hostile_tests[7].source_ids.pop(); },
+    (manifest) => { manifest.post_disable.source_ids.push(manifest.leak_scan.source_ids[0]); },
+    (manifest) => { manifest.post_disable.run_attempt = "2"; },
+    (manifest) => { manifest.scope.project_number = "999"; },
+  ]) {
+    const changed = structuredClone(bundle.manifest);
+    mutate(changed);
+    await assert.rejects(() => verifyK0Bundle({ manifest: changed, artifacts: bundle.artifacts }));
+  }
+});
+
+test("full semantics independently recompute the exact final credential scan", async () => {
+  const valid = await assembleK0Bundle(validK0BundleInput());
+  const scanId = valid.manifest.leak_scan.source_ids[0];
+  const expected = createCredentialScan(valid.manifest.scope, new Map(
+    valid.manifest.evidence
+      .filter(({ kind }) => kind !== "LEAK_SCAN")
+      .map(({ id }) => [id, Buffer.from(valid.artifacts.get(id))]),
+  ));
+  assert.deepEqual(JSON.parse(valid.artifacts.get(scanId)).data, expected);
+
+  const omitted = await assembleK0Bundle(validK0BundleInput());
+  omitted.manifest.evidence = omitted.manifest.evidence.filter(({ id }) => id !== scanId);
+  omitted.artifacts.delete(scanId);
+  assert.equal((await semanticResult(omitted)).ok, false);
+
+  const duplicated = await assembleK0Bundle(validK0BundleInput());
+  const duplicateEnvelope = JSON.parse(duplicated.artifacts.get(scanId));
+  duplicateEnvelope.id = "E099";
+  duplicateEnvelope.locator = "credential-scan:duplicate";
+  const duplicate = createEvidenceArtifact(duplicateEnvelope);
+  duplicated.artifacts.set("E099", Buffer.from(duplicate.artifact));
+  duplicated.manifest.evidence.push({
+    id: "E099",
+    kind: "LEAK_SCAN",
+    locator: duplicateEnvelope.locator,
+    observed_at: duplicateEnvelope.observed_at,
+    sha256: duplicate.sha256,
+  });
+  duplicated.manifest.evidence.sort((left, right) => left.id.localeCompare(right.id));
+  assert.equal((await semanticResult(duplicated)).ok, false);
+
+  for (const mutate of [
+    (data) => { data.artifact_count += 1; },
+    (data) => { data.scope_hash = "0".repeat(64); },
+    (data) => { data.scanner = "KEYLESS_CREDENTIAL_SCAN_V0"; },
+  ]) {
+    const changed = await assembleK0Bundle(validK0BundleInput());
+    replaceArtifact(changed, scanId, ({ data }) => mutate(data));
+    const result = await semanticResult(changed);
+    assert.equal(result.ok, false);
+    assert.equal(result.errors.some((error) => error.includes("final credential scan body")), true);
+  }
+
+  const stale = await assembleK0Bundle(validK0BundleInput());
+  const postAuthId = stale.manifest.legacy_after_disable.source_ids.find(
+    (id) => stale.manifest.evidence.find((entry) => entry.id === id)?.kind === "GOOGLE_AUTH_RESULT",
+  );
+  replaceArtifact(stale, postAuthId, ({ data }) => { data.log_sha256 = "8".repeat(64); });
+  const staleResult = await semanticResult(stale);
+  assert.equal(staleResult.ok, false);
+  assert.equal(staleResult.errors.includes("final credential scan body does not match every non-scan artifact"), true);
+
+  for (const locator of [
+    "credential-scan:predisable-archive",
+    "credential-scan",
+    "credential-scan:final",
+    "Credential-scan:final-bundle",
+    "credential-scan:final-bundle-near",
+  ]) {
+    const wrongLocator = await assembleK0Bundle(validK0BundleInput());
+    replaceArtifact(wrongLocator, scanId, (envelope) => { envelope.locator = locator; });
+    const locatorResult = await semanticResult(wrongLocator);
+    assert.equal(locatorResult.ok, false);
+    assert.equal(locatorResult.errors.includes("final credential scan locator is invalid"), true);
+  }
+
+  const credential = await assembleK0Bundle(validK0BundleInput());
+  const credentialText = `gh${"p"}_${"z".repeat(24)}`;
+  const encodedCredential = Buffer.from(credentialText).toString("base64");
+  replaceArtifact(credential, postAuthId, (envelope) => { envelope.locator = encodedCredential; });
+  const credentialResult = await semanticResult(credential);
+  assert.equal(credentialResult.ok, false);
+  assert.equal(credentialResult.errors.includes("final credential scan did not verify every non-scan artifact"), true);
+  assert.equal(credentialResult.errors.join(" ").includes(credentialText), false);
+  assert.equal(credentialResult.errors.join(" ").includes(encodedCredential), false);
+});
+
+test("semantic verification snapshots every artifact exactly once", async () => {
+  const input = validK0BundleInput();
+  const bundle = await assembleK0Bundle(input);
+  const target = evidenceByKind(input, "GOOGLE_AUTH_RESULT");
+  target.data.key_id = "b".repeat(40);
+  const changed = createEvidenceArtifact(target);
+  const manifest = structuredClone(bundle.manifest);
+  manifest.evidence.find(({ id }) => id === target.id).sha256 = changed.sha256;
+  const calls = new Map();
+  const result = await verifyK0EvidenceSemantics(manifest, async (id) => {
+    calls.set(id, (calls.get(id) ?? 0) + 1);
+    return id === target.id && calls.get(id) === 1 ? changed.artifact : bundle.artifacts.get(id);
+  });
+  assert.equal(result.ok, false);
+  assert.equal([...calls.values()].every((count) => count === 1), true);
+});
+
+test("hostile run and H8 result artifacts with null data fail closed without throwing", async () => {
+  const input = validK0BundleInput();
+  const bundle = await assembleK0Bundle(input);
+  const targets = [
+    evidenceByKind(input, "GITHUB_RUN", "H3-run"),
+    evidenceByKind(input, "GITHUB_RUN", "H8-run"),
+    evidenceByKind(input, "CLOUD_RUN_IAM_RESULT"),
+  ];
+  for (const target of targets) {
+    const mutated = { manifest: structuredClone(bundle.manifest), artifacts: new Map(bundle.artifacts) };
+    replaceArtifact(mutated, target.id, (envelope) => { envelope.data = null; });
+    const result = await semanticResult(mutated);
+    assert.equal(result.ok, false, target.id);
+    assert.equal(result.errors.includes(`${target.id} ${target.kind} data fields are invalid`), true, target.id);
+  }
+});
+
+test("bundle verification rejects artifact bytes outside the manifest ledger", async () => {
+  const bundle = await assembleK0Bundle(validK0BundleInput());
+  const extra = new Map(bundle.artifacts);
+  extra.set("E099", Buffer.from("{}\n"));
+  await assert.rejects(() => verifyK0Bundle({ manifest: bundle.manifest, artifacts: extra }), /exactly match/);
+
+  const first = bundle.manifest.evidence[0];
+  const changed = Buffer.from(bundle.artifacts.get(first.id));
+  changed[changed.length - 2] ^= 1;
+  const tampered = new Map(bundle.artifacts);
+  tampered.set(first.id, changed);
+  await assert.rejects(() => verifyK0Bundle({ manifest: bundle.manifest, artifacts: tampered }));
 });

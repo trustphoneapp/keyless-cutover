@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "status": "VERIFIED_INDEPENDENT_REVIEW",
+  "recorded_at": "2026-08-14T00:52:35.327Z",
+  "repository": {
+    "full_name": "trustphoneapp/keyless-cutover",
+    "owner_id": "289479481",
+    "repository_id": "1332803088",
+    "head_sha": "f48d9f1b9ac1d321c6b953217b50df82cd59ca4d"
+  },
+  "workflow": {
+    "path": ".github/workflows/k0-proof-v2.yml",
+    "blob_sha": "b0f1504d3afefb7c5b45fc589b10c6861587f9f8",
+    "run_id": "31758449936",
+    "run_attempt": "1",
+    "artifact_id": "9203702005",
+    "artifact_name": "keyless-proof-v2-31758449936-1",
+    "artifact_zip_sha256": "56feb3c3601ad75782c56201c01abf72cbeaf99411e02e8003b95d823d172272",
+    "proof_json_sha256": "613703e80fb645464ab5577fe1fa2446881ab1b88d758eb6f21a8b626248e9e3"
+  },
+  "environment_review": {
+    "state": "approved",
+    "environment": "production",
+    "reviewer_id": "214124322",
+    "reviewer_login": "cherala2002"
+  },
+  "challenge": {
+    "id": "2dda9f12-07fd-4255-8bcd-61aea76dabdb",
+    "issued_at": "2026-08-14T00:45:37.920Z",
+    "expires_at": "2026-08-14T00:50:37.920Z",
+    "consumed_at": "2026-08-14T00:50:29.440Z",
+    "status": "CONSUMED",
+    "proof_digest": "2035d7bd083a817edc243947863682279c36d0447a6cb9610040d31d80f62b66"
+  },
+  "key": {
+    "project_id": "keyless-k0-20260813",
+    "client_email": "keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com",
+    "key_id": "253d40858619a76541f1b6374d157560cf8b14f6",
+    "key_type": "USER_MANAGED",
+    "key_algorithm": "RSA-2048",
+    "disabled": false
+  },
+  "operator_receipt": {
+    "verified": true,
+    "consumed": true,
+    "replay_rejected": true,
+    "recovered_after_consume": true,
+    "receipt_sha256": "2c15dfc21c15dd245d652a1b6466a13ebea792e64bb1176e4cbf558a066bb123"
+  },
+  "verification": {
+    "credential_shape_scan": "PASS",
+    "receipt_hash_recomputed": true,
+    "firestore_state_read_back": true,
+    "google_key_state_read_back": true
+  },
+  "limitations": [
+    "This receipt proves only the independently approved exact-key ProofV2 transaction and one-time challenge consumption.",
+    "The legacy key remains enabled; this receipt does not claim a completed WIF cutover or revocation.",
+    "The overall K0 release remains NO_GO_INCOMPLETE until the remaining hostile controls, human key disable, fresh legacy rejection, post-disable WIF continuity, and KMS receipt are complete."
+  ]
+}

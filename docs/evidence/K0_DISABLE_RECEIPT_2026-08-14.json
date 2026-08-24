@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "status": "KEY_DISABLED_OBSERVED",
+  "release_status": "NO_GO_INCOMPLETE",
+  "recorded_at": "2026-08-14T03:34:41.000Z",
+  "scope": {
+    "repository": "trustphoneapp/keyless-cutover",
+    "main_commit": "92d9704c06dc2055edc1d7fab9a2aa94da483488",
+    "project_id": "keyless-k0-20260813",
+    "project_number": "208865688014",
+    "service_account": "keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com",
+    "service_account_unique_id": "110652672782847439596",
+    "key_id": "253d40858619a76541f1b6374d157560cf8b14f6"
+  },
+  "pre_disable": {
+    "receipt": "docs/evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json",
+    "receipt_sha256": "e97a9c272b3b526c951131f202671c31f7c71a72ecd703ae2b393f64c88f16d9",
+    "status": "K0_PREDISABLE_VERIFIED"
+  },
+  "key_readback": {
+    "name": "projects/keyless-k0-20260813/serviceAccounts/keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com/keys/253d40858619a76541f1b6374d157560cf8b14f6",
+    "key_type": "USER_MANAGED",
+    "algorithm": "KEY_ALG_RSA_2048",
+    "origin": "GOOGLE_PROVIDED",
+    "disabled": true,
+    "disable_reason": "SERVICE_ACCOUNT_KEY_DISABLE_REASON_USER_INITIATED"
+  },
+  "admin_activity": {
+    "method_name": "google.iam.admin.v1.DisableServiceAccountKey",
+    "resource_name": "projects/-/serviceAccounts/110652672782847439596/keys/253d40858619a76541f1b6374d157560cf8b14f6",
+    "key_id": "253d40858619a76541f1b6374d157560cf8b14f6",
+    "service_account_unique_id": "110652672782847439596",
+    "principal_email": "yashwanth.surabhi@gmail.com",
+    "insert_id": "y4ni34eax6yl",
+    "timestamp": "2026-08-14T03:29:50.942748787Z"
+  },
+  "blockers": [
+    "fresh hosted legacy authentication rejection after disable",
+    "fresh post-disable WIF deployment creating wif-2",
+    "KMS-signed reconstructable final receipt"
+  ],
+  "limitations": [
+    "The key was disabled, never deleted, and can be re-enabled only by an explicitly authorized human rollback.",
+    "Disabling the key prevents fresh key authentication but does not revoke access tokens issued before the disable event.",
+    "This receipt does not claim fresh legacy rejection, post-disable WIF continuity, or final K0 completion."
+  ]
+}
