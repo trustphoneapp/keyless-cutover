@@ -48,7 +48,7 @@ If any condition is absent, use a narrower claim or state that the evidence is p
 | Receipt authentic | Authenticated live recollection issues the exact pending receipt; the scoped real KMS signature verifies against pinned out-of-band trust and tampered bytes fail | Yes |
 | Gemini is necessary | Held-out ablation beats rules baseline by threshold | Required for agentic claim, not core utility |
 
-As of 2026-08-24: "Exact old key identified" through "Key disabled" and "Fresh old-key auth fails" are met. "WIF continuity" is not met and is structurally blocked on this repository, not pending. "Receipt authentic" was correctly not attempted, since it requires the `post_disable` evidence that continuity's block prevents from ever existing.
+As of 2026-08-24: "Exact old key identified", "No privilege widening", "Authorized WIF works", "Hostile path denied", "Key disabled", and "Fresh old-key auth fails" are met. "Pre-disable transaction checkpointed" is only partially met: the archive was independently reviewed and merged before disable, but its "reread" component runs inside the pending issuer, which never ran — the same block that stops "WIF continuity" and "Receipt authentic" from being met.
 
 ## Forbidden marketing language
 
