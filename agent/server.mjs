@@ -35,7 +35,7 @@ export function createKeylessAgentServer({ evidenceInvoker, recoveryInvoker, api
   }
   if (typeof apiToken !== "string" || apiToken.length < 32) throw new Error("KEYLESS_API_TOKEN is invalid");
   return createHttpServer(async (request, response) => {
-    if (request.method === "GET" && request.url === "/healthz") {
+    if (request.method === "GET" && request.url === "/_health") {
       send(response, 200, { status: "ok", model: "gemini-3.5-flash", tools: 0 });
       return;
     }

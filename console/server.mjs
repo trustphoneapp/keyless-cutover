@@ -151,7 +151,7 @@ export function createConsoleServer(status) {
     throw new Error("console status is not fail-closed");
   }
   return createServer((request, response) => {
-    if (request.method === "GET" && request.url === "/healthz") {
+    if (request.method === "GET" && request.url === "/_health") {
       response.writeHead(204, SECURITY_HEADERS);
       response.end();
       return;

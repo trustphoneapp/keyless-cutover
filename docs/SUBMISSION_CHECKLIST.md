@@ -52,7 +52,7 @@ The prior checked transaction is historical readiness only. Its key was disabled
 - [ ] Console container builds for `linux/amd64` from the pinned base image.
 - [ ] Agent, console, and demo `linux/amd64` images scan with zero critical/high findings.
 - [ ] Private Taskmaster and public console image digests match the evidence record.
-- [ ] Public console `/`, `/healthz`, and `/api/status` behave as documented; POST/mutation routes do not exist.
+- [ ] Public console `/`, `/_health`, and `/api/status` behave as documented; POST/mutation routes do not exist.
 - [ ] Private Taskmaster rejects Cloud Run IAM alone and requires the separate application gate.
 - [ ] All source/document links resolve and no private/local path appears in public copy.
 - [ ] Repository and evidence artifacts pass a credential-shape scan.
