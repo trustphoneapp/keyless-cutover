@@ -13,7 +13,7 @@ This checklist is fail-closed. An unchecked release blocker cannot be waived by 
 - [x] Public repository, English documentation, license, privacy/security, and AI-assistance disclosure exist.
 - [x] README contains local validation instructions.
 - [x] Architecture diagram and Google-service roles are documented.
-- [ ] A separately authorized fresh K0 transaction checkpoints its canonical pre-disable archive while the key remains enabled, passes disable → legacy-denial → WIF-2 ordering, authentically issues the exact pending receipt, and verifies its separately authorized scoped real KMS signature against pinned trust without changing the human release boundary.
+- [ ] A separately authorized fresh K0 transaction checkpoints its canonical pre-disable archive while the key remains enabled, passes disable → legacy-denial → WIF-2 ordering, authentically issues the exact pending receipt, and verifies its separately authorized scoped real KMS signature against pinned trust without changing the human release boundary. **Partially done, 2026-08-24**: archive-checkpoint-while-enabled, disable, and legacy-denial are proven on real state; WIF-2 is not achieved and is structurally blocked on this repository (see README's "The fresh transaction" section), so pending-receipt issuance and KMS signature verification were correctly not attempted.
 - [ ] Public English/subtitled video is ≤4:00 and shows backend on Google Cloud.
 - [ ] Devpost form is completed and submitted before August 31, 2026 at 5:00 PM PT.
 
@@ -24,14 +24,14 @@ The prior checked transaction is historical readiness only. Its key was disabled
 ### Required fresh v3 sequence
 
 - [x] Protected RC is independently reviewed/merged; `required_linear_history: true` and the complete branch/environment protection tuple are read back.
-- [ ] A separately authorized fresh disposable key transaction produces a successful baseline plus fresh ProofV2, WIF-1/parity, and H1–H8 including H2.
-- [ ] The exact canonical pre-disable archive checkpoint is independently reviewed, merged, and reread while the fresh key is enabled.
-- [ ] Human operator disables—not deletes—the exact fresh key; key state and one exact Admin Activity entry agree.
-- [ ] Fresh hosted legacy probe reaches Google and receives a recognized denial before WIF-2 starts.
-- [ ] A later fresh hosted WIF run creates and reads back `wif-2`; WIF audit/parity and forbidden-target readback agree.
-- [ ] Authenticated read-only pending issuance verifies and writes the exact private output with `RECOLLECTION_REQUIRED` and `release_ready: false`.
-- [ ] A separately authorized scoped real KMS signature verifies against pinned trust; one-byte mutation fails and no release state changes.
-- [ ] A separate human reviews the complete evidence and owns the release decision.
+- [x] A separately authorized fresh disposable key transaction produces a successful baseline plus fresh ProofV2, WIF-1/parity, and H1–H8 including H2. **Done, 2026-08-24**: `legacy-3`, ProofV2 run `32761994628`, `wif-3`, all eight hostile denials.
+- [x] The exact canonical pre-disable archive checkpoint is independently reviewed, merged, and reread while the fresh key is enabled. **Done, 2026-08-24**: [PR #35](https://github.com/trustphoneapp/keyless-cutover/pull/35), check and push run both completed before disable.
+- [x] Human operator disables—not deletes—the exact fresh key; key state and one exact Admin Activity entry agree. **Done, 2026-08-24T20:05:49Z**, principal `yashwanth.surabhi@gmail.com`, insert ID `1r9n1a8e78acr`.
+- [x] Fresh hosted legacy probe reaches Google and receives a recognized denial before WIF-2 starts. **Done**: run `32771996082`.
+- [ ] A later fresh hosted WIF run creates and reads back `wif-2`; WIF audit/parity and forbidden-target readback agree. **Not achieved, structurally blocked on this repository** — see README's "The fresh transaction" section for the exact audit-window and workflow-byte-pinning conflict.
+- [ ] Authenticated read-only pending issuance verifies and writes the exact private output with `RECOLLECTION_REQUIRED` and `release_ready: false`. **Not attempted, correctly** — requires `post_disable` evidence that cannot exist while WIF-2 is blocked.
+- [ ] A separately authorized scoped real KMS signature verifies against pinned trust; one-byte mutation fails and no release state changes. **Not attempted, correctly**, same reason.
+- [ ] A separate human reviews the complete evidence and owns the release decision. Status assessed as **REVISE / NO-GO**; no release decision has been made.
 
 ### Historical readiness already observed — not v3 completion
 

@@ -1,10 +1,12 @@
 # Claims and limitations
 
-## Target release claim — not yet achieved
+## Target release claim — pre-disable half achieved, continuity structurally blocked
 
 After all release gates pass, Keyless may claim that it migrated one supported GitHub Actions workflow from one repository-scoped Google service-account JSON secret to a narrowly bound WIF path with no added downstream permissions for one existing Cloud Run service. The target claim includes a human-reviewed PR, one authorized path and eight scoped hostile paths, an independently reviewed canonical archive checkpoint completed while the fresh key remained enabled, human disable of that exact key, a fresh legacy authentication failure before post-disable WIF deployment, authenticated issuance of the exact pending receipt, a scoped real signature verified against pinned trust, and a separate human release decision. The signature does not itself authorize release.
 
-Today the complete claim remains unproven. The recorded `legacy-1`, ProofV2, WIF/provider and IAM read-back, `wif-1`, H1–H8 denials, unchanged forbidden revision, and human key disable are historical readiness evidence only. That key was disabled before a canonical v3 pre-disable archive checkpoint was reviewed and merged, so the transaction cannot satisfy v3 and must not be resumed by re-enabling the key. Published v3 bundle/receipt verification and the read-only pending issuer are implemented and tested but are not authenticated live evidence. A separately authorized fresh disposable transaction must complete the exact archive-before-disable order, authenticated pending issuance, scoped signature verification, and separate human release decision.
+The 2026-08-24 fresh transaction proved the archive-before-disable half of this claim on real GitHub and Google state: fresh `legacy-3`, ProofV2 run `32761994628`, the compiler-owned WIF cutover, `wif-3`, all eight hostile denials, the canonical pre-disable archive checkpoint reviewed and merged with its check and push run both completing before disable, the human key disable, and a fresh legacy authentication failure afterward. See [README.md](../README.md)'s "The fresh transaction" section for exact run IDs and timestamps.
+
+Continuity — a fresh post-disable `wif-2` deployment — was not achieved, and live testing found it structurally blocked on this repository rather than merely undone: the hostile jobs sharing `deploy`'s trigger always add extra Cloud Audit Log entries to the post-disable window, and the only fix changes the workflow's bytes, which breaks the separate requirement that a post-disable run's bytes match what `wif-1` used. A fresh key cannot route around this either, because a fresh `legacy_baseline` can never be collected again after the one-time cutover merges. Authenticated pending issuance and the scoped KMS signature were correctly not attempted, since both require `post_disable` evidence that cannot exist for this transaction; the manifest remains `RECOLLECTION_REQUIRED` with `release_ready: false`. The overall claim therefore remains unproven, for a now-understood structural reason rather than a remaining task.
 
 ## What the claim requires
 
@@ -45,6 +47,8 @@ If any condition is absent, use a narrower claim or state that the evidence is p
 | WIF continuity | Fresh post-disable WIF deployment and revision | Yes |
 | Receipt authentic | Authenticated live recollection issues the exact pending receipt; the scoped real KMS signature verifies against pinned out-of-band trust and tampered bytes fail | Yes |
 | Gemini is necessary | Held-out ablation beats rules baseline by threshold | Required for agentic claim, not core utility |
+
+As of 2026-08-24: "Exact old key identified" through "Key disabled" and "Fresh old-key auth fails" are met. "WIF continuity" is not met and is structurally blocked on this repository, not pending. "Receipt authentic" was correctly not attempted, since it requires the `post_disable` evidence that continuity's block prevents from ever existing.
 
 ## Forbidden marketing language
 
