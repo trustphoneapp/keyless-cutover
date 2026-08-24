@@ -3,8 +3,15 @@ import AdmZip from "adm-zip";
 import { decodeUtf8 } from "./evidence-artifact.mjs";
 import { requireGitHubReadToken } from "./github-token.mjs";
 import { githubReleaseMarker, githubWorkflowSnapshot } from "./github-workflow-snapshot.mjs";
-import { isRfc3339, timestampAtOrBefore } from "./rfc3339.mjs";
+import { isRfc3339, timestampAtOrBefore, timestampNanoseconds } from "./rfc3339.mjs";
 
+// The redirected download response and the initial redirect response come from independent
+// services (github.com and the CDN backing the redirect target, e.g. blob.core.windows.net),
+// whose clocks are not sub-second synchronized. Confirmed live: a job-logs download observed
+// one second before its own redirect, on an otherwise valid, immediately-fetched response.
+// This bounds ordinary cross-service clock skew without weakening the freshness check itself:
+// the download must still land within a few seconds of the redirect that produced it.
+const REDIRECT_CLOCK_SKEW_TOLERANCE_NS = 5n * 1_000_000_000n;
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const NUMERIC = /^\d+$/;
@@ -297,7 +304,12 @@ export async function downloadGitHubBytesObserved(url, token, fetchImpl, limit, 
   }
   const captured = captureBodyResponse(response, "GitHub download response");
   const { observedAt, status, ok } = captured;
-  if (status !== 200 || ok !== true || !timestampAtOrBefore(redirectedAt, observedAt)
+  const redirectedAtNs = timestampNanoseconds(redirectedAt);
+  const observedAtNs = timestampNanoseconds(observedAt);
+  const withinRedirectSkewTolerance = redirectedAtNs !== null && observedAtNs !== null
+    && redirectedAtNs - observedAtNs <= REDIRECT_CLOCK_SKEW_TOLERANCE_NS;
+  if (status !== 200 || ok !== true
+      || !(timestampAtOrBefore(redirectedAt, observedAt) || withinRedirectSkewTolerance)
       || (notBefore !== null && !timestampAtOrBefore(notBefore, redirectedAt))) {
     try { await captured.reader?.cancel(); } catch { /* static failure below */ }
     throw new Error("GitHub download response is invalid");
