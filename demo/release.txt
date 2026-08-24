@@ -1,1 +1,1 @@
-legacy-3
+wif-3
