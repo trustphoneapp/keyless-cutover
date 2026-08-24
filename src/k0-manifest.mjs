@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { isRfc3339 } from "./rfc3339.mjs";
 
-const HOSTILE_CASES = {
+export const HOSTILE_CASES = {
   H1: ["WRONG_OWNER_ID", "WIF_PROVIDER_CONDITION"],
   H2: ["WRONG_REPOSITORY_ID", "WIF_PROVIDER_CONDITION"],
   H3: ["WRONG_REF", "WIF_PROVIDER_CONDITION"],

@@ -14,14 +14,16 @@ import {
   parseGitHubEvidenceCheckpointReceipt,
 } from "./k0-evidence-normalizer.mjs";
 import { verifyK0PreDisableEvidenceSemantics } from "./k0-evidence-semantics.mjs";
-import { SCOPE_FIELDS } from "./k0-manifest.mjs";
+import { HOSTILE_CASES, SCOPE_FIELDS } from "./k0-manifest.mjs";
 import { parseK0PreDisableArchivePlanBytes } from "./k0-predisable-archive.mjs";
 import { collectProofV2, collectReadOnlyConsumedProofV2State } from "./proofv2-operator.mjs";
+import { isRfc3339 } from "./rfc3339.mjs";
 import { buildWifPlan } from "./wif-plan.mjs";
 
 const DOMAIN = "KEYLESS_K0_PREDISABLE_COLLECT_PLAN_V1";
 const MAX_PLAN = 32 * 1024;
 const MAX_RECEIPT = 64 * 1024;
+const MAX_OBSERVATION = 8 * 1024;
 const PLAN_FIELDS = new Set([
   "version", "domain", "transaction_id", "nonce", "github", "scope", "wif", "planned_wif_2_revision",
   "legacy_baseline", "proof", "cutover", "approvals", "hostile", "forbidden_target",
@@ -35,16 +37,6 @@ const HOSTILE_FIELDS = new Set(["owner", "repository", "run_id"]);
 const TARGET_FIELDS = new Set(["revision", "release_marker", "create_time", "image_digest"]);
 const APPROVAL_ROLES = ["h1", "h2", "h4", "legacy"];
 const HOSTILE_IDS = ["H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"];
-const HOSTILE_CASES = {
-  H1: ["WRONG_OWNER_ID", "WIF_PROVIDER_CONDITION"],
-  H2: ["WRONG_REPOSITORY_ID", "WIF_PROVIDER_CONDITION"],
-  H3: ["WRONG_REF", "WIF_PROVIDER_CONDITION"],
-  H4: ["WRONG_WORKFLOW_REF", "WIF_PROVIDER_CONDITION"],
-  H5: ["WRONG_EVENT", "WIF_PROVIDER_CONDITION"],
-  H6: ["WRONG_ENVIRONMENT", "WIF_PROVIDER_CONDITION"],
-  H7: ["WRONG_AUDIENCE", "STS_AUDIENCE"],
-  H8: ["FORBIDDEN_RESOURCE", "CLOUD_RUN_IAM"],
-};
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY = /^[A-Za-z0-9._-]{1,100}$/;
 const NUMERIC = /^\d+$/;
@@ -123,23 +115,70 @@ export function parseK0PreDisableCollectPlan(planBytes) {
   return plan;
 }
 
-async function collectFromPlan(plan, { token, googleAuth, challengeStore, operatorReceiptBytes, fetchImpl }) {
-  const scope = structuredClone(plan.scope);
-  const { owner, repository } = plan.github;
-  const gcp = createGcpEvidenceReader({ auth: googleAuth, fetchImpl });
-  const readKey = createGoogleKeyReaderObserved({ auth: googleAuth, fetchImpl });
-  const forbiddenTarget = {
-    projectId: scope.project_id,
-    region: scope.region,
-    service: scope.forbidden_service,
+const OBSERVATION_FIELDS = new Set([
+  "project_id", "region", "service", "revision", "create_time", "release_marker", "image_digest", "observed_at",
+]);
+
+function forbiddenTargetOf(plan) {
+  return {
+    projectId: plan.scope.project_id,
+    region: plan.scope.region,
+    service: plan.scope.forbidden_service,
     revision: plan.forbidden_target.revision,
     expectedReleaseMarker: plan.forbidden_target.release_marker,
     expectedCreateTime: plan.forbidden_target.create_time,
     expectedImageDigest: plan.forbidden_target.image_digest,
   };
+}
+
+// Phase one. Must run BEFORE the first hostile probe starts: k0-evidence-semantics requires this
+// observation strictly before H8's run_started_at, and the phase-two plan needs H8's run ID, so the
+// two cannot happen in one command.
+export async function observeK0ForbiddenBefore(planBytes, credentials) {
+  const plan = parseK0PreDisableCollectPlan(planBytes);
+  const gcp = createGcpEvidenceReader({
+    auth: credentials?.googleAuth,
+    fetchImpl: credentials?.fetchImpl ?? fetch,
+  });
+  const bytes = Buffer.from(canonicalJson(await gcp.readExactCloudRunRevisionObservation(forbiddenTargetOf(plan))));
+  assertCredentialFreeBytes(bytes);
+  return bytes;
+}
+
+export function parseK0ForbiddenBeforeBytes(observationBytes, plan) {
+  if (!Buffer.isBuffer(observationBytes) || !observationBytes.length || observationBytes.length > MAX_OBSERVATION) {
+    throw new Error("forbidden-before observation bytes are invalid");
+  }
+  let observation;
+  try {
+    observation = JSON.parse(decodeUtf8(observationBytes));
+  } catch {
+    throw new Error("forbidden-before observation is not JSON");
+  }
+  const target = forbiddenTargetOf(plan);
+  if (!observationBytes.equals(Buffer.from(canonicalJson(observation), "utf8"))
+      || !exactObject(observation, OBSERVATION_FIELDS)
+      || observation.project_id !== target.projectId || observation.region !== target.region
+      || observation.service !== target.service || observation.revision !== target.revision
+      || observation.release_marker !== target.expectedReleaseMarker
+      || observation.create_time !== target.expectedCreateTime
+      || observation.image_digest !== target.expectedImageDigest
+      || !isRfc3339(observation.observed_at)) {
+    throw new Error("forbidden-before observation does not match the approved target");
+  }
+  return observation;
+}
+
+async function collectFromPlan(plan, { token, googleAuth, challengeStore, operatorReceiptBytes, forbiddenBefore, fetchImpl }) {
+  const scope = structuredClone(plan.scope);
+  const { owner, repository } = plan.github;
+  const gcp = createGcpEvidenceReader({ auth: googleAuth, fetchImpl });
+  const readKey = createGoogleKeyReaderObserved({ auth: googleAuth, fetchImpl });
+  const forbiddenTarget = forbiddenTargetOf(plan);
 
   // The two forbidden-target reads bracket every hostile run that must not have changed it.
-  const forbiddenBefore = await gcp.readExactCloudRunRevisionObservation(forbiddenTarget);
+  // The "before" read cannot happen here: k0-evidence-semantics requires it strictly before H8
+  // started, and this plan can only be written once H8 exists. Phase one records it instead.
 
   const legacy = await collectSuccessfulLegacyDeploy({
     owner,
@@ -459,6 +498,10 @@ export async function collectK0PreDisable(planBytes, credentials) {
     googleAuth: credentials?.googleAuth,
     challengeStore: credentials?.challengeStore,
     operatorReceiptBytes: receiptBytes,
+    forbiddenBefore: parseK0ForbiddenBeforeBytes(
+      Buffer.isBuffer(credentials?.forbiddenBeforeBytes) ? Buffer.from(credentials.forbiddenBeforeBytes) : null,
+      plan,
+    ),
     fetchImpl: credentials?.fetchImpl ?? fetch,
   });
   const outputs = buildOutputs(plan, collected);
