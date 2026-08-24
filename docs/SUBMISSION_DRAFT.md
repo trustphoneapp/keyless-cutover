@@ -44,7 +44,7 @@ This is not emergency incident response and not a generic IAM agent. V1 supports
 
 ## Current working evidence
 
-These facts are already implemented and observed; they are historical readiness evidence, not a completed-cutover claim. The recorded key was disabled before a canonical v3 archive checkpoint was reviewed and merged. That transaction cannot satisfy v3 and must never be resumed by re-enabling the key; the target release needs a separately authorized fresh disposable transaction.
+These facts describe the historical August transaction specifically, not the fresh one below. They are historical readiness evidence, not a completed-cutover claim: that key was disabled before a canonical v3 archive checkpoint was reviewed and merged, so it cannot satisfy v3 and must never be resumed by re-enabling the key. A separate, fresh disposable transaction has since run — see "Target release evidence" below for what it completed and where it stopped.
 
 - Private Cloud Run Taskmaster using Google ADK and `gemini-3.5-flash` through Vertex AI. Cloud Run IAM plus a separate application header protect the model routes.
 - Two strict, tool-free model stages: evidence classification and bounded recovery diagnosis. The model has no IAM, deployment, merge, key, shell, policy, or receipt authority.
@@ -56,9 +56,9 @@ These facts are already implemented and observed; they are historical readiness 
 - Public read-only Cloud Run evidence console from an immutable image. Its runtime service account has no project roles and the served state is honestly `NO_GO_INCOMPLETE`.
 - A passing deterministic local suite without a brittle published count, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
 
-## Target release evidence — pending
+## Target release evidence — fresh transaction, 2026-08-24
 
-The final description may add these statements only after their exact evidence exists:
+The final description may add each statement only once its exact evidence exists. Three now do; the fourth does not and will not without reverting the migration:
 
 - `[HISTORICAL ONLY]` The prior human key disable and Admin Activity agree, but no canonical archive checkpoint preceded them.
 - **Done, 2026-08-24.** A fresh disposable key (`1f0137c5…`) completed baseline (`legacy-3`), ProofV2 (run 32761994628), the WIF cutover, `wif-1` (`wif-3`), and all eight hostile denials; the protected archive checkpoint (PR #35) merged, with its required check and push run both completing before the key was disabled.
