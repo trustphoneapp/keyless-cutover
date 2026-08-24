@@ -517,5 +517,8 @@ export async function collectK0PreDisable(planBytes, credentials) {
   parseK0PreDisableArchivePlanBytes(archivePlanBytes);
   parseGitHubEvidenceCheckpointReceipt(checkpointReceiptBytes);
   assertCredentialFreeBytes(bundleInputBytes);
-  return { bundleInputBytes, archivePlanBytes, checkpointReceiptBytes };
+  // Returned alongside the three canonical documents so a caller can write the exact artifact
+  // directory bin/k0-predisable-archive.mjs requires, without re-collecting. Already validated
+  // above by verifyK0PreDisableEvidenceSemantics; nothing here is unverified data.
+  return { bundleInputBytes, archivePlanBytes, checkpointReceiptBytes, artifacts: outputs.artifacts };
 }
