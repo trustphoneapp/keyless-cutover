@@ -14,11 +14,11 @@ function main() {
   const port = Number(process.env.PORT ?? 8080);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("PORT is invalid");
   createServer((request, response) => {
-    response.writeHead(request.url === "/healthz" ? 204 : 200, {
+    response.writeHead(request.url === "/_health" ? 204 : 200, {
       "content-type": "application/json",
       "cache-control": "no-store",
     });
-    response.end(request.url === "/healthz" ? undefined : `${JSON.stringify(canaryPayload())}\n`);
+    response.end(request.url === "/_health" ? undefined : `${JSON.stringify(canaryPayload())}\n`);
   }).listen(port, "0.0.0.0");
 }
 

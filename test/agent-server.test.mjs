@@ -17,7 +17,7 @@ test("agent server exposes health and protects bounded model routes", async (con
   });
   context.after(() => server.close());
   const origin = await listen(server);
-  const health = await fetch(`${origin}/healthz`);
+  const health = await fetch(`${origin}/_health`);
   assert.deepEqual(await health.json(), { status: "ok", model: "gemini-3.5-flash", tools: 0 });
   assert.equal((await fetch(`${origin}/v1/evidence`, { method: "POST", body: "{}" })).status, 401);
   assert.equal((await fetch(`${origin}/v1/evidence`, {

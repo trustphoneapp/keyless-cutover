@@ -10,7 +10,7 @@ Neither credential may be logged, persisted, placed in an evidence bundle, or se
 
 ## Routes
 
-### `GET /healthz`
+### `GET /_health`
 
 Returns the fixed service/model/tool status used by the container startup probe. The production service remains private, and this route does not establish that Gemini was invoked.
 
