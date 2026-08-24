@@ -1250,6 +1250,44 @@ test("GCP evidence reader collects one exact canonical WIF audit projection", as
   assert.match(requestBody.filter, /GenerateAccessToken/);
 });
 
+test("GCP WIF audit reader accepts the live audit shape and strips its issued token", async () => {
+  const input = validK0BundleInput();
+  // Live 2026-08 Cloud Audit Logs shape: extra principal and request fields, plus the issued token prefix.
+  const audit = JSON.parse(validWifAuditLog(input.manifest));
+  const token = `ya29.${"c".repeat(40)}`;
+  for (const entry of audit.entries) {
+    entry.protoPayload.authenticationInfo.loggableShortLivedCredential = token;
+    entry.protoPayload.authenticationInfo.principalEmail = input.manifest.scope.service_account_email;
+  }
+  audit.entries[1].protoPayload.request.lifetime = "3600s";
+  audit.entries[1].protoPayload.request.scope = ["https://www.googleapis.com/auth/cloud-platform"];
+  const reader = createGcpEvidenceReader({
+    auth: { getClient: async () => ({ getRequestHeaders: async () => ({ authorization: "Bearer test" }) }) },
+    fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify(audit) }),
+  });
+  const projection = await reader.readWifAuditEvidence({
+    projectId: input.manifest.scope.project_id,
+    provider: input.manifest.wif.provider,
+    serviceAccountEmail: input.manifest.scope.service_account_email,
+    serviceAccountUniqueId: input.manifest.scope.service_account_unique_id,
+    startTime: "2026-08-13T12:13:00Z",
+    endTime: "2026-08-13T12:14:00Z",
+  });
+  assert.equal(projection.includes(token), false);
+  assert.doesNotThrow(() => assertCredentialFreeBytes(projection));
+  const projected = JSON.parse(projection);
+  assert.equal(projected.entries.some(({ protoPayload }) =>
+    "loggableShortLivedCredential" in protoPayload.authenticationInfo), false);
+  assert.equal(projected.entries[1].protoPayload.authenticationInfo.principalEmail,
+    input.manifest.scope.service_account_email);
+  assert.deepEqual(projected.entries[1].protoPayload.request, {
+    "@type": "type.googleapis.com/google.iam.credentials.v1.GenerateAccessTokenRequest",
+    lifetime: "3600s",
+    name: `projects/-/serviceAccounts/${input.manifest.scope.service_account_email}`,
+    scope: ["https://www.googleapis.com/auth/cloud-platform"],
+  });
+});
+
 test("GCP WIF audit reader rejects wrong documented STS request values", async () => {
   const input = validK0BundleInput();
   for (const [field, value] of [

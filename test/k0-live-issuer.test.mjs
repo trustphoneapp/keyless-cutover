@@ -251,6 +251,8 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
       }],
     },
     wifAudit: JSON.parse(validWifAuditLog(fragment)),
+    wifDate: "Thu, 13 Aug 2026 12:14:00 GMT",
+    forbiddenDate: "Thu, 13 Aug 2026 12:15:00 GMT",
   };
   const forbiddenSource = fragment.revisions.forbidden_after_hostile_source_id;
   const archive = JSON.parse(archiveBytes.toString("utf8"));
@@ -298,7 +300,7 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
       const body = JSON.parse(options.body);
       return body.filter.includes("DisableServiceAccountKey")
         ? response(values.disableAudit, "Thu, 13 Aug 2026 12:10:31 GMT")
-        : response(values.wifAudit, "Thu, 13 Aug 2026 12:14:00 GMT");
+        : response(values.wifAudit, values.wifDate);
     }
 
     if (path.endsWith("/actions/runs/3001")) return response(values.legacyRun, "Thu, 13 Aug 2026 12:12:00 GMT");
@@ -320,21 +322,21 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
       return response(content(legacyWorkflowBytes), "Thu, 13 Aug 2026 12:12:00 GMT");
     }
 
-    if (path.endsWith("/actions/runs/3002")) return response(values.wifRun, "Thu, 13 Aug 2026 12:14:00 GMT");
-    if (path.includes("/actions/runs/3002/jobs")) return response(values.wifJobs, "Thu, 13 Aug 2026 12:14:00 GMT");
-    if (path.endsWith("/actions/runs/3002/approvals")) return response(values.wifApprovals, "Thu, 13 Aug 2026 12:14:00 GMT");
+    if (path.endsWith("/actions/runs/3002")) return response(values.wifRun, values.wifDate);
+    if (path.includes("/actions/runs/3002/jobs")) return response(values.wifJobs, values.wifDate);
+    if (path.endsWith("/actions/runs/3002/approvals")) return response(values.wifApprovals, values.wifDate);
     if (path.includes("/contents/.github/workflows/k0-deploy.yml")) {
-      return response(content(workflowBytes), "Thu, 13 Aug 2026 12:14:00 GMT");
+      return response(content(workflowBytes), values.wifDate);
     }
     if (path.includes("/contents/demo/release.txt")) {
       return response({ encoding: "base64", content: Buffer.from("wif-2\n").toString("base64") },
-        "Thu, 13 Aug 2026 12:14:00 GMT");
+        values.wifDate);
     }
     if (path.includes(`/services/${scope.allowed_service}/revisions/${fragment.revisions.wif_2}`)) {
-      return response(values.wifRevision, "Thu, 13 Aug 2026 12:14:00 GMT");
+      return response(values.wifRevision, values.wifDate);
     }
     if (path.includes(`/services/${scope.forbidden_service}/revisions/${fragment.revisions.forbidden_after}`)) {
-      return response(values.forbiddenRevision, "Thu, 13 Aug 2026 12:15:00 GMT");
+      return response(values.forbiddenRevision, values.forbiddenDate);
     }
     throw new Error(`unexpected request: ${path}`);
   };
@@ -357,6 +359,30 @@ function authenticatedFixture({ archiveBytes, checkpointReceiptBytes, fragment }
 }
 
 const archive = await archiveFixture();
+
+test("live issuer anchors the WIF audit window to the approved deploy job", async (t) => {
+  // Slow manual approval: the run was created 12 minutes before the deploy job started.
+  const fixture = authenticatedFixture(archive, (values) => {
+    values.wifDate = "Thu, 13 Aug 2026 12:24:00 GMT";
+    values.forbiddenDate = "Thu, 13 Aug 2026 12:25:00 GMT";
+    values.wifRun.run_started_at = "2026-08-13T12:11:35Z";
+    values.wifJobs.jobs[0].started_at = "2026-08-13T12:23:05Z";
+    values.wifJobs.jobs[0].completed_at = "2026-08-13T12:23:40Z";
+    values.wifRevision.createTime = "2026-08-13T12:23:45Z";
+    values.wifAudit.entries[0].timestamp = "2026-08-13T12:23:20Z";
+    values.wifAudit.entries[1].timestamp = "2026-08-13T12:23:30Z";
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = fixture.fetchImpl;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const result = await issueK0Live(plan(), { installationToken: token, googleAuth: fixture.googleAuth });
+  assert.equal(result.status, "K0_VERIFIED_RECEIPT_PENDING");
+  assert.equal(result.authorization, "RECOLLECTION_REQUIRED");
+  assert.equal(result.release_ready, false);
+  await verifyK0Bundle(result.bundle);
+  const lookups = fixture.requests.filter(({ url }) => url === "https://logging.googleapis.com/v2/entries:list");
+  assert.match(JSON.parse(lookups.at(-1).body).filter, /timestamp>="2026-08-13T12:23:05Z"/);
+});
 
 test("live issuer recollects the fixed authenticated transaction and remains pending", async (t) => {
   const fixture = authenticatedFixture(archive);

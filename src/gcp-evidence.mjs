@@ -650,6 +650,11 @@ export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("WIF audit evidence is invalid");
       const protoPayload = Object.fromEntries(Object.entries(payload)
         .filter(([key]) => ["@type", "authenticationInfo", "metadata", "methodName", "request", "resourceName", "serviceName", "status"].includes(key)));
+      // Cloud Audit Logs carries the issued `ya29.` token prefix here; it must never reach evidence.
+      if (payload.authenticationInfo && typeof payload.authenticationInfo === "object") {
+        const { loggableShortLivedCredential: _token, ...authenticationInfo } = payload.authenticationInfo;
+        protoPayload.authenticationInfo = authenticationInfo;
+      }
       if (payload.methodName === lookup.stsMethod) {
         const stsRequest = payload.request;
         if (!exactObject(stsRequest, STS_REQUEST_FIELDS)

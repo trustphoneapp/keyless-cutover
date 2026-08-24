@@ -212,7 +212,8 @@ async function issueFromSnapshot(plan, credentials) {
     provider: fragment.wif.provider,
     serviceAccountEmail: scope.service_account_email,
     serviceAccountUniqueId: scope.service_account_unique_id,
-    startTime: wif2.githubRun.started_at,
+    // The deploy job starts after the manual environment gate; run creation can precede it by hours.
+    startTime: wif2.jobStartedAt,
     endTime: wif2Revision.create_time,
   });
   const forbiddenBefore = parseArtifact(archive.readArtifact(fragment.revisions.forbidden_after_hostile_source_id));
