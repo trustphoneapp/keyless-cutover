@@ -21,6 +21,10 @@ const ENTRY_FIELDS = new Set(["insertId", "timestamp", "protoPayload", "resource
 const STS_REQUIRED = new Set(["@type", "authenticationInfo", "metadata", "methodName", "request", "resourceName"]);
 const IAM_REQUIRED = new Set(["@type", "authenticationInfo", "methodName", "request", "resourceName"]);
 const OPTIONAL_AUDIT_FIELDS = new Set(["serviceName", "status"]);
+const PRINCIPAL_REQUIRED = new Set(["principalSubject"]);
+const OPTIONAL_PRINCIPAL_FIELDS = new Set(["principalEmail"]);
+const IAM_REQUEST_REQUIRED = new Set(["@type", "name"]);
+const OPTIONAL_IAM_REQUEST_FIELDS = new Set(["lifetime", "scope"]);
 const CHECKPOINT_RECEIPT_FIELDS = new Set(["version", "evidence"]);
 const CHECKPOINT_RECORD_FIELDS = new Set(["id", "kind", "locator", "recorded_at", "data_sha256"]);
 
@@ -29,10 +33,18 @@ function exactObject(value, fields) {
     && Object.keys(value).length === fields.size && Object.keys(value).every((key) => fields.has(key));
 }
 
-function exactAuditFields(value, required) {
+function boundedObject(value, required, optional) {
   return value && typeof value === "object" && !Array.isArray(value)
     && [...required].every((key) => Object.hasOwn(value, key))
-    && Object.keys(value).every((key) => required.has(key) || OPTIONAL_AUDIT_FIELDS.has(key));
+    && Object.keys(value).every((key) => required.has(key) || optional.has(key));
+}
+
+function exactAuditFields(value, required) {
+  return boundedObject(value, required, OPTIONAL_AUDIT_FIELDS);
+}
+
+function boundedText(value) {
+  return typeof value === "string" && Boolean(value) && value.length <= 2048 && !/[\r\n]/.test(value);
 }
 
 function validRun(run) {
@@ -138,7 +150,9 @@ export function parseWifAuditEvidence(auditLog) {
   if (stsPayload["@type"] !== "type.googleapis.com/google.cloud.audit.AuditLog"
       || (stsPayload.serviceName !== undefined && stsPayload.serviceName !== "sts.googleapis.com")
       || !PROVIDER.test(provider ?? "")
-      || !exactObject(stsPayload.authenticationInfo, new Set(["principalSubject"]))
+      || !boundedObject(stsPayload.authenticationInfo, PRINCIPAL_REQUIRED, OPTIONAL_PRINCIPAL_FIELDS)
+      || (stsPayload.authenticationInfo.principalEmail !== undefined
+        && !boundedText(stsPayload.authenticationInfo.principalEmail))
       || !exactObject(stsPayload.metadata, new Set(["mapped_principal"]))
       || !exactObject(stsPayload.request, new Set(["@type", "grantType"]))
       || stsPayload.request["@type"] !== "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest"
@@ -151,9 +165,15 @@ export function parseWifAuditEvidence(auditLog) {
       || stsLabels.method !== stsPayload.methodName || stsLabels.service !== "sts.googleapis.com"
       || iamPayload["@type"] !== "type.googleapis.com/google.cloud.audit.AuditLog"
       || (iamPayload.serviceName !== undefined && iamPayload.serviceName !== "iamcredentials.googleapis.com")
-      || !exactObject(iamPayload.authenticationInfo, new Set(["principalSubject"]))
+      || !boundedObject(iamPayload.authenticationInfo, PRINCIPAL_REQUIRED, OPTIONAL_PRINCIPAL_FIELDS)
+      || (iamPayload.authenticationInfo.principalEmail !== undefined
+        && !boundedText(iamPayload.authenticationInfo.principalEmail))
       || iamPayload.authenticationInfo.principalSubject !== mappedPrincipal
-      || !exactObject(iamPayload.request, new Set(["@type", "name"]))
+      || !boundedObject(iamPayload.request, IAM_REQUEST_REQUIRED, OPTIONAL_IAM_REQUEST_FIELDS)
+      || (iamPayload.request.lifetime !== undefined && !boundedText(iamPayload.request.lifetime))
+      || (iamPayload.request.scope !== undefined && (!Array.isArray(iamPayload.request.scope)
+        || !iamPayload.request.scope.length || iamPayload.request.scope.length > 20
+        || !iamPayload.request.scope.every(boundedText)))
       || iamPayload.request["@type"] !== "type.googleapis.com/google.iam.credentials.v1.GenerateAccessTokenRequest"
       || !SERVICE_ACCOUNT.test(serviceAccountEmail ?? "")
       || ![iamPayload.request.name, `projects/-/serviceAccounts/${labels?.unique_id}`].includes(iamPayload.resourceName)

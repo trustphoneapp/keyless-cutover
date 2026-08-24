@@ -400,6 +400,7 @@ export async function collectGitHubSuccessfulDeploy({
   return {
     observedAt,
     githubRun,
+    jobStartedAt: job.started_at,
     environmentReview: {
       run_id: githubRun.run_id,
       run_attempt: githubRun.run_attempt,
