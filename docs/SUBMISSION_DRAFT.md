@@ -61,10 +61,10 @@ These facts are already implemented and observed; they are historical readiness 
 The final description may add these statements only after their exact evidence exists:
 
 - `[HISTORICAL ONLY]` The prior human key disable and Admin Activity agree, but no canonical archive checkpoint preceded them.
-- `[PENDING]` A fresh disposable transaction completed baseline, ProofV2, WIF-1/parity, H1–H8, and a protected merged archive checkpoint before disable.
-- `[PENDING]` Fresh hosted legacy authentication was rejected after disable and before WIF-2.
-- `[PENDING]` A later fresh WIF deployment created and read back `wif-2` with matching audit/parity evidence.
-- `[PENDING]` Authenticated pending issuance produced the exact canonical output; a separately authorized scoped KMS signature verified against pinned trust; authorization remained `RECOLLECTION_REQUIRED`; a separate human made the release decision.
+- **Done, 2026-08-24.** A fresh disposable key (`1f0137c5…`) completed baseline (`legacy-3`), ProofV2 (run 32761994628), the WIF cutover, `wif-1` (`wif-3`), and all eight hostile denials; the protected archive checkpoint (PR #35) merged, with its required check and push run both completing before the key was disabled.
+- **Done.** Fresh hosted legacy authentication was rejected after disable (run 32771996082), on a new hosted runner, reaching Google.
+- **Not achieved, and not pending — structurally blocked.** A live audit-window collision (H6/H8 always add extra entries to any post-disable push, and the fix for that changes the workflow bytes the post-disable run must match exactly) and the one-time nature of the legacy→WIF cutover together make `wif-2` unreachable on this repository without reverting the migration. See `README.md`'s "The fresh transaction" section.
+- **Not attempted, correctly.** Authenticated pending issuance and the scoped KMS signature both require `post_disable` evidence, which cannot exist without `wif-2`. `authorization` remains `RECOLLECTION_REQUIRED`, `release_ready` remains `false`.
 
 ## Google technology
 
