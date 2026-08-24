@@ -110,7 +110,7 @@ Keyless does not retrieve GitHub secret values, store the service-account privat
 
 ## Testing instructions
 
-1. Open the [hosted evidence console](https://keyless-evidence-208865688014.us-central1.run.app). It should show `NO-GO · evidence incomplete`, a checkpoint SHA-256 digest, eight gates, and external evidence links. No login is required.
+1. Open the [hosted evidence console](https://keyless-evidence-208865688014.us-central1.run.app). It should show `NO-GO · evidence incomplete`, a checkpoint SHA-256 digest, gates, and external evidence links. No login is required. The checkpoint path in `console/status.mjs` currently emits ten gates and three blockers; the hosted revision was built on 2026-08-13 and still serves the earlier eight-blocker rendering, so expect a mismatch until the `[PENDING]` console redeploy happens.
 2. Inspect `/api/status`; `release_ready` and `cutover_verified` must currently be `false`.
 3. Clone the public repository with Node.js 22+ and follow the README quickstart: install, run all tests, and run the production dependency audit.
 4. Inspect `docs/evidence/CONSOLE_DEPLOYMENT_2026-08-13.json` and reconstruct its Cloud Run revision/image/IAM claims from Google Cloud evidence shown in the video.

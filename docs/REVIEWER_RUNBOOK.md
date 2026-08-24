@@ -11,7 +11,7 @@ This runbook is the human gate for the live Keyless K0 transaction. It does not 
 - At that checkpoint H2 was proven while H1 and H3–H8 were incomplete.
 - At that checkpoint no reviewer other than the repository owner had qualifying authority.
 
-Those historical conditions are superseded. PR #3 is merged, `KEYLESS_K0_ENABLED` is `true`, `wif-1` is live, reviewed ProofV2 passed, deterministic collectors prove H1–H8 with the forbidden revision unchanged, and the exact key is now disabled with matching human Admin Activity. That transaction is nevertheless terminal historical readiness evidence: no canonical v3 pre-disable archive checkpoint was reviewed and merged before disable. Do not continue it, do not run its missing post-disable steps, and never re-enable its key to try to make it pass. A v3 result requires the separately authorized fresh disposable transaction below.
+Those historical conditions are superseded. PR #3 is merged, `wif-1` is live, reviewed ProofV2 passed, deterministic collectors prove H1–H8 with the forbidden revision unchanged, and the exact key is now disabled with matching human Admin Activity. `KEYLESS_K0_ENABLED` is `false` again: it was deliberately set to `false` at `2026-08-21T20:53:33Z`, before PR #27 merged, and it is the kill switch that keeps every deploy and hostile job from starting. Read it back before and after each step of the live order below; an operator must set it to `true` only when the fresh transaction is actually starting, and back to `false` when it stops. That transaction is nevertheless terminal historical readiness evidence: no canonical v3 pre-disable archive checkpoint was reviewed and merged before disable. Do not continue it, do not run its missing post-disable steps, and never re-enable its key to try to make it pass. A v3 result requires the separately authorized fresh disposable transaction below.
 
 ## Required independent GitHub reviewer
 
@@ -105,18 +105,58 @@ H1 passes only when the independent collector verifies all of the following:
 
 A workflow syntax error, missing environment approval, network failure, or failure before STS is `NOT RUN`, never a denial.
 
+## Release markers
+
+Both deploy workflows read `demo/release.txt`, enforce `^[a-z0-9][a-z0-9-]{0,19}$` on it before authenticating, and pass it to `deploy-cloudrun` as `suffix:`. The revision is therefore named `keyless-demo-<marker>`, and `src/gcp-evidence.mjs` and `src/github-workflow-snapshot.mjs` enforce the same shape when they read a revision or a run back.
+
+Cloud Run refuses a revision name that already exists, so a marker is single-use. These `keyless-demo` revisions already exist and their markers are burned:
+
+| Revision | Burned marker |
+|---|---|
+| `keyless-demo-00001-z26` | initial service revision, not created from a marker |
+| `keyless-demo-legacy-1` | `legacy-1` |
+| `keyless-demo-legacy-2` | `legacy-2` |
+| `keyless-demo-wif-1` | `wif-1` |
+| `keyless-demo-wif-1-31909473500-wif-1` | `wif-1-31909473500-wif-1` |
+
+`demo/release.txt` on `main` currently holds `wif-1`, which is burned. Before the fresh transaction starts, pick three unused markers that satisfy the regex and collide with no name above. A reused marker fails the deploy step, and a failed deploy is not evidence of anything.
+
+The two hostile repositories use their own `demo/release.txt` only as a `push` path filter — they never reach `deploy-cloudrun`, so they burn no Cloud Run revision. They still need a genuinely new value each run, because writing the same bytes produces no commit and therefore no push event. `h1-fresh-1` in `cherala2002/keyless-h1-probe` and `h2-fresh-1` in `trustphoneapp/keyless-hostile` are already used.
+
 ## Live K0 order
 
-1. Merge the protected RC, repair `required_linear_history: true`, and independently read back the complete branch and environment protection tuple. **Done** at `2026-08-15T06:02:22Z`; see `docs/evidence/REPOSITORY_PROTECTION_2026-08-15.md`.
-2. Under separate authorization, create the fresh disposable key transaction and collect its successful legacy baseline.
-3. Run fresh ProofV2, deploy/read back `wif-1`, prove exact provider/IAM parity, and execute H1–H8 including a real H2 at their documented controls; verify the forbidden service remains unchanged.
-4. Build the canonical pre-disable archive, commit it through a protected PR, obtain independent review of its exact head, merge it, and read back the exact archive bytes while the fresh key is still enabled. Any missing source stops the transaction.
-5. Show the human key operator the exact fresh service account, key ID, archive digest, and rollback window. The operator disables—never deletes—the exact key; independently read back `disabled: true` and one matching `DisableServiceAccountKey` Admin Activity entry.
-6. On a new hosted runner, execute the non-deploying legacy-auth probe. It must make a fresh Google request and receive a recognized disabled/invalid-key rejection. Complete this denial before WIF-2.
-7. Only after legacy denial, deploy `wif-2` on another new hosted runner and read back the exact allowed revision, WIF audit, parity, and unchanged forbidden revision.
-8. Run the local authenticated read-only pending issuer against those exact sources. Verify its private canonical output; status remains `K0_VERIFIED_RECEIPT_PENDING`, authorization `RECOLLECTION_REQUIRED`, and `release_ready: false`.
-9. Through separate authorization, obtain the scoped real KMS signature and verify it against pinned out-of-band public trust. The signature changes no release state.
-10. A separate human reviews the complete evidence and owns any release decision outside the local state machine.
+Read this whole section before touching anything. The order below is structural: it is what the workflow triggers, the branch/environment protection, and `src/k0-evidence-semantics.mjs` allow, not a preference.
+
+### Standing constraints
+
+- **`trustphoneapp` merges and dispatches; `cherala2002` only reviews.** The verifier rejects any `GITHUB_PULL_REQUEST` artifact where `author_id === reviewer_id` and any `GITHUB_ENVIRONMENT_REVIEW` artifact where `actor_id === reviewer_id`. The run actor is whoever pushed or dispatched, so if `cherala2002` merges a marker PR or dispatches a workflow, their own `production` approval stops being independent and that evidence is rejected. Neither hostile repository has branch protection, so nothing in GitHub enforces the distinct-author rule on the H1 and H2 approval PRs — the operator must hold that line manually.
+- **`KEYLESS_K0_ENABLED` is the kill switch.** Every deploy and hostile job is gated on `vars.KEYLESS_K0_ENABLED == 'true'`. It is currently `false`. Set it to `true` only when the transaction is actually starting, and set it back to `false` when the transaction stops for any reason. A job skipped because the switch was off is `NOT RUN`, never a denial.
+- **Three separate release-marker PRs are required.** The WIF workflow's `deploy` job runs only on `github.event_name == 'push'` to `refs/heads/main`, and the workflow's `push` trigger is filtered to `paths: demo/release.txt`. `main` requires one approving review, last-push approval, stale-review dismissal, a green `test` check, and linear history, so every change to `demo/release.txt` is its own reviewed PR. The transaction needs one for the fresh legacy baseline marker, one for `wif-1`, and one for `wif-2`.
+- **Each `demo/release.txt` push also starts H4.** `.github/workflows/k0-hostile-wrong-workflow.yml` shares the same `push`/`paths` trigger, so it runs on every marker merge. Do not merge a marker PR until the operator is ready to approve and collect H4 as well.
+- **`production` approval is required for almost every run.** The `production` environment requires `cherala2002` with prevent-self-review and allows protected branches only. That means each of these waits on a human approval before its job starts: the legacy baseline dispatch, ProofV2, the `wif-1` and `wif-2` deploys, H3, H4, H5, H7, H8, the H1 and H2 external runs, and the post-disable legacy-auth probe. H6 targets the `staging` environment, which has no protection rules, so it is the one run that starts without an approval — that is the point of H6.
+- **STS data-access audit logging must stay on.** WIF audit evidence comes from `sts.googleapis.com` data-access logs, which were enabled on project `keyless-k0-20260813` on 2026-08-24 (`DATA_READ` and `DATA_WRITE`). They were off before that and audit logs are not retroactive, so no WIF exchange recorded earlier can be re-collected. Read the audit config back before step 4; if it is off, turn it on and start the transaction after that, not before.
+- **Two WIF providers exist in the `keyless-k0` pool.** `.../providers/github` is the approved one; both `GCP_WIF_PROVIDER` and `GCP_WIF_AUDIENCE` point at it and its live config hash matches the approved plan. `.../providers/github-fresh-wif1` is orphaned: it pins a workflow path that no longer exists on `main` and is waiting on a human deletion. Do not point any variable at it, and do not delete it mid-transaction.
+- **The 48-hour clock opens at the first approval PR review, not at the first workflow run.** `occurrenceValues` in `src/k0-evidence-semantics.mjs` returns `[reviewed_at, merged_at]` for every `GITHUB_PULL_REQUEST` artifact, and the gate takes the earliest occurrence across all final evidence and requires `manifest.assembled_at` to be no more than 48 hours later. The manifest carries five approval-workflow PRs (`baseline`, `h1`, `h2`, `h4`, `legacy`) plus the cutover PR and the archive-checkpoint PR, so the earliest of those seven reviews starts the window. Do not review the H1 or H2 approval PR days ahead of the rest; every one of them must be reviewed inside the same window as the final collection.
+
+### Sequence
+
+1. Merge the protected RC, repair `required_linear_history: true`, and independently read back the complete branch and environment protection tuple. **Done** at `2026-08-15T06:02:22Z`; see `docs/evidence/REPOSITORY_PROTECTION_2026-08-15.md`. Re-read it immediately before step 2; a later difference stops the transaction.
+2. Under separate authorization, create the fresh disposable key, confirm the GitHub secret holds exactly that key, and pin the three unused release markers. Set `KEYLESS_K0_ENABLED` to `true` only now.
+3. Open and independently review the five approval-workflow pull requests (`baseline`, `h1`, `h2`, `h4`, `legacy`) that pin the exact workflow bytes in this repository and in the two hostile repositories. The earliest of these reviews opens the 48-hour window, so review them together and immediately before the run — not days ahead.
+4. Run `node bin/k0-predisable-collect.mjs observe-forbidden` to record the forbidden revision **before** the first hostile probe starts. This observation must precede H8's start time, and the collect plan cannot be written until H8 exists, so it cannot be recovered later.
+5. Merge the baseline release-marker PR, then dispatch the legacy workflow, approve `production`, and collect the fresh legacy baseline revision. This is the first of the three marker PRs.
+6. Run ProofV2. Issue the challenge only when the dispatcher is ready: expiry is exactly five minutes (`MAX_CHALLENGE_LIFETIME_MS` in `src/key-proof.mjs`), and an expired challenge can never be re-dispatched or reissued without a new explicit write permission. `trustphoneapp` dispatches with the five printed inputs; `cherala2002` approves `production`; then verify and consume once.
+7. Review and merge the compiler-owned cutover PR (currently draft PR #28) so the canonical workflow becomes the WIF template. This must not merge before the fresh legacy baseline in step 5 exists, because the compiler's `current_sha256` is the legacy baseline content.
+8. Merge the `wif-1` release-marker PR. The push deploys `wif-1` through WIF and starts H4 at the same time. Approve both `production` runs, read back the exact `wif-1` revision, and prove provider/IAM parity with no added downstream service-account permission.
+9. Run the remaining hostile probes and collect each at its intended control: H3 and H5–H8 from the WIF workflow (H4 already ran on the `wif-1` marker push), H1 from the foreign-owner repository, H2 from the wrong-repository fixture. Verify the forbidden revision is unchanged against the step 4 observation.
+10. Run `node bin/k0-predisable-collect.mjs collect` to assemble the bundle input, archive plan, and checkpoint receipt from the exact live sources.
+11. Build the canonical pre-disable archive with `node bin/k0-predisable-archive.mjs`, commit it through a protected PR, obtain independent review of its exact head, merge it, and read back the exact archive bytes **while the fresh key is still enabled**. The verifier requires the checkpoint's `test` check and `main` push run to complete strictly before the disable audit timestamp, so a checkpoint merged after disable can never be repaired. Any missing source stops the transaction.
+12. Show the human key operator the exact fresh service account, key ID, archive digest, and rollback window. The operator disables—never deletes—the exact key; independently read back `disabled: true` and one matching `DisableServiceAccountKey` Admin Activity entry.
+13. On a new hosted runner, dispatch the non-deploying legacy-auth probe and approve `production`. It must make a fresh Google request and receive a recognized disabled/invalid-key rejection. Complete this denial before WIF-2.
+14. Only after legacy denial, merge the `wif-2` release-marker PR — the third and last one — approve `production`, and read back the exact allowed revision, WIF audit, parity, and unchanged forbidden revision.
+15. Run the local authenticated read-only pending issuer against those exact sources. Verify its private canonical output; status remains `K0_VERIFIED_RECEIPT_PENDING`, authorization `RECOLLECTION_REQUIRED`, and `release_ready: false`.
+16. Through separate authorization, obtain the scoped real KMS signature and verify it against pinned out-of-band public trust. The signature changes no release state.
+17. Set `KEYLESS_K0_ENABLED` back to `false`. A separate human reviews the complete evidence and owns any release decision outside the local state machine.
 
 The immediate result may claim only: **the key is disabled, fresh key authentication is rejected, and fresh WIF authentication succeeds**. It must not claim that access tokens minted before disable were revoked.
 
