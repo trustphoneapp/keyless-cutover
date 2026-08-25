@@ -41,8 +41,8 @@ const STACK_ITEMS = [
     icon: '<defs><linearGradient id="gGemini" x1="4" y1="20" x2="20" y2="4"><stop offset="0" stop-color="#4285F4"/><stop offset=".5" stop-color="#9B72CB"/><stop offset="1" stop-color="#F26B6B"/></linearGradient></defs><path d="M12 3l1.8 5.6L19 10l-5.2 1.4L12 17l-1.8-5.6L5 10l5.2-1.4L12 3z" fill="url(#gGemini)" stroke="none"/>',
   },
   {
-    label: "Google ADK", detail: "Agent runtime", tint: "66,133,244",
-    icon: '<circle cx="6" cy="7" r="2.4" fill="#4285F4" stroke="none"/><circle cx="18" cy="7" r="2.4" fill="#4285F4" stroke="none"/><circle cx="12" cy="18" r="2.4" fill="#4285F4" stroke="none"/><path d="M8.1 8.3L10.5 16M15.9 8.3L13.5 16M8.4 7h7.2" stroke="#4285F4"/>',
+    label: "Google ADK", detail: "Agent runtime", tint: "52,168,83",
+    icon: '<circle cx="6" cy="7" r="2.4" fill="#34A853" stroke="none"/><circle cx="18" cy="7" r="2.4" fill="#34A853" stroke="none"/><circle cx="12" cy="18" r="2.4" fill="#34A853" stroke="none"/><path d="M8.1 8.3L10.5 16M15.9 8.3L13.5 16M8.4 7h7.2" stroke="#34A853"/>',
   },
   {
     label: "Cloud Run", detail: "Deploy target", tint: "66,133,244",
