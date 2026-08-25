@@ -255,6 +255,28 @@ test("observed GitHub transports are bounded, canonical, and keep old return sha
   assert.equal(observed.observedAt, "2026-08-13T11:11:00Z");
 });
 
+test("observed download tolerates ordinary cross-service clock skew on the redirect target", async () => {
+  // Confirmed live: a job-logs download from blob.core.windows.net observed one second before
+  // its own github.com redirect response, on an otherwise valid, immediately-fetched download.
+  const skewedFetch = async (url) => url.includes("api.github.com")
+    ? response(302, "", { location: "https://objects.githubusercontent.com/example.bin", date: "Thu, 13 Aug 2026 11:11:05 GMT" })
+    : response(200, "safe evidence", { date: "Thu, 13 Aug 2026 11:11:04 GMT" });
+  const observed = await downloadGitHubBytesObserved(
+    "https://api.github.com/download", installationToken, skewedFetch, 100,
+  );
+  assert.equal(observed.bytes.toString(), "safe evidence");
+});
+
+test("observed download still rejects a redirect target dated beyond the skew tolerance", async () => {
+  const staleFetch = async (url) => url.includes("api.github.com")
+    ? response(302, "", { location: "https://objects.githubusercontent.com/example.bin", date: "Thu, 13 Aug 2026 11:11:10 GMT" })
+    : response(200, "safe evidence", { date: "Thu, 13 Aug 2026 11:11:04 GMT" });
+  await assert.rejects(
+    () => downloadGitHubBytesObserved("https://api.github.com/download", installationToken, staleFetch, 100),
+    /GitHub download response is invalid/,
+  );
+});
+
 test("collector observedAt is the latest authenticated transport response", async () => {
   const { fetchImpl } = fixture();
   const dates = new Map([

@@ -269,6 +269,61 @@ test("preexisting WIF readback proves exact unchanged provider and least-privile
   assert.match(result.parity_hash, /^[a-f0-9]{64}$/);
 });
 
+test("preexisting WIF readback accepts the bare-etag shape Cloud IAM returns for an empty policy", () => {
+  // gcloud run services get-iam-policy on a locked-down service returns exactly {"etag":"ACAB"},
+  // omitting version and bindings entirely rather than sending their zero values.
+  const bareEmpty = { etag: "forbidden-etag-1" };
+  const result = verifyPreexistingWifReadback(preexistingArguments({
+    forbiddenPolicyBefore: bareEmpty,
+    forbiddenPolicyAfter: bareEmpty,
+  }));
+  assert.equal(result.no_forbidden_access, true);
+});
+
+test("preexisting WIF readback normalizes a bare-etag policy carrying real bindings to version 1", () => {
+  const bareWithBindings = {
+    etag: "forbidden-etag-1",
+    bindings: [{ role: "roles/owner", members: ["user:x@example.com"] }],
+  };
+  const result = verifyPreexistingWifReadback(preexistingArguments({
+    forbiddenPolicyBefore: bareWithBindings,
+    forbiddenPolicyAfter: structuredClone(bareWithBindings),
+  }));
+  assert.equal(result.mode, "PREEXISTING_EXACT");
+});
+
+test("preexisting WIF readback still rejects an invalid role even without an explicit version", () => {
+  const badRole = { etag: "forbidden-etag-1", bindings: [{ role: "not-a-role", members: ["x"] }] };
+  assert.throws(() => verifyPreexistingWifReadback(preexistingArguments({
+    forbiddenPolicyBefore: badRole,
+    forbiddenPolicyAfter: badRole,
+  })), /invalid/);
+});
+
+test("preexisting WIF readback still rejects a policy with no etag", () => {
+  const noEtag = { bindings: [] };
+  assert.throws(() => verifyPreexistingWifReadback(preexistingArguments({
+    forbiddenPolicyBefore: noEtag,
+    forbiddenPolicyAfter: noEtag,
+  })), /invalid/);
+});
+
+test("preexisting WIF readback still rejects an unsupported explicit version", () => {
+  const badVersion = { etag: "forbidden-etag-1", version: 2, bindings: [] };
+  assert.throws(() => verifyPreexistingWifReadback(preexistingArguments({
+    forbiddenPolicyBefore: badVersion,
+    forbiddenPolicyAfter: badVersion,
+  })), /invalid/);
+});
+
+test("preexisting WIF readback still rejects a policy with an unknown extra field", () => {
+  const extraField = { etag: "forbidden-etag-1", bindings: [], bogus: true };
+  assert.throws(() => verifyPreexistingWifReadback(preexistingArguments({
+    forbiddenPolicyBefore: extraField,
+    forbiddenPolicyAfter: extraField,
+  })), /invalid/);
+});
+
 test("preexisting WIF parity hashes realistic opaque etags without archiving raw bytes", () => {
   const input = preexistingArguments();
   const etags = [

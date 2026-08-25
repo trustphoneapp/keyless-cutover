@@ -11,6 +11,7 @@ import { createConsoleServer, renderConsoleHtml } from "../console/server.mjs";
 import { loadConsoleStatus } from "../console/status.mjs";
 
 const checkpointPath = fileURLToPath(new URL("../docs/evidence/K0_CHECKPOINT_2026-08-13.json", import.meta.url));
+const freshCheckpointPath = fileURLToPath(new URL("../docs/evidence/K0_CHECKPOINT_2026-08-24.json", import.meta.url));
 const proofV2ReceiptPath = fileURLToPath(new URL("../docs/evidence/PROOFV2_RECEIPT_2026-08-14.json", import.meta.url));
 const predisableReceiptPath = fileURLToPath(new URL("../docs/evidence/K0_PREDISABLE_RECEIPT_2026-08-14.json", import.meta.url));
 const disableReceiptPath = fileURLToPath(new URL("../docs/evidence/K0_DISABLE_RECEIPT_2026-08-14.json", import.meta.url));
@@ -112,10 +113,26 @@ test("console derives an honest no-go view from the credential-free historical c
   assert.equal(status.gates.find(({ label }) => label === "ProofV2 replay").state, "historical");
   assert.equal(status.gates.find(({ label }) => label === "H3–H8 controls").state, "historical");
   assert.equal(status.gates.find(({ label }) => label === "Human key disable").state, "historical");
-  assert.equal(status.gates.find(({ label }) => label === "Canonical pre-disable archive checkpoint").state, "missing");
-  assert.match(status.headline, /Historical evidence only/);
-  assert.match(status.summary, /cannot satisfy v3/);
-  assert.equal(status.blockers.some((item) => /Never re-enable the historical key/.test(item)), true);
+});
+
+test("console derives an honest pre-disable-complete view from the fresh 2026-08-24 checkpoint", async () => {
+  const status = await loadConsoleStatus({ checkpointPath: freshCheckpointPath });
+  assert.equal(status.status, "NO_GO_INCOMPLETE");
+  assert.equal(status.release_ready, false);
+  assert.equal(status.cutover_verified, false);
+  assert.equal(status.gates.length, 10);
+  assert.equal(status.blockers.length, 3);
+  assert.match(status.checkpoint_sha256, /^[a-f0-9]{64}$/);
+  assert.equal(status.gates.find(({ label }) => label === "H2 wrong repository").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "H1 foreign owner").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "ProofV2 replay").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "H3–H8 controls").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "Human key disable").state, "historical");
+  assert.equal(status.gates.find(({ label }) => label === "Canonical pre-disable archive checkpoint").state, "passed");
+  assert.equal(status.gates.find(({ label }) => label === "Fresh disposable v3 transaction").state, "blocked");
+  assert.match(status.headline, /Pre-disable half of v3 is complete/);
+  assert.match(status.summary, /wif-2 continuity cannot be produced/);
+  assert.equal(status.blockers.some((item) => /disabled key must never be re-enabled/.test(item)), true);
 });
 
 test("console rejects a self-asserted success checkpoint instead of falling back", async (t) => {

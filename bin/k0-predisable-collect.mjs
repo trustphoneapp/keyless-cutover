@@ -29,6 +29,13 @@ async function writeOutputs(outputs, directory) {
     ]) {
       await writeFile(join(directory, name), bytes, { flag: "wx", mode: 0o600 });
     }
+    // The artifact directory bin/k0-predisable-archive.mjs requires: one <id>.json file per
+    // evidence entry, exactly matching archive-plan.json's evidence list.
+    const artifactDirectory = join(directory, "artifacts");
+    await mkdir(artifactDirectory, { mode: 0o700 });
+    for (const [id, bytes] of outputs.artifacts) {
+      await writeFile(join(artifactDirectory, `${id}.json`), bytes, { flag: "wx", mode: 0o600 });
+    }
   } catch (error) {
     if (created) {
       try {

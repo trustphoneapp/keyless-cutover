@@ -122,7 +122,7 @@ jobs:
           retention-days: 7
 
   h6-wrong-environment:
-    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KEYLESS_K0_POST_DISABLE_PUSH != 'true'
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -157,7 +157,7 @@ jobs:
           retention-days: 7
 
   h7-wrong-audience:
-    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KEYLESS_K0_POST_DISABLE_PUSH != 'true'
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -193,7 +193,7 @@ jobs:
           retention-days: 7
 
   h8-forbidden-resource:
-    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KEYLESS_K0_POST_DISABLE_PUSH != 'true'
     runs-on: ubuntu-latest
     environment: production
     steps:

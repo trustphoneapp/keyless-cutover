@@ -654,6 +654,16 @@ test("pre-disable collector emits a bundle input, archive plan, and checkpoint r
   assert.deepEqual(semantic, { ok: true, errors: [] });
   assert.deepEqual(plan.fragment, bundleInput.manifest);
 
+  // outputs.artifacts must be exactly what bin/k0-predisable-archive.mjs needs written to disk:
+  // one entry per archive-plan evidence id, byte-identical to the independently reconstructed
+  // artifact bytes above.
+  assert.ok(outputs.artifacts instanceof Map);
+  assert.deepEqual([...outputs.artifacts.keys()].sort(), plan.evidence.map(({ id }) => id).sort());
+  for (const [id, bytes] of outputs.artifacts) {
+    assert.ok(Buffer.isBuffer(bytes));
+    assert.ok(bytes.equals(artifacts.get(id)), `artifact ${id} bytes do not match`);
+  }
+
   const { archiveBytes } = await createK0PreDisableArchive(plan, artifacts);
   assert.equal(await verifyK0PreDisableArchive(archiveBytes), true);
 
