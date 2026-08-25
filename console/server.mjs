@@ -172,7 +172,7 @@ async function main() {
   const port = Number(process.env.PORT ?? 8080);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("PORT is invalid");
   const status = await loadConsoleStatus({
-    checkpointPath: process.env.KEYLESS_CHECKPOINT_PATH ?? "docs/evidence/K0_CHECKPOINT_2026-08-13.json",
+    checkpointPath: process.env.KEYLESS_CHECKPOINT_PATH ?? "docs/evidence/K0_CHECKPOINT_2026-08-24.json",
     bundlePath: process.env.KEYLESS_K0_BUNDLE_PATH,
     manifestPath: process.env.KEYLESS_K0_MANIFEST_PATH,
   });
