@@ -35,6 +35,18 @@ function renderGate(item, index) {
   </li>`;
 }
 
+const STACK_ITEMS = [
+  { label: "Gemini 3.5", detail: "Reads evidence", icon: '<path d="M12 3l1.8 5.6L19 10l-5.2 1.4L12 17l-1.8-5.6L5 10l5.2-1.4L12 3z"/>' },
+  { label: "Google ADK", detail: "Agent runtime", icon: '<circle cx="6" cy="7" r="2.4"/><circle cx="18" cy="7" r="2.4"/><circle cx="12" cy="18" r="2.4"/><path d="M8.1 8.3L10.5 16M15.9 8.3L13.5 16M8.4 7h7.2"/>' },
+  { label: "Cloud Run", detail: "Deploy target", icon: '<path d="M7.5 17a4 4 0 0 1-.6-7.96 5.5 5.5 0 0 1 10.7-1.7A4.25 4.25 0 0 1 17 17H7.5z"/>' },
+  { label: "GitHub Actions", detail: "Identity + CI", icon: '<circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 8v8M6 8a6 6 0 0 0 6 6M16 12h.01"/>' },
+  { label: "Workload Identity", detail: "No stored key", icon: '<path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>' },
+];
+
+function renderStackItem(item) {
+  return `<div class="stack__item"><svg class="stack__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${item.icon}</svg><div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.detail)}</small></div></div>`;
+}
+
 export function renderConsoleHtml(status) {
   const badge = status.status === "K0_VERIFIED_RECEIPT_PENDING"
     ? status.signature_verified ? "Signature verified · recollection required" : "Bundle verified · recollection required"
@@ -44,6 +56,7 @@ export function renderConsoleHtml(status) {
     ? status.sources.map((item) => `<a href="${escapeHtml(item.href)}" rel="noopener noreferrer">${escapeHtml(item.label)}<span>↗</span></a>`).join("")
     : "<p>No public evidence source is eligible.</p>";
   const hashLabel = status.status === "K0_VERIFIED_RECEIPT_PENDING" ? "Manifest SHA-256" : "Checkpoint SHA-256";
+  const stack = STACK_ITEMS.map(renderStackItem).join("");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -52,21 +65,27 @@ export function renderConsoleHtml(status) {
   <meta name="description" content="Keyless Cutover evidence console — a fail-closed proof of GitHub Actions to Google Workload Identity Federation migration.">
   <title>Keyless Cutover · Evidence Console</title>
   <style>
-    :root { color-scheme: dark; --ink:#07110f; --panel:#0d1b18; --line:#25413a; --mint:#83f6bd; --amber:#ffd37a; --muted:#9eb7af; --paper:#eff8f2; }
+    :root { color-scheme: dark; --ink:#07110f; --panel:#0d1b18; --line:#25413a; --line-soft:#1a322c; --mint:#83f6bd; --amber:#ffd37a; --muted:#9eb7af; --paper:#eff8f2; }
     * { box-sizing:border-box; }
     body { margin:0; background:radial-gradient(circle at 78% 4%,#1a493b 0,transparent 32%),linear-gradient(145deg,#06100e,#0b1d18 55%,#08120f); color:var(--paper); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
     body:before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.18; background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px); background-size:48px 48px; }
     main { position:relative; max-width:1180px; margin:auto; padding:28px 24px 72px; }
-    nav { display:flex; justify-content:space-between; align-items:center; padding:8px 0 72px; }
+    nav { display:flex; justify-content:space-between; align-items:center; padding:8px 0 56px; }
     .brand { letter-spacing:.16em; text-transform:uppercase; font-weight:800; }
     .brand span { color:var(--mint); }
     .badge { border:1px solid var(--amber); color:var(--amber); padding:7px 12px; border-radius:999px; font-size:.76rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
-    .hero { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.55fr); gap:52px; align-items:end; padding-bottom:64px; }
+    .hero { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.55fr); gap:52px; align-items:end; padding-bottom:48px; }
     .eyebrow { color:var(--mint); letter-spacing:.15em; text-transform:uppercase; font-size:.78rem; font-weight:800; }
     h1 { font-size:clamp(3.1rem,8vw,7.2rem); line-height:.86; letter-spacing:-.065em; max-width:850px; margin:18px 0 30px; }
     .summary { max-width:720px; color:#c0d2cc; font-size:1.12rem; }
     .contract { border-left:2px solid var(--mint); padding:4px 0 4px 22px; color:var(--muted); }
     .contract strong { display:block; color:var(--paper); font-size:1.15rem; margin-bottom:8px; }
+    .stack { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:32px; }
+    .stack__item { background:rgba(8,24,20,.92); padding:20px 18px; display:flex; align-items:center; gap:13px; transition:background-color .15s ease; }
+    .stack__item:hover { background:rgba(13,34,29,.96); }
+    .stack__icon { width:22px; height:22px; flex:none; color:var(--mint); }
+    .stack__item strong { display:block; font-size:.86rem; }
+    .stack__item small { display:block; color:var(--muted); font-size:.72rem; margin-top:2px; }
     .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:54px; }
     .metric { background:rgba(8,24,20,.92); padding:25px; min-height:116px; }
     .metric strong { display:block; color:var(--mint); font-size:2rem; letter-spacing:-.04em; }
@@ -76,7 +95,8 @@ export function renderConsoleHtml(status) {
     .panel h2 { margin:0 0 24px; font-size:1.4rem; }
     .panel__kicker { color:var(--muted); font-size:.76rem; letter-spacing:.11em; text-transform:uppercase; margin-bottom:7px; }
     .gates { list-style:none; padding:0; margin:0; }
-    .gate { display:grid; grid-template-columns:38px 1fr auto; gap:14px; align-items:center; padding:15px 0; border-top:1px solid var(--line); }
+    .gate { display:grid; grid-template-columns:38px 1fr auto; gap:14px; align-items:center; padding:15px 0; border-top:1px solid var(--line); transition:padding-left .15s ease,border-color .15s ease; }
+    .gate:hover { padding-left:6px; border-color:var(--mint); }
     .gate__index { color:#5f7d73; font:700 .72rem ui-monospace,SFMono-Regular,Menlo,monospace; }
     .gate strong,.gate small { display:block; }
     .gate small { color:var(--muted); margin-top:2px; }
@@ -86,11 +106,13 @@ export function renderConsoleHtml(status) {
     .blockers { margin:0; padding-left:20px; color:#d6e2de; }
     .blockers li { margin:0 0 12px; }
     .sources { display:grid; gap:10px; }
-    .sources a { display:flex; justify-content:space-between; gap:20px; color:var(--paper); text-decoration:none; padding:12px 0; border-top:1px solid var(--line); }
-    .sources a:hover,.sources a:focus-visible { color:var(--mint); }
+    .sources a { display:flex; justify-content:space-between; gap:20px; color:var(--paper); text-decoration:none; padding:12px 4px; border-top:1px solid var(--line); transition:transform .15s ease,color .15s ease; }
+    .sources a:hover,.sources a:focus-visible { color:var(--mint); transform:translateX(3px); }
     .hash { color:#86a198; font:600 .72rem/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; overflow-wrap:anywhere; margin-top:28px; }
     footer { border-top:1px solid var(--line); margin-top:48px; padding-top:26px; display:flex; justify-content:space-between; gap:30px; color:var(--muted); font-size:.82rem; }
-    @media (max-width:800px) { nav{padding-bottom:46px}.hero,.grid{grid-template-columns:1fr}.hero{gap:28px}.metrics{grid-template-columns:repeat(2,1fr)}h1{font-size:clamp(3.2rem,16vw,5.6rem)} }
+    @media (prefers-reduced-motion:reduce) { .stack__item,.gate,.sources a { transition:none; } }
+    @media (max-width:900px) { .stack{grid-template-columns:1fr} }
+    @media (max-width:800px) { nav{padding-bottom:40px}.hero,.grid{grid-template-columns:1fr}.hero{gap:28px}.metrics{grid-template-columns:repeat(2,1fr)}h1{font-size:clamp(3.2rem,16vw,5.6rem)} }
     @media (max-width:480px) { main{padding:20px 16px 48px}.badge{font-size:.62rem}.metrics{grid-template-columns:1fr 1fr}.metric{padding:18px}.panel{padding:22px}.gate{grid-template-columns:28px 1fr}.gate__state{grid-column:2}footer{display:block} }
   </style>
 </head>
@@ -101,6 +123,7 @@ export function renderConsoleHtml(status) {
       <div><div class="eyebrow">${escapeHtml(status.eyebrow)}</div><h1>${escapeHtml(status.headline)}</h1><p class="summary">${escapeHtml(status.summary)}</p></div>
       <div class="contract"><strong>Gemini interprets.</strong>Deterministic code proves. Humans authorize. Missing evidence stops the workflow.</div>
     </section>
+    <section class="stack" aria-label="Built with">${stack}</section>
     <section class="metrics" aria-label="Evaluation metrics">${metricCards}</section>
     <section class="grid">
       <div class="panel"><div class="panel__kicker">Authoritative sequence</div><h2>Cutover gates</h2><ol class="gates">${status.gates.map(renderGate).join("")}</ol></div>
