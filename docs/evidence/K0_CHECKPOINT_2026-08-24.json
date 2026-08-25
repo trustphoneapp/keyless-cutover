@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "status": "NO_GO_INCOMPLETE",
+  "recorded_at": "2026-08-25T15:19:53.000Z",
+  "repository": {
+    "full_name": "trustphoneapp/keyless-cutover",
+    "owner_id": "289479481",
+    "repository_id": "1332803088",
+    "cutover_pr": 28,
+    "cutover_pr_head": "dd34ca8e350c4783a0c3c54a34b1d44aa617456c",
+    "cutover_merge_commit": "996fd08745a2d0452627e8d89b37ed914233d90f"
+  },
+  "gcp": {
+    "project_id": "keyless-k0-20260813",
+    "project_number": "208865688014",
+    "region": "us-central1",
+    "legacy_revision": "keyless-demo-legacy-3",
+    "wif_1_revision": "keyless-demo-wif-3",
+    "forbidden_revision": "keyless-forbidden-00001-rvf"
+  },
+  "wif_readback": {
+    "provider_config_hash": "7de2795228b563f421ba6f018de784099cc16f93aba19d141fd70ee6e791f0d8",
+    "impersonation_binding_hash": "e74884e61ad91999b6baaeeccfa8862a9a2bd2511e6dae3b2416f882e7a6d2da",
+    "downstream_permission_added": false
+  },
+  "proof_v2": {
+    "github_run_id": "32761994628",
+    "workflow_blob_sha": "b0f1504d3afefb7c5b45fc589b10c6861587f9f8",
+    "challenge_id": "c5c67e48-9a9d-4f9d-8fd4-60a120402e88",
+    "proof_digest": "ea1007e9cd04a5a24beae71c600e1eb6427c66b4a21bbcd7c1aee67f1f55587b",
+    "receipt_sha256": "13cd8cbb2627ab85a4b08f5170a29a480e6fba161f3e643591326e58bd045216",
+    "firestore_consumed_once": true,
+    "replay_rejected": true,
+    "authoritative_status": "VERIFIED_INDEPENDENT_REVIEW"
+  },
+  "pre_disable": {
+    "status": "K0_PREDISABLE_VERIFIED",
+    "receipt": "docs/evidence/K0_PREDISABLE_ARCHIVE_2026-08-24.json",
+    "wif_1_github_run_id": "32763348555",
+    "wif_1_github_run_url": "https://github.com/trustphoneapp/keyless-cutover/actions/runs/32763348555",
+    "hostile_controls_passed": "8/8",
+    "forbidden_revision_before": "keyless-forbidden-00001-rvf",
+    "forbidden_revision_after": "keyless-forbidden-00001-rvf",
+    "hostile_tests": [
+      { "id": "H1", "run_id": "32765012489", "outcome": "DENIED", "reached_control": true, "log_sha256": "783799198bd757eaba0e99fa3b51874ab5194b0e67a332c9efefceaf419556f6" },
+      { "id": "H2", "run_id": "32765014617", "outcome": "DENIED", "reached_control": true, "log_sha256": "53bd452779f227d8c42cec8d85f8aa453e8bbfbd9c808350dc05b2323058dc84" },
+      { "id": "H3", "run_id": "32764493220", "outcome": "DENIED", "reached_control": true, "log_sha256": "1d70ae9c2ec479d607e5f5b70928d741f1abcb87287ba6216b760215f65f8f8e" },
+      { "id": "H4", "run_id": "32763348516", "outcome": "DENIED", "reached_control": true, "log_sha256": "4529325093fd1f971cc36ccd5a0b778d8b3163667c8eb1a87432ab9be973a685" },
+      { "id": "H5", "run_id": "32764646613", "outcome": "DENIED", "reached_control": true, "log_sha256": "a0fec2a7e00365b13abd3a14e7118eff5ccd81562f9e67365740e8d4494473c5" },
+      { "id": "H6", "run_id": "32763348555", "outcome": "DENIED", "reached_control": true, "log_sha256": "4d6fe1e8803e56d0ce2034a38cff67d5c3910fa0dab849cfaa0601de36d0aaee" },
+      { "id": "H7", "run_id": "32763348555", "outcome": "DENIED", "reached_control": true, "log_sha256": "0394187b939cf50ab1cf04c20be8863efa46d97fd5171727f20c14785afa333b" },
+      { "id": "H8", "run_id": "32763348555", "outcome": "DENIED", "reached_control": true, "log_sha256": "7771a6cea64a601909a824c58e8841ba29820a0c796b39cbc17daef7bda75bb0" }
+    ]
+  },
+  "key_disable": {
+    "status": "KEY_DISABLED_OBSERVED",
+    "key_id": "1f0137c50d534e23c58e2ae0f84ccf3a9847351d",
+    "service_account_unique_id": "110652672782847439596",
+    "disabled": true,
+    "human_actor": "yashwanth.surabhi@gmail.com",
+    "audit_method": "google.iam.admin.v1.DisableServiceAccountKey",
+    "audit_resource": "projects/-/serviceAccounts/110652672782847439596/keys/1f0137c50d534e23c58e2ae0f84ccf3a9847351d",
+    "audit_insert_id": "1r9n1a8e78acr",
+    "audit_timestamp": "2026-08-24T20:05:49Z"
+  },
+  "agent_eval": {
+    "raw_artifact_sha256": "8ddee8966aea36add3d022bddde340140f2316e38e901daa9e321e96de3e9983",
+    "supported": "12/12",
+    "paired_gain": 11,
+    "refusal": "4/4",
+    "recovery": "8/8",
+    "forbidden": 0,
+    "schema_valid": "72/72",
+    "pass": true
+  },
+  "blockers": [
+    "WIF-2 continuity cannot be produced on this repository: H6 and H8's audit-log entries are indistinguishable from deploy's own exchange, so no query can isolate a clean two-entry evidence window.",
+    "Gating the hostile jobs to fix that collision changes the workflow's bytes, which breaks the wif_1 blob-SHA pin that legacy_baseline validation requires.",
+    "The disabled key must never be re-enabled to attempt continuity; this transaction's evidence stands as pre-disable v3 completion only."
+  ]
+}
