@@ -36,15 +36,30 @@ function renderGate(item, index) {
 }
 
 const STACK_ITEMS = [
-  { label: "Gemini 3.5", detail: "Reads evidence", icon: '<path d="M12 3l1.8 5.6L19 10l-5.2 1.4L12 17l-1.8-5.6L5 10l5.2-1.4L12 3z"/>' },
-  { label: "Google ADK", detail: "Agent runtime", icon: '<circle cx="6" cy="7" r="2.4"/><circle cx="18" cy="7" r="2.4"/><circle cx="12" cy="18" r="2.4"/><path d="M8.1 8.3L10.5 16M15.9 8.3L13.5 16M8.4 7h7.2"/>' },
-  { label: "Cloud Run", detail: "Deploy target", icon: '<path d="M7.5 17a4 4 0 0 1-.6-7.96 5.5 5.5 0 0 1 10.7-1.7A4.25 4.25 0 0 1 17 17H7.5z"/>' },
-  { label: "GitHub Actions", detail: "Identity + CI", icon: '<circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 8v8M6 8a6 6 0 0 0 6 6M16 12h.01"/>' },
-  { label: "Workload Identity", detail: "No stored key", icon: '<path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>' },
+  {
+    label: "Gemini 3.5", detail: "Reads evidence", tint: "138,124,251",
+    icon: '<defs><linearGradient id="gGemini" x1="4" y1="20" x2="20" y2="4"><stop offset="0" stop-color="#4285F4"/><stop offset=".5" stop-color="#9B72CB"/><stop offset="1" stop-color="#F26B6B"/></linearGradient></defs><path d="M12 3l1.8 5.6L19 10l-5.2 1.4L12 17l-1.8-5.6L5 10l5.2-1.4L12 3z" fill="url(#gGemini)" stroke="none"/>',
+  },
+  {
+    label: "Google ADK", detail: "Agent runtime", tint: "66,133,244",
+    icon: '<circle cx="6" cy="7" r="2.4" fill="#4285F4" stroke="none"/><circle cx="18" cy="7" r="2.4" fill="#4285F4" stroke="none"/><circle cx="12" cy="18" r="2.4" fill="#4285F4" stroke="none"/><path d="M8.1 8.3L10.5 16M15.9 8.3L13.5 16M8.4 7h7.2" stroke="#4285F4"/>',
+  },
+  {
+    label: "Cloud Run", detail: "Deploy target", tint: "66,133,244",
+    icon: '<path d="M7.5 17a4 4 0 0 1-.6-7.96 5.5 5.5 0 0 1 10.7-1.7A4.25 4.25 0 0 1 17 17H7.5z" fill="#4285F4" stroke="none"/>',
+  },
+  {
+    label: "GitHub Actions", detail: "Identity + CI", tint: "234,238,243",
+    icon: '<path fill="#eff8f2" stroke="none" d="M12 2.2c-5.4 0-9.8 4.4-9.8 9.8 0 4.3 2.8 8 6.7 9.3.5.1.7-.2.7-.5v-1.8c-2.7.6-3.3-1.3-3.3-1.3-.4-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.6-1.3-2.2-.2-4.4-1.1-4.4-4.9 0-1.1.4-2 1-2.6-.1-.2-.4-1.2.1-2.6 0 0 .8-.3 2.7 1 .8-.2 1.6-.3 2.5-.3.8 0 1.7.1 2.5.3 1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.6.6.7 1 1.6 1 2.6 0 3.8-2.2 4.6-4.4 4.9.4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5 3.9-1.3 6.7-5 6.7-9.3 0-5.4-4.4-9.8-9.8-9.8z"/>',
+  },
+  {
+    label: "Workload Identity", detail: "No stored key", tint: "131,246,189",
+    icon: '<path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+  },
 ];
 
 function renderStackItem(item) {
-  return `<div class="stack__item"><svg class="stack__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${item.icon}</svg><div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.detail)}</small></div></div>`;
+  return `<div class="stack__item" style="--tint:${item.tint}"><svg class="stack__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${item.icon}</svg><div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.detail)}</small></div></div>`;
 }
 
 export function renderConsoleHtml(status) {
@@ -74,16 +89,18 @@ export function renderConsoleHtml(status) {
     .brand { letter-spacing:.16em; text-transform:uppercase; font-weight:800; }
     .brand span { color:var(--mint); }
     .badge { border:1px solid var(--amber); color:var(--amber); padding:7px 12px; border-radius:999px; font-size:.76rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
-    .hero { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.55fr); gap:52px; align-items:end; padding-bottom:48px; }
+    .hero { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(260px,.5fr); gap:52px; align-items:start; padding-bottom:40px; }
     .eyebrow { color:var(--mint); letter-spacing:.15em; text-transform:uppercase; font-size:.78rem; font-weight:800; }
-    h1 { font-size:clamp(3.1rem,8vw,7.2rem); line-height:.86; letter-spacing:-.065em; max-width:850px; margin:18px 0 30px; }
-    .summary { max-width:720px; color:#c0d2cc; font-size:1.12rem; }
-    .contract { border-left:2px solid var(--mint); padding:4px 0 4px 22px; color:var(--muted); }
-    .contract strong { display:block; color:var(--paper); font-size:1.15rem; margin-bottom:8px; }
+    h1 { font-size:clamp(1.85rem,1.1rem + 2.6vw,3.15rem); line-height:1.12; letter-spacing:-.02em; font-weight:800; max-width:760px; margin:16px 0 22px; }
+    .summary { max-width:640px; color:#c0d2cc; font-size:1.05rem; line-height:1.6; }
+    .contract { background:rgba(131,246,189,.07); border:1px solid rgba(131,246,189,.22); border-radius:10px; padding:20px 22px; color:var(--muted); margin-top:6px; }
+    .contract strong { display:block; color:var(--paper); font-size:1.05rem; margin-bottom:8px; }
     .stack { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:32px; }
-    .stack__item { background:rgba(8,24,20,.92); padding:20px 18px; display:flex; align-items:center; gap:13px; transition:background-color .15s ease; }
-    .stack__item:hover { background:rgba(13,34,29,.96); }
-    .stack__icon { width:22px; height:22px; flex:none; color:var(--mint); }
+    .stack__item { position:relative; background:rgba(8,24,20,.92); padding:20px 18px; display:flex; align-items:center; gap:13px; transition:background-color .15s ease; overflow:hidden; }
+    .stack__item:before { content:""; position:absolute; inset:0; background:rgba(var(--tint),.09); opacity:0; transition:opacity .15s ease; }
+    .stack__item:hover:before { opacity:1; }
+    .stack__item:after { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:rgba(var(--tint),.85); }
+    .stack__icon { width:22px; height:22px; flex:none; color:rgb(var(--tint)); position:relative; }
     .stack__item strong { display:block; font-size:.86rem; }
     .stack__item small { display:block; color:var(--muted); font-size:.72rem; margin-top:2px; }
     .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:54px; }
@@ -112,7 +129,7 @@ export function renderConsoleHtml(status) {
     footer { border-top:1px solid var(--line); margin-top:48px; padding-top:26px; display:flex; justify-content:space-between; gap:30px; color:var(--muted); font-size:.82rem; }
     @media (prefers-reduced-motion:reduce) { .stack__item,.gate,.sources a { transition:none; } }
     @media (max-width:900px) { .stack{grid-template-columns:1fr} }
-    @media (max-width:800px) { nav{padding-bottom:40px}.hero,.grid{grid-template-columns:1fr}.hero{gap:28px}.metrics{grid-template-columns:repeat(2,1fr)}h1{font-size:clamp(3.2rem,16vw,5.6rem)} }
+    @media (max-width:800px) { nav{padding-bottom:40px}.hero,.grid{grid-template-columns:1fr}.hero{gap:28px}.metrics{grid-template-columns:repeat(2,1fr)} }
     @media (max-width:480px) { main{padding:20px 16px 48px}.badge{font-size:.62rem}.metrics{grid-template-columns:1fr 1fr}.metric{padding:18px}.panel{padding:22px}.gate{grid-template-columns:28px 1fr}.gate__state{grid-column:2}footer{display:block} }
   </style>
 </head>
