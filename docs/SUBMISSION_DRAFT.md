@@ -56,15 +56,15 @@ These facts describe the historical August transaction specifically, not the fre
 - Public read-only Cloud Run evidence console from an immutable image. Its runtime service account has no project roles and the served state is honestly `NO_GO_INCOMPLETE`.
 - A passing deterministic local suite without a brittle published count, immutable action pins, passing Actions CI, and zero known production dependency vulnerabilities at the release audit threshold.
 
-## Target release evidence — fresh transaction, 2026-08-24
+## Target release evidence — two independent fresh transactions, 2026-08-24 and 2026-08-25
 
-The final description may add each statement only once its exact evidence exists. Three now do; the fourth does not and will not without reverting the migration:
+The final description may add each statement only once its exact evidence exists. Three now do, confirmed twice independently; the fourth does not, for a structural reason found live rather than a remaining task:
 
 - `[HISTORICAL ONLY]` The prior human key disable and Admin Activity agree, but no canonical archive checkpoint preceded them.
-- **Done, 2026-08-24.** A fresh disposable key (`1f0137c5…`) completed baseline (`legacy-3`), ProofV2 (run 32761994628), the WIF cutover, `wif-1` (`wif-3`), and all eight hostile denials; the protected archive checkpoint (PR #35) merged, with its required check and push run both completing before the key was disabled.
-- **Done.** Fresh hosted legacy authentication was rejected after disable (run 32771996082), on a new hosted runner, reaching Google.
-- **Not achieved, and not pending — structurally blocked.** A live audit-window collision (H6/H8 always add extra entries to any post-disable push, and the fix for that changes the workflow bytes the post-disable run must match exactly) and the one-time nature of the legacy→WIF cutover together make `wif-2` unreachable on this repository without reverting the migration. See `README.md`'s "The fresh transaction" section.
-- **Not attempted, correctly.** Authenticated pending issuance and the scoped KMS signature both require `post_disable` evidence, which cannot exist without `wif-2`. `authorization` remains `RECOLLECTION_REQUIRED`, `release_ready` remains `false`.
+- **Done twice.** 2026-08-24: a fresh disposable key (`1f0137c5…`) completed baseline (`legacy-3`), ProofV2 (run 32761994628), the WIF cutover, `wif-1` (`wif-3`), and all eight hostile denials; the protected archive checkpoint (PR #35) merged, with its required check and push run both completing before the key was disabled. 2026-08-25: a second, independent fresh key (`851d4503…`) repeated the same sequence (`legacy-4`, ProofV2 run 32888780262, `wif-5`, all eight hostile denials, archive checkpoint PR #46), deliberately testing the fix for the first transaction's finding.
+- **Done twice.** Fresh hosted legacy authentication was rejected after disable on a new hosted runner, reaching Google: run 32771996082 (2026-08-24) and run 32892290171 (2026-08-25).
+- **Not achieved in either, for two different reasons.** 2026-08-24: a live audit-window collision (H6/H8 always added extra entries to any post-disable push). 2026-08-25: that exact fix was confirmed working live — the hostile jobs correctly skipped on the post-disable push, and `wif-6` deployed through WIF with no key involved — but the audit window still held three entries, not two, because the authentication action and `gcloud` each perform their own independent token exchange on any deploy. This is a property of the current authentication mechanism, not of hostile interference. See `README.md`'s "The second transaction" section.
+- **Not attempted, correctly, in either.** Authenticated pending issuance and the scoped KMS signature both require `post_disable` evidence, which cannot exist without a certified `wif-2`. `authorization` remains `RECOLLECTION_REQUIRED`, `release_ready` remains `false`. A Cloud KMS keyring, signing key, and scoped signer service account were provisioned on 2026-08-25 and remain available.
 
 ## Google technology
 
