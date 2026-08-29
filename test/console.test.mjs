@@ -216,7 +216,7 @@ test("console HTML escapes evidence-derived strings and contains no executable c
   assert.ok(!html.includes("<script>"));
   assert.ok(!html.includes("<img src=x"));
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
-  assert.match(html, /No-go · evidence incomplete/);
+  assert.match(html, /Pre-disable proven/);
 });
 
 test("console routes are read-only and return hardened response headers", async () => {

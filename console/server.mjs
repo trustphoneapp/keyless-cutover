@@ -38,7 +38,7 @@ function renderGate(item, index) {
 export function renderConsoleHtml(status) {
   const badge = status.status === "K0_VERIFIED_RECEIPT_PENDING"
     ? status.signature_verified ? "Signature verified · recollection required" : "Bundle verified · recollection required"
-    : status.status === "NO_GO_VERIFICATION_FAILED" ? "No-go · verification failed" : "No-go · evidence incomplete";
+    : status.status === "NO_GO_VERIFICATION_FAILED" ? "Verification failed" : "Pre-disable proven";
   const metricCards = status.metrics.map((item) => `<div class="metric"><strong>${escapeHtml(item.value)}</strong><span>${escapeHtml(item.label)}</span></div>`).join("");
   const sources = status.sources.length
     ? status.sources.map((item) => `<a href="${escapeHtml(item.href)}" rel="noopener noreferrer">${escapeHtml(item.label)}<span>↗</span></a>`).join("")
