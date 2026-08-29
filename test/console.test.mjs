@@ -130,8 +130,8 @@ test("console derives an honest pre-disable-complete view from the fresh 2026-08
   assert.equal(status.gates.find(({ label }) => label === "Human key disable").state, "historical");
   assert.equal(status.gates.find(({ label }) => label === "Canonical pre-disable archive checkpoint").state, "passed");
   assert.equal(status.gates.find(({ label }) => label === "Fresh disposable v3 transaction").state, "blocked");
-  assert.match(status.headline, /Pre-disable half of v3 is complete/);
-  assert.match(status.summary, /wif-2 continuity cannot be produced/);
+  assert.match(status.headline, /The key is gone/);
+  assert.match(status.summary, /a human disabled the key/);
   assert.equal(status.blockers.some((item) => /disabled key must never be re-enabled/.test(item)), true);
 });
 

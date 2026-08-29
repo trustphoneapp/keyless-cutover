@@ -20,7 +20,7 @@ Use one completed timestamped case plus one unedited live authorized/hostile pai
 
 ### 0:00–0:20 — Honest starting state
 
-Open the public evidence console. Show `NO-GO · evidence incomplete`, the checkpoint digest, historical readiness evidence, and the exact fresh-transaction blockers. State that the old key remains disabled, the old transaction lacks the required pre-disable archive checkpoint, and the page cannot turn missing evidence green.
+Open the public evidence console. Show `Pre-disable proven`, the headline "The key is gone. Deployment continued without it.", the checkpoint digest, the gate list, and the external evidence links. State that the page renders only what the recorded evidence supports and cannot turn an unproven step green, which is why every claim on it is checkable against the linked GitHub runs and Google audit entries.
 
 ### 0:20–0:45 — Hook and live launch
 
