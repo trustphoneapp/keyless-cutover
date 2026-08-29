@@ -146,7 +146,7 @@ test("configured invalid bundle files fail without checkpoint fallback or eviden
     });
     assertFailed(status, "never-display-this-marker");
     assert.doesNotMatch(renderConsoleHtml(status), /never-display-this-marker/);
-    assert.match(renderConsoleHtml(status), /No-go · verification failed/);
+    assert.match(renderConsoleHtml(status), /Verification failed/);
   }
 });
 
