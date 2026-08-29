@@ -49,11 +49,17 @@ export function validWifAuditLog({ scope, wif }) {
       protoPayload: {
         "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
         authenticationInfo: { principalSubject: wif.idp_subject },
-        metadata: { mapped_principal: wif.mapped_principal },
+        metadata: {
+          "@type": "type.googleapis.com/google.identity.sts.v1.AuditData",
+          mapped_principal: wif.mapped_principal,
+        },
         methodName: stsMethod,
         request: {
           "@type": "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest",
+          audience: `//iam.googleapis.com/${wif.provider}`,
           grantType: "urn:ietf:params:oauth:grant-type:token-exchange",
+          requestedTokenType: "urn:ietf:params:oauth:token-type:access_token",
+          subjectTokenType: "urn:ietf:params:oauth:token-type:jwt",
         },
         resourceName: wif.provider,
       },
@@ -66,7 +72,7 @@ export function validWifAuditLog({ scope, wif }) {
       timestamp: "2026-08-13T12:13:30Z",
       protoPayload: {
         "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
-        authenticationInfo: { principalSubject: wif.mapped_principal },
+        authenticationInfo: { principalEmail: scope.service_account_email },
         methodName: "GenerateAccessToken",
         request: {
           "@type": "type.googleapis.com/google.iam.credentials.v1.GenerateAccessTokenRequest",
@@ -169,8 +175,8 @@ export function validK0BundleInput() {
       provider: "projects/3/locations/global/workloadIdentityPools/keyless/providers/github",
       config_hash: "c".repeat(64),
       parity_hash: "d".repeat(64),
-      idp_subject: "repo:owner/repo:environment:production",
-      mapped_principal: "principal://iam.googleapis.com/projects/3/locations/global/workloadIdentityPools/keyless/subject/repo:owner/repo:environment:production",
+      idp_subject: "repo:owner@1/repo@2:environment:production",
+      mapped_principal: "principal://iam.googleapis.com/projects/3/locations/global/workloadIdentityPools/keyless/subject/repo:owner@1/repo@2:environment:production",
     },
     hostile_tests: [],
     legacy_baseline: {

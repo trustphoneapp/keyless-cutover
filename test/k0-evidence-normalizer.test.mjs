@@ -20,7 +20,10 @@ test("WIF parser accepts only the bounded documented STS and IAM audit variants"
   assert.equal("run_id" in parsed, false);
   assert.deepEqual(JSON.parse(auditLog).entries[0].protoPayload.request, {
     "@type": "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest",
+    audience: `//iam.googleapis.com/${input.manifest.wif.provider}`,
     grantType: "urn:ietf:params:oauth:grant-type:token-exchange",
+    requestedTokenType: "urn:ietf:params:oauth:token-type:access_token",
+    subjectTokenType: "urn:ietf:params:oauth:token-type:jwt",
   });
 
   const documentedLong = JSON.parse(auditLog);

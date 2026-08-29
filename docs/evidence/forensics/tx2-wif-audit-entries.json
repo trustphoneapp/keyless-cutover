@@ -1,0 +1,162 @@
+[
+  {
+    "insertId": "1p2zsa3e1m18f",
+    "logName": "projects/keyless-k0-20260813/logs/cloudaudit.googleapis.com%2Fdata_access",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "loggableShortLivedCredential": {
+          "@type": "type.googleapis.com/identity_cloudgaia.AuditLoggableShortLivedCredential",
+          "oauthToken": {
+            "tokenPrefix": "ya29.c.c0AZ4bNpYGGDMoYPzUdcSTKjxRsW"
+          }
+        },
+        "principalEmail": "keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "iam.serviceAccounts.getAccessToken",
+          "permissionType": "DATA_READ",
+          "resource": "projects/-/serviceAccounts/110652672782847439596"
+        }
+      ],
+      "methodName": "GenerateAccessToken",
+      "request": {
+        "@type": "type.googleapis.com/google.iam.credentials.v1.GenerateAccessTokenRequest",
+        "lifetime": "3600s",
+        "name": "projects/-/serviceAccounts/keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com",
+        "scope": [
+          "openid",
+          "https://www.googleapis.com/auth/userinfo.email",
+          "https://www.googleapis.com/auth/cloud-platform",
+          "https://www.googleapis.com/auth/appengine.admin",
+          "https://www.googleapis.com/auth/sqlservice.login",
+          "https://www.googleapis.com/auth/compute"
+        ]
+      },
+      "requestMetadata": {
+        "callerIp": "20.169.74.18",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/568.0.0 command/gcloud.run.deploy invocation-id/e83849ea60174acf950b283e0120ab1d environment/github-actions-deploy-cloudrun environment-version/3.0.1 client-os/LINUX client-os-ver/6.17.0 client-pltf-arch/x86_64 interactive/False from-script/False python/3.14.4 term/  (Linux 6.17.0-1022-azure),gzip(gfe)"
+      },
+      "resourceName": "projects/-/serviceAccounts/110652672782847439596",
+      "serviceName": "iamcredentials.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-08-25T20:01:25.033234812Z",
+    "resource": {
+      "labels": {
+        "email_id": "keyless-deploy@keyless-k0-20260813.iam.gserviceaccount.com",
+        "project_id": "keyless-k0-20260813",
+        "unique_id": "110652672782847439596"
+      },
+      "type": "service_account"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-08-25T20:01:23.927842457Z"
+  },
+  {
+    "insertId": "sbylrcdl7vz",
+    "logName": "projects/keyless-k0-20260813/logs/cloudaudit.googleapis.com%2Fdata_access",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalSubject": "repo:trustphoneapp@289479481/keyless-cutover@1332803088:environment:production"
+      },
+      "authorizationInfo": [
+        {
+          "granted": false,
+          "permission": "sts.identityProviders.checkLogging",
+          "permissionType": "ADMIN_READ"
+        }
+      ],
+      "metadata": {
+        "@type": "type.googleapis.com/google.identity.sts.v1.AuditData",
+        "mapped_principal": "principal://iam.googleapis.com/projects/208865688014/locations/global/workloadIdentityPools/keyless-k0/subject/repo:trustphoneapp@289479481/keyless-cutover@1332803088:environment:production"
+      },
+      "methodName": "google.identity.sts.v1.SecurityTokenService.ExchangeToken",
+      "request": {
+        "@type": "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest",
+        "audience": "//iam.googleapis.com/projects/208865688014/locations/global/workloadIdentityPools/keyless-k0/providers/github",
+        "grantType": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "requestedTokenType": "urn:ietf:params:oauth:token-type:access_token",
+        "subjectTokenType": "urn:ietf:params:oauth:token-type:jwt"
+      },
+      "requestMetadata": {
+        "callerIp": "20.169.74.18",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/568.0.0 command/gcloud.run.deploy invocation-id/e83849ea60174acf950b283e0120ab1d environment/github-actions-deploy-cloudrun environment-version/3.0.1 client-os/LINUX client-os-ver/6.17.0 client-pltf-arch/x86_64 interactive/False from-script/False python/3.14.4 term/  (Linux 6.17.0-1022-azure)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-08-25T20:01:23.823178821Z"
+        }
+      },
+      "resourceName": "projects/208865688014/locations/global/workloadIdentityPools/keyless-k0/providers/github",
+      "serviceName": "sts.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-08-25T20:01:25.651774047Z",
+    "resource": {
+      "labels": {
+        "method": "google.identity.sts.v1.SecurityTokenService.ExchangeToken",
+        "project_id": "keyless-k0-20260813",
+        "service": "sts.googleapis.com"
+      },
+      "type": "audited_resource"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-08-25T20:01:23.814805633Z"
+  },
+  {
+    "insertId": "1hblwavdlj4n",
+    "logName": "projects/keyless-k0-20260813/logs/cloudaudit.googleapis.com%2Fdata_access",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalSubject": "repo:trustphoneapp@289479481/keyless-cutover@1332803088:environment:production"
+      },
+      "authorizationInfo": [
+        {
+          "granted": false,
+          "permission": "sts.identityProviders.checkLogging",
+          "permissionType": "ADMIN_READ"
+        }
+      ],
+      "metadata": {
+        "@type": "type.googleapis.com/google.identity.sts.v1.AuditData",
+        "mapped_principal": "principal://iam.googleapis.com/projects/208865688014/locations/global/workloadIdentityPools/keyless-k0/subject/repo:trustphoneapp@289479481/keyless-cutover@1332803088:environment:production"
+      },
+      "methodName": "google.identity.sts.v1.SecurityTokenService.ExchangeToken",
+      "request": {
+        "@type": "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest",
+        "audience": "//iam.googleapis.com/projects/208865688014/locations/global/workloadIdentityPools/keyless-k0/providers/github",
+        "grantType": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "requestedTokenType": "urn:ietf:params:oauth:token-type:access_token",
+        "subjectTokenType": "urn:ietf:params:oauth:token-type:jwt"
+      },
+      "requestMetadata": {
+        "callerIp": "20.169.74.18",
+        "callerSuppliedUserAgent": "google-github-actions:auth/3.0.0",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-08-25T20:01:15.933401677Z"
+        }
+      },
+      "resourceName": "projects/208865688014/locations/global/workloadIdentityPools/keyless-k0/providers/github",
+      "serviceName": "sts.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-08-25T20:01:17.744198980Z",
+    "resource": {
+      "labels": {
+        "method": "google.identity.sts.v1.SecurityTokenService.ExchangeToken",
+        "project_id": "keyless-k0-20260813",
+        "service": "sts.googleapis.com"
+      },
+      "type": "audited_resource"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-08-25T20:01:15.926466087Z"
+  }
+]

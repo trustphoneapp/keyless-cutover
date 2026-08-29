@@ -16,7 +16,11 @@ const KEY_RESOURCE = /^projects\/(-|[a-z][a-z0-9-]{4,28}[a-z0-9])\/serviceAccoun
 const UNIQUE_ID = /^\d{10,30}$/;
 const ACTOR = /^[^@\s]+@[^@\s]+$/;
 const HUMAN_ACTOR = /^(?=.{3,254}$)(?=[^@]{1,64}@)[a-z0-9](?:[a-z0-9_+-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_+-]*[a-z0-9])?)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
-const STS_REQUEST_FIELDS = new Set(["@type", "grantType"]);
+const STS_REQUEST_FIELDS = new Set([
+  "@type", "audience", "grantType", "requestedTokenType", "subjectTokenType",
+]);
+const STS_SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt";
+const STS_REQUESTED_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
 const POLICY_FIELDS = new Set(["version", "etag", "bindings"]);
 const BINDING_FIELDS = new Set(["role", "members", "condition"]);
 const CONDITION_FIELDS = new Set(["title", "description", "expression"]);
@@ -671,20 +675,27 @@ export function createGcpEvidenceReader({ auth, fetchImpl = fetch } = {}) {
         protoPayload.authenticationInfo = authenticationInfo;
       }
       if (payload.methodName === lookup.stsMethod) {
-        // Workload Identity logs exactly {@type, grantType}. The audience/subjectTokenType/
-        // requestedTokenType fields belong to Workforce Identity, which also carries a different
-        // @type (...SecurityTokenService.ExchangeTokenRequest). Both assertions below are therefore
-        // exact by design; do not widen them to accommodate a Workforce example.
-        // https://docs.cloud.google.com/iam/docs/audit-logging/examples-workload-identity
+        // Google's published Workload Identity example shows only {@type, grantType}, but every real
+        // ExchangeToken this project has logged carries the full STS parameter set, including the
+        // mandatory audience/subjectTokenType/requestedTokenType. Recorded bytes:
+        // docs/evidence/forensics/all-wif-audit-entries.json. Each field is pinned to its exact
+        // expected value below - audience to this lookup's own provider - so projecting the complete
+        // request is strictly more binding than projecting two fields of it.
         const stsRequest = payload.request;
         if (!exactObject(stsRequest, STS_REQUEST_FIELDS)
             || stsRequest["@type"] !== "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest"
-            || stsRequest.grantType !== "urn:ietf:params:oauth:grant-type:token-exchange") {
+            || stsRequest.grantType !== "urn:ietf:params:oauth:grant-type:token-exchange"
+            || stsRequest.subjectTokenType !== STS_SUBJECT_TOKEN_TYPE
+            || stsRequest.requestedTokenType !== STS_REQUESTED_TOKEN_TYPE
+            || stsRequest.audience !== `//iam.googleapis.com/${lookup.provider}`) {
           throw new Error("WIF STS audit request is invalid");
         }
         protoPayload.request = {
           "@type": stsRequest["@type"],
+          audience: stsRequest.audience,
           grantType: stsRequest.grantType,
+          requestedTokenType: stsRequest.requestedTokenType,
+          subjectTokenType: stsRequest.subjectTokenType,
         };
       }
       return { insertId: entry.insertId, timestamp: entry.timestamp, protoPayload, resource: entry.resource };
