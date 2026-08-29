@@ -56,12 +56,27 @@ jobs:
         run: |
           set -euo pipefail
           revision="${SERVICE}-${RELEASE}"
-          payload="$(jq -n --arg rev "$revision" --arg img "$IMAGE" --arg rel "$RELEASE" \
-            '{template:{revision:$rev,containers:[{image:$img,env:[{name:"RELEASE",value:$rel}],ports:[{name:"http1",containerPort:8080}],resources:{limits:{cpu:"1",memory:"256Mi"}}}]}}')"
+          service_url="https://run.googleapis.com/v2/projects/${PROJECT_ID}/locations/${REGION}/services/${SERVICE}"
+          # Read the live template and change only the revision name, image, and RELEASE marker.
+          # updateMask=template replaces the whole template, so every other setting the service
+          # already carries - runtime service account, scaling, concurrency, timeout, probes - must
+          # be carried forward verbatim or this deploy would silently reset them.
+          current="$(curl -sS --fail-with-body -H "Authorization: Bearer ${ACCESS_TOKEN}" "$service_url")"
+          payload="$(jq -e -n --argjson svc "$current" --arg rev "$revision" --arg img "$IMAGE" --arg rel "$RELEASE" '
+            ($svc.template // {}) as $t
+            | ($t.containers // []) as $c
+            | if ($c | length) != 1 then error("expected exactly one container") else . end
+            | {template: (
+                $t
+                | .revision = $rev
+                | .containers[0].image = $img
+                | .containers[0].env = ((.containers[0].env // [])
+                    | map(select(.name != "RELEASE")) + [{name: "RELEASE", value: $rel}])
+              )}')"
           code="$(curl -sS -o /tmp/k0-deploy-response.json -w '%{http_code}' -X PATCH \
             -H "Authorization: Bearer ${ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
-            "https://run.googleapis.com/v2/projects/${PROJECT_ID}/locations/${REGION}/services/${SERVICE}?updateMask=template" \
+            "${service_url}?updateMask=template" \
             -d "$payload")"
           test "$code" = 200
           for _ in $(seq 1 60); do
