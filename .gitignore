@@ -1,5 +1,6 @@
 node_modules/
 .keyless/
+graphify-out/
 gha-creds-*.json
 *.log
 .DS_Store
