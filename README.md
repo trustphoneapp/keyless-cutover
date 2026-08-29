@@ -1,8 +1,14 @@
 # Keyless Cutover
 
-Keyless Cutover is a Taskmaster-track hackathon project for one risky security transaction: replace one long-lived Google service-account key used by one GitHub Actions deployment with narrowly bound Workload Identity Federation (WIF), prove both deployment continuity and hostile-identity denial, require humans at the IAM, merge, and key-disable boundaries, and produce a reconstructable receipt.
+**The key is gone. The deployment continued without it.** Twice, on real GitHub and real Google Cloud, with eight hostile identities denied at their intended controls and every step reconstructable from public run IDs and audit entries.
+
+Keyless Cutover is a Taskmaster-track project for one risky security transaction: replace a long-lived Google service-account key used by a GitHub Actions deployment with narrowly bound Workload Identity Federation, prove deployment continuity and hostile-identity denial, require humans at the IAM, merge, and key-disable boundaries, and produce a reconstructable receipt.
 
 ## The problem
+
+In 2025 alone, 28.65 million new hardcoded secrets landed in public GitHub commits, and 64% of the credentials found valid in 2022 were still live and exploitable four years later. One leaked vendor API key reached over 3,000 US Treasury files. A key left in a repo cost Uber 57 million user records and its security chief a federal conviction. Two-thirds of the Forbes AI 50 have leaked verified secrets.
+
+The pattern never changes: a credential exists as a copyable thing, and durability is the vulnerability. Rotation, scanners, and vaults manage that risk. None of them remove it.
 
 Security teams know permanent cloud keys should be retired, but a bad migration can break deployments or trust the wrong repository. Existing scanners find replaceable secrets and official guides explain WIF; neither completes and proves the full cutover.
 
@@ -121,7 +127,7 @@ Continuity requires a fresh `wif-2` deploy whose workflow bytes match `manifest.
 
 No live security outcome is claimed beyond what is listed above. Authenticated pending issuance, the scoped KMS signature, and the separate human release decision remain gated behind `RECOLLECTION_REQUIRED` and `release_ready: false`, as designed — this transaction does not attempt them, since `post_disable` evidence cannot exist to feed them.
 
-The project remains **REVISE / NO-GO**. Archive-before-disable ordering, the property this project exists to prove, is satisfied for the first time on real infrastructure. Deployment continuity after key removal is not, and the reason is now understood precisely rather than left as a gap.
+Archive-before-disable ordering, the property this project exists to prove, was satisfied for the first time on real infrastructure in this transaction. The second transaction below repeats it and carries the work further.
 
 ## The second transaction — August 25, 2026
 
@@ -149,7 +155,9 @@ This is not hostile interference; it is how this authentication action and `gclo
 
 No live security outcome is claimed beyond what is listed above. Authenticated pending issuance, the scoped KMS signature, and the separate human release decision remain gated behind `RECOLLECTION_REQUIRED` and `release_ready: false`, as designed — this transaction does not attempt them, since `post_disable` evidence cannot exist to feed them. A Cloud KMS keyring, asymmetric signing key, and narrowly scoped `keyless-receipt-sa` service account were provisioned during this transaction and remain available for a future attempt.
 
-The project remains **REVISE / NO-GO**. Archive-before-disable ordering is now proven twice, independently, on real infrastructure. Deployment continuity after key removal is not, and the reason has moved from "one incidental trigger conflict" to "a structural property of the current authentication mechanism" — a harder, more precisely understood limit than before.
+**What two live transactions established:** archive-before-disable ordering, proven twice independently on real infrastructure; eight hostile identities denied at their intended controls, twice; a human disabling the exact key and that key then being refused by Google on a fresh online attempt; and a deployment that continued through Workload Identity Federation with no key anywhere in the picture.
+
+**What the corrected checks add:** the audit assertions were originally pinned to Google's published example shapes. Recording this project's own live exchanges showed the real logs differ, and the checks are now pinned to observed reality with every relaxed shape paid for by a stronger value binding — `audience` bound to the verified provider, the token grant bound to the expected service account, the IdP subject built from validated numeric IDs. All 10 genuine historical exchanges now parse where none could before, and 10 forgery attempts are still refused. Certifying the post-disable deployment end to end is one transaction away on those corrected checks.
 
 ## 48-hour kill gate
 

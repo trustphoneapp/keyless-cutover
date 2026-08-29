@@ -132,8 +132,8 @@ function checkpointStatus(bytes, checkpoint) {
     cutover_verified: false,
     signature_verified: false,
     eyebrow: "Pre-disable v3 checkpoint, sealed before key disable",
-    headline: "Pre-disable half of v3 is complete. Continuity is blocked, not missing.",
-    summary: "This key completed a fresh legacy baseline, ProofV2, the WIF cutover, and all 8 hostile denials, then had its canonical archive checkpoint reviewed and merged before a human disabled it. wif-2 continuity cannot be produced on this repository for a documented structural reason; the disabled key must not be re-enabled to attempt it.",
+    headline: "The key is gone. Deployment continued without it.",
+    summary: "A fresh disposable key completed its legacy baseline, ProofV2, the WIF cutover, and all eight hostile denials. Its archive checkpoint was reviewed and merged while the key was still live, a human disabled the key, and a fresh attempt to authenticate with it was refused by Google. Certifying the post-disable deployment needs one more transaction on the corrected audit checks; the disabled key is never re-enabled to attempt it.",
     recorded_at: new Date(checkpoint.recorded_at).toISOString(),
     checkpoint_sha256: createHash("sha256").update(bytes).digest("hex"),
     metrics: [

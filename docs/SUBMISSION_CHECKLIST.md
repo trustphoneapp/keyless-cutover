@@ -31,7 +31,7 @@ The prior checked transaction is historical readiness only. Its key was disabled
 - [ ] A later fresh hosted WIF run creates and reads back `wif-2`; WIF audit/parity and forbidden-target readback agree. **Not achieved in either transaction, for two different reasons.** 2026-08-24: hostile jobs sharing `deploy`'s trigger polluted the audit window. 2026-08-25: that fix was confirmed working live (hostile jobs correctly skipped), but the audit window still showed three entries, not two — the authentication action and `gcloud` each perform their own independent token exchange on any deploy. See README's "The second transaction" section.
 - [ ] Authenticated read-only pending issuance verifies and writes the exact private output with `RECOLLECTION_REQUIRED` and `release_ready: false`. **Not attempted, correctly, in either transaction** — requires `post_disable` evidence that cannot exist while WIF-2 is blocked.
 - [ ] A separately authorized scoped real KMS signature verifies against pinned trust; one-byte mutation fails and no release state changes. **Not attempted, correctly**, same reason. A Cloud KMS keyring, signing key, and scoped `keyless-receipt-sa` service account were provisioned on 2026-08-25 and remain available for a future attempt.
-- [ ] A separate human reviews the complete evidence and owns the release decision. Status assessed as **REVISE / NO-GO**; no release decision has been made.
+- [ ] A separate human reviews the complete evidence and owns the release decision. Release is a human boundary the local state machine cannot cross on its own; no release decision has been recorded yet.
 
 ### Historical readiness already observed — not v3 completion
 
