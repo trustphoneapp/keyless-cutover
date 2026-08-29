@@ -32,6 +32,7 @@ jobs:
           echo "value=$release" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate through WIF
+        id: auth
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
@@ -39,17 +40,39 @@ jobs:
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
           audience: ${{ vars.GCP_WIF_AUDIENCE }}
           request_reason: keyless migration=k0 run=${{ github.run_id }}
+          token_format: access_token
+          create_credentials_file: false
+          export_environment_variables: false
 
       - name: Deploy through WIF
-        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
-        with:
-          service: ${{ vars.GCP_ALLOWED_SERVICE }}
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION }}
-          image: ${{ vars.GCP_CANARY_IMAGE }}
-          suffix: ${{ steps.release.outputs.value }}
-          env_vars: RELEASE=${{ steps.release.outputs.value }}
-          env_vars_update_strategy: merge
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          REGION: ${{ vars.GCP_REGION }}
+          SERVICE: ${{ vars.GCP_ALLOWED_SERVICE }}
+          IMAGE: ${{ vars.GCP_CANARY_IMAGE }}
+          RELEASE: ${{ steps.release.outputs.value }}
+        run: |
+          set -euo pipefail
+          revision="${SERVICE}-${RELEASE}"
+          payload="$(jq -n --arg rev "$revision" --arg img "$IMAGE" --arg rel "$RELEASE" \
+            '{template:{revision:$rev,containers:[{image:$img,env:[{name:"RELEASE",value:$rel}],ports:[{name:"http1",containerPort:8080}],resources:{limits:{cpu:"1",memory:"256Mi"}}}]}}')"
+          code="$(curl -sS -o /tmp/k0-deploy-response.json -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://run.googleapis.com/v2/projects/${PROJECT_ID}/locations/${REGION}/services/${SERVICE}?updateMask=template" \
+            -d "$payload")"
+          test "$code" = 200
+          for _ in $(seq 1 60); do
+            state="$(curl -sS -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "https://run.googleapis.com/v2/projects/${PROJECT_ID}/locations/${REGION}/services/${SERVICE}/revisions/${revision}" \
+              | jq -r '.conditions[]? | select(.type=="Ready") | .state')"
+            test "$state" != "CONDITION_FAILED"
+            if [ "$state" = "CONDITION_SUCCEEDED" ]; then exit 0; fi
+            sleep 5
+          done
+          exit 1
 
   h3-wrong-ref:
     if: vars.KEYLESS_K0_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/keyless-h3'

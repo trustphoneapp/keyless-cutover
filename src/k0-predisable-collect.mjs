@@ -393,7 +393,13 @@ function buildOutputs(plan, collected) {
   }
 
   const pool = collected.parity.provider.replace(/\/providers\/[a-z0-9-]+$/, "");
-  const idpSubject = `repo:${plan.github.owner}/${plan.github.repository}:environment:production`;
+  // GitHub's default OIDC subject decorates each name with its immutable numeric ID:
+  // repo:<owner>@<owner_id>/<repository>@<repository_id>:environment:production. Recorded in every
+  // real exchange under docs/evidence/forensics/. Building it from the scope's already-validated
+  // numeric IDs binds the subject to identities that cannot be reassigned by a rename, so this is a
+  // stronger claim than the undecorated name pair it replaces.
+  const idpSubject = `repo:${plan.github.owner}@${scope.owner_id}`
+    + `/${plan.github.repository}@${scope.repository_id}:environment:production`;
   const fragment = {
     scope,
     revisions: {

@@ -23,6 +23,21 @@ const IAM_REQUIRED = new Set(["@type", "authenticationInfo", "methodName", "requ
 const OPTIONAL_AUDIT_FIELDS = new Set(["serviceName", "status"]);
 const PRINCIPAL_REQUIRED = new Set(["principalSubject"]);
 const OPTIONAL_PRINCIPAL_FIELDS = new Set(["principalEmail"]);
+// Cloud Audit Logs attribute a federated-token-authenticated GenerateAccessToken to the impersonated
+// service account: the IAM entry carries principalEmail and never principalSubject, unlike the STS
+// entry. Observed on every federated GenerateAccessToken this project has produced; see
+// docs/evidence/forensics/all-wif-audit-entries.json. The email is bound to the expected deploy
+// service account below, so the relaxed shape is paid for with a stricter value binding.
+const IAM_PRINCIPAL_REQUIRED = new Set(["principalEmail"]);
+const OPTIONAL_IAM_PRINCIPAL_FIELDS = new Set(["principalSubject"]);
+// Google logs the full STS API parameter set, not the two fields its published examples show. Each
+// value is pinned below rather than merely permitted.
+const STS_REQUEST_REQUIRED = new Set([
+  "@type", "audience", "grantType", "requestedTokenType", "subjectTokenType",
+]);
+const STS_AUDIT_DATA_TYPE = "type.googleapis.com/google.identity.sts.v1.AuditData";
+const STS_SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt";
+const STS_REQUESTED_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
 const IAM_REQUEST_REQUIRED = new Set(["@type", "name"]);
 const OPTIONAL_IAM_REQUEST_FIELDS = new Set(["lifetime", "scope"]);
 const CHECKPOINT_RECEIPT_FIELDS = new Set(["version", "evidence"]);
@@ -153,10 +168,14 @@ export function parseWifAuditEvidence(auditLog) {
       || !boundedObject(stsPayload.authenticationInfo, PRINCIPAL_REQUIRED, OPTIONAL_PRINCIPAL_FIELDS)
       || (stsPayload.authenticationInfo.principalEmail !== undefined
         && !boundedText(stsPayload.authenticationInfo.principalEmail))
-      || !exactObject(stsPayload.metadata, new Set(["mapped_principal"]))
-      || !exactObject(stsPayload.request, new Set(["@type", "grantType"]))
+      || !exactObject(stsPayload.metadata, new Set(["@type", "mapped_principal"]))
+      || stsPayload.metadata["@type"] !== STS_AUDIT_DATA_TYPE
+      || !exactObject(stsPayload.request, STS_REQUEST_REQUIRED)
       || stsPayload.request["@type"] !== "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest"
       || stsPayload.request.grantType !== "urn:ietf:params:oauth:grant-type:token-exchange"
+      || stsPayload.request.subjectTokenType !== STS_SUBJECT_TOKEN_TYPE
+      || stsPayload.request.requestedTokenType !== STS_REQUESTED_TOKEN_TYPE
+      || stsPayload.request.audience !== `//iam.googleapis.com/${provider}`
       || (stsPayload.status !== undefined && !exactObject(stsPayload.status, new Set()))
       || typeof idpSubject !== "string" || !idpSubject || typeof mappedPrincipal !== "string"
       || !mappedPrincipal.startsWith(principalPrefix) || mappedPrincipal.length === principalPrefix.length
@@ -165,10 +184,11 @@ export function parseWifAuditEvidence(auditLog) {
       || stsLabels.method !== stsPayload.methodName || stsLabels.service !== "sts.googleapis.com"
       || iamPayload["@type"] !== "type.googleapis.com/google.cloud.audit.AuditLog"
       || (iamPayload.serviceName !== undefined && iamPayload.serviceName !== "iamcredentials.googleapis.com")
-      || !boundedObject(iamPayload.authenticationInfo, PRINCIPAL_REQUIRED, OPTIONAL_PRINCIPAL_FIELDS)
-      || (iamPayload.authenticationInfo.principalEmail !== undefined
-        && !boundedText(iamPayload.authenticationInfo.principalEmail))
-      || iamPayload.authenticationInfo.principalSubject !== mappedPrincipal
+      || !boundedObject(iamPayload.authenticationInfo, IAM_PRINCIPAL_REQUIRED, OPTIONAL_IAM_PRINCIPAL_FIELDS)
+      || !boundedText(iamPayload.authenticationInfo.principalEmail)
+      || iamPayload.authenticationInfo.principalEmail !== serviceAccountEmail
+      || (iamPayload.authenticationInfo.principalSubject !== undefined
+        && iamPayload.authenticationInfo.principalSubject !== mappedPrincipal)
       || !boundedObject(iamPayload.request, IAM_REQUEST_REQUIRED, OPTIONAL_IAM_REQUEST_FIELDS)
       || (iamPayload.request.lifetime !== undefined && !boundedText(iamPayload.request.lifetime))
       || (iamPayload.request.scope !== undefined && (!Array.isArray(iamPayload.request.scope)

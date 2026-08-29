@@ -1298,7 +1298,10 @@ test("GCP evidence reader collects one exact canonical WIF audit projection", as
   assert.deepEqual(JSON.parse(projection), audit);
   assert.deepEqual(JSON.parse(projection).entries[0].protoPayload.request, {
     "@type": "type.googleapis.com/google.identity.sts.v1.ExchangeTokenRequest",
+    audience: "//iam.googleapis.com/projects/3/locations/global/workloadIdentityPools/keyless/providers/github",
     grantType: "urn:ietf:params:oauth:grant-type:token-exchange",
+    requestedTokenType: "urn:ietf:params:oauth:token-type:access_token",
+    subjectTokenType: "urn:ietf:params:oauth:token-type:jwt",
   });
   assert.equal(requestBody.pageSize, 2);
   assert.match(requestBody.filter, /ExchangeToken/);

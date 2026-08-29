@@ -25,6 +25,29 @@ Authenticated pending issuance and the scoped KMS signature were correctly not a
 
 If any condition is absent, use a narrower claim or state that the evidence is pending.
 
+## Audit-shape correction, 2026-08-29
+
+The WIF audit checks were originally written against Google's published Workload Identity audit-log
+examples. Recording this project's own live exchanges proved that the real logs differ in four ways,
+three of them written by Google's servers and unreachable from any workflow change. The recorded bytes
+are committed under `docs/evidence/forensics/` and the corrected checks are exercised against them in
+`test/wif-audit-real-bytes.test.mjs`.
+
+Three corrections are strictly stronger than what they replaced: the STS request is now pinned across
+all five fields Google actually logs, with `audience` bound to the verified provider and both token
+types bound to their exact constants; the STS metadata type is now pinned; and the IdP subject is now
+built from the manifest's already-validated numeric owner and repository IDs, so a rename cannot forge
+it.
+
+One correction is an honest trade, stated plainly: a federated `GenerateAccessToken` is attributed by
+Google to the impersonated service account, carrying `principalEmail` and never the `principalSubject`
+the check originally required. That entry alone therefore no longer proves the federated principal
+made the call. It is now bound to the expected deploy service account instead, and the surrounding
+controls that still bind the grant to this transaction are the exactly-two-entry audit window, the
+window's own start and end bounds, the STS `mapped_principal` recorded milliseconds earlier, the
+provider's attribute condition, and the Cloud Run revision readback. `principalSubject` remains
+required on the STS entry and is still checked on the IAM entry whenever Google supplies it.
+
 ## Honest limitations
 
 - Supports only the exact v1 workflow shape in the support matrix.
