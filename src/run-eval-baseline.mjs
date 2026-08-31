@@ -26,7 +26,9 @@ const PROJECT = process.env.GOOGLE_CLOUD_PROJECT ?? "keyless-k0-20260813";
 const outputPath = process.argv[2];
 if (!outputPath) throw new Error("usage: node src/run-eval-baseline.mjs baseline-predictions.json");
 
-const accessToken = execFileSync("gcloud", ["auth", "print-access-token"], { encoding: "utf8" }).trim();
+// A fresh token per request so a long run can never misreport auth expiry
+// as model failure.
+const freshAccessToken = () => execFileSync("gcloud", ["auth", "print-access-token"], { encoding: "utf8" }).trim();
 const host = LOCATION === "global" ? "aiplatform.googleapis.com" : `${LOCATION}-aiplatform.googleapis.com`;
 const endpoint = `https://${host}/v1/projects/${PROJECT}/locations/${LOCATION}/endpoints/openapi/chat/completions`;
 
@@ -37,7 +39,7 @@ function createBaselineInvoker({ instruction, lane }) {
     validateRedactedEvidenceBundle(bundle);
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
+      headers: { authorization: `Bearer ${freshAccessToken()}`, "content-type": "application/json" },
       body: JSON.stringify({
         model: BASELINE_MODEL,
         temperature: 0,
