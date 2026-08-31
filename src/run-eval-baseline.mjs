@@ -29,6 +29,9 @@ if (!outputPath) throw new Error("usage: node src/run-eval-baseline.mjs baseline
 // A fresh token per request so a long run can never misreport auth expiry
 // as model failure.
 const freshAccessToken = () => execFileSync("gcloud", ["auth", "print-access-token"], { encoding: "utf8" }).trim();
+// Fail fast before any case is scored: a missing gcloud binary or logged-out
+// CLI must abort the run, never surface as per-case INVOCATION_REJECTED.
+freshAccessToken();
 const host = LOCATION === "global" ? "aiplatform.googleapis.com" : `${LOCATION}-aiplatform.googleapis.com`;
 const endpoint = `https://${host}/v1/projects/${PROJECT}/locations/${LOCATION}/endpoints/openapi/chat/completions`;
 
