@@ -4,6 +4,16 @@
 
 Keyless Cutover is a Taskmaster-track project for one risky security transaction: replace a long-lived Google service-account key used by a GitHub Actions deployment with narrowly bound Workload Identity Federation, prove deployment continuity and hostile-identity denial, require humans at the IAM, merge, and key-disable boundaries, and produce a reconstructable receipt.
 
+## Judge quick start
+
+No credentials, no build, under a minute:
+
+1. **Open the live evidence console:** <https://keyless-evidence-208865688014.us-central1.run.app> — every gate links to a real GitHub run or Google audit entry.
+2. **See the attack matrix:** [eight hostile attempts, all denied](https://github.com/trustphoneapp/keyless-cutover/actions/runs/32889506466).
+3. **See the keyless deploy:** [run 32892682978](https://github.com/trustphoneapp/keyless-cutover/actions/runs/32892682978), seven minutes after the key was disabled.
+
+To validate locally (Node >= 22): `npm ci --legacy-peer-deps --ignore-scripts && npm test`. Full instructions in [Development](#development).
+
 ## The problem
 
 In 2025 alone, 28.65 million new hardcoded secrets landed in public GitHub commits, and 64% of the credentials found valid in 2022 were still live and exploitable four years later. One leaked vendor API key reached over 3,000 US Treasury files. A key left in a repo cost Uber 57 million user records and its security chief a federal conviction. Two-thirds of the Forbes AI 50 have leaked verified secrets.
